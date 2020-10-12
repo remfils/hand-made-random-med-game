@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <xinput.h>
+#include <dsound.h>
 
 typedef uint8_t uint8;
 typedef uint16_t uint16;
@@ -10,15 +11,21 @@ typedef int8_t  int8;
 typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
+typedef int32 bool32;
 
-static int GlobalXOffset = 0;
-static int GlobalYOffset = 0;
+#define internal static
+#define local_persist static
+#define global_variable static
 
-static bool isUpPressed = 0;
-static bool isDownPressed = 0;
-static bool isLeftPressed = 0;
-static bool isRightPressed = 0;
+global_variable int GlobalXAcl = 0;
+global_variable int GlobalYAcl = 0;
 
+global_variable int  GlobalXOffset   = 0;
+global_variable int  GlobalYOffset   = 0;
+global_variable bool isUpPressed     = 0;
+global_variable bool isDownPressed   = 0;
+global_variable bool isLeftPressed   = 0;
+global_variable bool isRightPressed  = 0;
 
 struct win32_offscreen_buffer
 {
@@ -39,7 +46,7 @@ static win32_offscreen_buffer globalBackbuffer;
 typedef X_INPUT_GET_STATE(x_input_get_state);
 X_INPUT_GET_STATE(XInputGetStateStub)
 {
-    return(0);
+    return(ERROR_DEVICE_NOT_CONNECTED);
 }
 static x_input_get_state *XInputGetState_ = XInputGetStateStub;
 #define XInputGetState XInputGetState_
@@ -51,15 +58,23 @@ typedef X_INPUT_SET_STATE(x_input_set_state);
 
 X_INPUT_SET_STATE(XInputSetStateStub)
 {
-    return(0);
+    return(ERROR_DEVICE_NOT_CONNECTED);
 }
 static x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
+// DirectSoundCreate
+#define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
+typedef DIRECT_SOUND_CREATE(direct_sound_create);
+
 static void
 Win32LoadXInput(void)
 {
-    HMODULE xInputLibrary = LoadLibrary("xinput1_3.dll");
+    HMODULE xInputLibrary = LoadLibrary("xinput1_4.dll");
+    if (!xInputLibrary)
+    {
+        xInputLibrary = LoadLibrary("xinput1_3.dll");
+    }
 
     if (xInputLibrary)
     {
@@ -95,6 +110,82 @@ struct win32_window_dimension
     int Width;
     int Height;
 };
+
+internal void
+Win32InitDirectSound(HWND window, int32 bufferSize, int32 samplesPerSecond)
+{
+    // load library. Game can be run without sound
+
+    HMODULE directSoundLib = LoadLibraryA("dsound.dll");
+
+    if (directSoundLib)
+    {
+        WAVEFORMATEX waveFormat;
+        waveFormat.wFormatTag      = WAVE_FORMAT_PCM;
+        waveFormat.nChannels       = 2;
+        waveFormat.nSamplesPerSec  = samplesPerSecond;
+        waveFormat.wBitsPerSample  = 16;
+        waveFormat.nBlockAlign     = (waveFormat.nChannels * waveFormat.wBitsPerSample) / 8;
+        waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
+        waveFormat.cbSize          = 0;
+                    
+        
+        // get DirectSound object (cooperative)
+ 
+        direct_sound_create *DirectSoundCreate = (direct_sound_create *) GetProcAddress(directSoundLib, "DirectSoundCreate");
+
+        LPDIRECTSOUND directSound;
+        if (DirectSoundCreate && SUCCEEDED(DirectSoundCreate(0, &directSound, 0)))
+        {
+            if (SUCCEEDED(directSound->SetCooperativeLevel(window, DSSCL_PRIORITY)))
+            {
+                // create a primary buffer
+                
+                DSBUFFERDESC bufferDescription = {};
+                bufferDescription.dwSize = sizeof(bufferDescription);
+                bufferDescription.dwFlags = DSBCAPS_PRIMARYBUFFER;
+                
+                LPDIRECTSOUNDBUFFER primaryBuffer;
+
+                HRESULT Error = directSound->CreateSoundBuffer(&bufferDescription, &primaryBuffer, 0);
+                if (SUCCEEDED(Error))
+                {
+                    if (SUCCEEDED(primaryBuffer->SetFormat(&waveFormat)))
+                    {
+                        
+                    }
+                    else
+                    {
+                        
+                    }
+                }
+
+                
+            }
+            else
+            {
+                
+            }
+            
+            DSBUFFERDESC bufferDescription = {};
+            bufferDescription.dwSize = sizeof(bufferDescription);
+            bufferDescription.dwFlags = DSBCAPS_GETCURRENTPOSITION2;
+            bufferDescription.dwBufferBytes = bufferSize;
+            bufferDescription.lpwfxFormat = &waveFormat;
+            LPDIRECTSOUNDBUFFER secondaryBuffer;
+            if (SUCCEEDED(directSound->CreateSoundBuffer(&bufferDescription, &secondaryBuffer, 0)))
+            {
+                
+            }
+        }
+        else
+        {
+            // log
+        }
+    }
+
+    
+}
 
 win32_window_dimension
 Win32GetWindowDimension(HWND window)
@@ -265,6 +356,14 @@ MainWindowCallback(HWND window,
             {
             
             }
+            else if (virtualKeyCode == VK_F4)
+            {
+                bool32 isAlt = (lParam & (1 << 29));
+                if (isAlt)
+                {
+                    running = false;
+                }
+            }
         }
 
         
@@ -313,6 +412,8 @@ int CALLBACK WinMain(
         if (windowHandle)
         {
             int xOffset = 0;
+
+            Win32InitDirectSound(windowHandle, 48000, 48000 * sizeof(int16) * 2);
 
             running = true;
             while(running)
@@ -373,20 +474,43 @@ int CALLBACK WinMain(
 
                 if (isLeftPressed)
                 {
-                    GlobalXOffset += 2;
+                    GlobalXAcl += 1;
                 }
                 if (isRightPressed)
                 {
-                    GlobalXOffset -= 2;
+                    GlobalXAcl -= 1;
                 }
                 if (isUpPressed)
                 {
-                    GlobalYOffset += 2;
+                    GlobalYAcl += 1;
                 }
                 if (isDownPressed)
                 {
-                    GlobalYOffset -= 2;
+                    GlobalYAcl -= 1;
                 }
+
+                if (GlobalXAcl > 100)
+                {
+                    GlobalXAcl = 100;
+                }
+                if (GlobalXAcl < -100)
+                {
+                    GlobalXAcl = -100;
+                }
+
+                if (GlobalYAcl > 100)
+                {
+                    GlobalYAcl = 100;
+                }
+                if (GlobalYAcl < -100)
+                {
+                    GlobalYAcl = -100;
+                }
+
+                
+
+                GlobalXOffset += GlobalXAcl / 25;
+                GlobalYOffset += GlobalYAcl / 25;
 
                 RenderGradient(&globalBackbuffer, GlobalXOffset, GlobalYOffset);
 
