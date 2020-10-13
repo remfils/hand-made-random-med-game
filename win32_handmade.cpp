@@ -33,6 +33,9 @@ global_variable bool isDownPressed   = 0;
 global_variable bool isLeftPressed   = 0;
 global_variable bool isRightPressed  = 0;
 
+global_variable bool isUpKeyPressed  = 0;
+global_variable bool isDownKeyPressed = 0;
+
 global_variable int Hz = 400;
 
 struct win32_offscreen_buffer
@@ -333,11 +336,11 @@ MainWindowCallback(HWND window,
             }
             else if (virtualKeyCode == VK_UP)
             {
-                Hz += 10;
+                isUpKeyPressed = isDown;
             }
             else if (virtualKeyCode == VK_DOWN)
             {
-                Hz -= 10;
+                isDownKeyPressed = isDown;
             }
             else if (virtualKeyCode == VK_RIGHT)
             {
@@ -393,6 +396,7 @@ struct win32_sound_output
     int bytesPerSample;
     int secondaryBufferSize;
     real32 t;
+    int LatencySampleCount;
 };
 
 internal void
@@ -515,11 +519,15 @@ int CALLBACK WinMain(
             soundOutput.samplesPerSecond = 48000;
             soundOutput.runningSampleIndex = 0;
             soundOutput.wavePeriod = soundOutput.samplesPerSecond / Hz;
+            soundOutput.LatencySampleCount = soundOutput.samplesPerSecond / 20;
             soundOutput.halfWavePeriod = soundOutput.wavePeriod / 2;
             soundOutput.bytesPerSample = sizeof(int16) * 2;
             soundOutput.secondaryBufferSize = soundOutput.samplesPerSecond * soundOutput.bytesPerSample;
 
             Win32InitDirectSound(windowHandle, soundOutput.secondaryBufferSize, soundOutput.samplesPerSecond);
+
+            Win32FillSoundBuffer(&soundOutput, 0, soundOutput.LatencySampleCount * soundOutput.bytesPerSample);
+            globalSecondaryBuffer->Play(0,0,DSBPLAY_LOOPING);
 
             running = true;
             while(running)
@@ -564,6 +572,9 @@ int CALLBACK WinMain(
 
                         int16 stickX = pad->sThumbLX;
                         int16 stickY = pad->sThumbLY;
+
+
+                        Hz = 512 + (int)(256.0f * (stickY / 30000.0f));
                     }
                     else
                     {
@@ -630,27 +641,19 @@ int CALLBACK WinMain(
                 if (SUCCEEDED(error))
                 {
                     DWORD byteToLock = (soundOutput.runningSampleIndex * soundOutput.bytesPerSample) % soundOutput.secondaryBufferSize;
+                    DWORD targetCursor = (playCursor +
+                        (soundOutput.LatencySampleCount * soundOutput.bytesPerSample)) % soundOutput.secondaryBufferSize;
                     DWORD bytesToWrite;
 
-                    if (byteToLock == playCursor)
-                    {
-                        if (soundIsPlaying)
-                        {
-                            bytesToWrite = 0;
-                        }
-                        else
-                        {
-                            bytesToWrite = soundOutput.secondaryBufferSize;
-                        }
-                    }
-                    else if (byteToLock > playCursor)
+                    
+                    if (byteToLock > targetCursor)
                     {
                         bytesToWrite = soundOutput.secondaryBufferSize - byteToLock;
-                        bytesToWrite += playCursor;
+                        bytesToWrite += targetCursor;
                     }
                     else
                     {
-                        bytesToWrite = playCursor - byteToLock;
+                        bytesToWrite = targetCursor - byteToLock;
                     }
 
                     Win32FillSoundBuffer(&soundOutput, byteToLock, bytesToWrite);
