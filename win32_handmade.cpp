@@ -1,11 +1,26 @@
-#include <windows.h>
-#include <stdint.h>
-#include <xinput.h>
-#include <dsound.h>
-#include <stdio.h>
+/*
+  TODO: this is not a platform layer
 
-// todo: remove
-#include <math.h>
+  - saved game locations (save state)
+  - getting a handle to our own exec file
+  - asset loading path
+  - threading
+  - raw input (support for multiple keyboard)
+  - sleep/timebeginperiod
+  - clipcursor - multimonitor support
+  - fullscreen
+  - WM_SETCURSOR - control cursor visible
+  - blit speed 
+  - hardware acceleration
+  - GetKeyboardLayout for international support
+
+  just a partial list of stuff
+ */
+#include <stdint.h>
+
+#define internal static
+#define local_persist static
+#define global_variable static
 
 typedef uint8_t uint8;
 typedef uint16_t uint16;
@@ -19,11 +34,17 @@ typedef int32 bool32;
 typedef float real32;
 typedef double real64;
 
-#define internal static
-#define local_persist static
-#define global_variable static
-
 #define Pi32 3.1415926535f
+
+#include "handmade.cpp"
+
+#include <windows.h>
+#include <xinput.h>
+#include <dsound.h>
+#include <stdio.h>
+
+// todo: remove
+#include <math.h>
 
 global_variable int  GlobalXAcl        = 0;
 global_variable int  GlobalYAcl        = 0;
@@ -87,28 +108,6 @@ Win32InitXInput(void)
     {
         XInputGetState = (x_input_get_state *)GetProcAddress(xInputLibrary, "XInputGetState");
         XInputSetState = (x_input_set_state *)GetProcAddress(xInputLibrary, "XInputSetState");
-    }
-}
-
-static void
-RenderGradient(win32_offscreen_buffer *buffer, int xOffset, int yOffset)
-{
-    int bytesPerPixel = 4;
-    
-    uint8 *row = (uint8 *)buffer->Memory;
-    for (int y=0; y < buffer->Height; ++y)
-    {
-         uint32 *pixel = (uint32 *)row;
-
-        for (int x=0; x < buffer->Width; ++x)
-        {
-            uint8 b = x + xOffset;
-            uint8 g = y + yOffset;
-
-            *pixel++ = ((g << 8) | b);
-        }
-
-        row += buffer->Pitch;
     }
 }
 
@@ -637,7 +636,14 @@ int CALLBACK WinMain(
                 GlobalXOffset += GlobalXAcl / 25;
                 GlobalYOffset += GlobalYAcl / 25;
 
-                RenderGradient(&globalBackbuffer, GlobalXOffset, GlobalYOffset);
+                game_offscreen_buffer buf;
+                buf.Memory = globalBackbuffer.Memory;
+                buf.Width = globalBackbuffer.Width;
+                buf.Height = globalBackbuffer.Height;
+                buf.Pitch = globalBackbuffer.Pitch;
+                buf.BytesPerPixel = globalBackbuffer.BytesPerPixel;
+
+                GameUpdateAndRender(&buf);
 
                 // direct sound output test
 
@@ -688,6 +694,8 @@ int CALLBACK WinMain(
                 real32 msPerFrame = (real32)((1000.0f * (real32)counterElapsed) / (real32)perfCounterFrequency);
                 real32 FPS = (real32)((real32)perfCounterFrequency / (real32)counterElapsed);
 
+                #if 0
+
                 uint64 endCycleCount = __rdtsc();
                 real32 megaCyclesElapsed = (real32)((real32)endCycleCount - (real32)lastCycleCount) / (1000.0f * 1000.0f);
 
@@ -697,6 +705,7 @@ int CALLBACK WinMain(
 
                 lastCounter = endCounter;
                 lastCycleCount = endCycleCount;
+                #endif
             }
         }
         else
