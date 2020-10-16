@@ -38,7 +38,9 @@ typedef double real64;
 
 #define Pi32 3.1415926535f
 
+#include "handmade.h"
 #include "handmade.cpp"
+
 #include <malloc.h>
 
 #include <windows.h>
@@ -532,6 +534,21 @@ int CALLBACK WinMain(
             uint64 lastCycleCount =  __rdtsc();
 
             int16 *samples = (int16 *)VirtualAlloc(0, soundOutput.secondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+            game_memory gameMemory = {};
+            gameMemory.PermanentStorageSize = Megabytes(64);
+            gameMemory.TransientStorageSize = Gigabytes((uint64)4);
+
+            #if HANDMADE_INTERNAL
+            LPVOID baseAddress = (LPVOID)Terabytes((uint64)2);
+            #else
+            LPVOID baseAddress = 0;
+            #endif
+
+            uint64 totalSize = gameMemory.PermanentStorageSize + gameMemory.TransientStorageSize;
+            gameMemory.PermanentStorage = (void *)VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            gameMemory.TransientStorage = (uint8 *)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
+            
             
             running = true;
             while(running)
@@ -585,7 +602,9 @@ int CALLBACK WinMain(
                         {
                             xPad = (real32)pad->sThumbLX / 32767.0f;
                         }
-
+                        newController->StartX = oldController->EndX;
+                        newController->MinX = newController->MaxX = newController->EndX = xPad;
+                        
                         real32 yPad;
                         if (pad->sThumbLY < 0)
                         {
@@ -595,11 +614,7 @@ int CALLBACK WinMain(
                         {
                             yPad = (real32)pad->sThumbLY / 32767.0f;
                         }
-
-                        newController->StartX = oldController->EndX;
                         newController->StartY = oldController->EndY;
-
-                        newController->MinX = newController->MaxX = newController->EndX = xPad;
                         newController->MinY = newController->MaxY = newController->EndY = yPad;
 
                         Win32ProcessXInputDigitalButton(pad->wButtons,
@@ -718,7 +733,7 @@ int CALLBACK WinMain(
                 buf.Height = globalBackbuffer.Height;
                 buf.Pitch = globalBackbuffer.Pitch;
                 buf.BytesPerPixel = globalBackbuffer.BytesPerPixel;
-                GameUpdateAndRender(&buf, &soundBuffer, newInput);
+                GameUpdateAndRender(&gameMemory, &buf, &soundBuffer, newInput);
 
                 if (soundIsValid)
                 {

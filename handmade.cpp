@@ -1,5 +1,3 @@
-#include "handmade.h"
-
 internal void
 GameOutputSound(game_sound_output_buffer *soundBuffer, int toneHz)
 {
@@ -43,44 +41,57 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
 }
 
 internal void
-GameUpdateAndRender(game_offscreen_buffer *buffer, game_sound_output_buffer *soundBuffer, game_input *input)
+GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_sound_output_buffer *soundBuffer, game_input *input)
 {
-    local_persist int xOffset = 0;
-    local_persist int yOffset = 0;
-    local_persist int toneHz = 512;
+    // local_persist int xOffset = 0;
+    // local_persist int yOffset = 0;
+    // local_persist int toneHz = 512;
+
+    Assert(sizeof(game_state) <= memory->PermanentStorageSize);
+    
+    game_state *gameState = (game_state *)memory->PermanentStorage;
+
+    if (!memory->IsInitialized)
+    {
+        gameState->XOffset = 0;
+        gameState->YOffset = 0;
+        gameState->ToneHz = 256;
+        
+        memory->IsInitialized = 1;
+    }
 
     game_controller_input *input0 = &input->Controllers[0];
 
     if (input0->IsAnalog)
     {
-        toneHz = 256 + (int) (128.0f * input0->EndX);
-        xOffset -= (int)(4.0f * input0->EndX);
-        yOffset += (int)(4.0f * input0->EndY);
+        gameState->ToneHz = 256 + (int) (128.0f * input0->EndX);
+        gameState->XOffset -= (int)(4.0f * input0->EndX);
+        gameState->YOffset += (int)(4.0f * input0->EndY);
     }
     else
     {
         if (input0->Up.EndedDown)
         {
-            yOffset += 1;
+            gameState->YOffset += 1;
         }
         if (input0->Down.EndedDown)
         {
-            yOffset -= 1;
+            gameState->YOffset -= 1;
         }
         if (input0->Left.EndedDown)
         {
-            xOffset += 1;
+            gameState->XOffset += 1;
         }
         if (input0->Right.EndedDown)
         {
-            xOffset -= 1;
+            gameState->XOffset -= 1;
         }
         
     }
     
     // todo: allow sample offsets for more platform options
-    GameOutputSound(soundBuffer, toneHz);
+    GameOutputSound(soundBuffer, gameState->ToneHz);
     
-    RenderGradient(buffer, xOffset, yOffset);
+    RenderGradient(buffer, gameState->XOffset, gameState->YOffset);
 }
 
