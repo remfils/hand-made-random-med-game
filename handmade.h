@@ -7,4 +7,11 @@ struct game_offscreen_buffer
     int BytesPerPixel = 4;
 };
 
-void GameUpdateAndRender(void);
+struct game_sound_output_buffer
+{
+    int16 *Samples;
+    int SampleCount;
+    int SamplesPerSecond;
+};
+
+void GameUpdateAndRender(game_offscreen_buffer *buffer, game_sound_output_buffer *soundBuffer);
