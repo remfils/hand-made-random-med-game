@@ -174,6 +174,106 @@ Win32DisplayBufferInWindow(HDC deviceContext, int windowWidth, int windowHeight,
         );   
 }
 
+#if HANDMADE_INTERNAL
+internal void
+Debug_PlatformFreeFileMemory(void *memory)
+{
+    if (memory)
+    {
+        VirtualFree(memory, 0, MEM_RELEASE);
+    }
+}
+
+internal debug_read_file_result
+Debug_PlatformReadEntireFile(char *filename)
+{
+    debug_read_file_result result = {};
+    
+    HANDLE fileHandle = CreateFileA(
+        filename,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        0,
+        OPEN_EXISTING,
+        0,
+        0);
+    
+
+    if (fileHandle != INVALID_HANDLE_VALUE)
+    {
+        LARGE_INTEGER fileSize;
+        if (GetFileSizeEx(fileHandle, &fileSize))
+        {
+            uint32 fileSize32 = SafeTruncateUInt64(fileSize.QuadPart);
+                
+            result.Content = VirtualAlloc(0, fileSize32, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            
+
+            if (result.Content)
+            {
+                DWORD bytesRead;
+                if (ReadFile(fileHandle, result.Content, fileSize32, &bytesRead, 0) && (fileSize32 == bytesRead))
+                {
+                    result.ContentSize = bytesRead;
+                    // success
+                }
+                else
+                {
+                    Debug_PlatformFreeFileMemory(result.Content);
+                    result.Content = 0;
+                }
+
+            }
+            else
+            {
+            
+            }
+        }
+        else
+        {
+        
+        }
+    }
+
+    CloseHandle(fileHandle);
+
+    return result;
+}
+
+
+bool32
+Debug_PlatformWriteEntireFile(char *filename, uint32 memorySize, void *memory)
+{
+    bool32 result = false;
+    
+    HANDLE fileHandle = CreateFileA(
+        filename,
+        GENERIC_WRITE,
+        0,
+        0,
+        CREATE_ALWAYS,
+        0,
+        0);
+    
+
+    if (fileHandle != INVALID_HANDLE_VALUE)
+    {
+        DWORD bytesWritten;
+        if (WriteFile(fileHandle, memory, memorySize, &bytesWritten, 0))
+        {
+            result = memorySize == bytesWritten;
+        }
+        else
+        {
+            
+        }
+    }
+
+    CloseHandle(fileHandle);
+
+    return(result);
+}
+#endif
 
 
 LRESULT CALLBACK

@@ -56,6 +56,14 @@ GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_sou
         gameState->XOffset = 0;
         gameState->YOffset = 0;
         gameState->ToneHz = 256;
+
+        char *fileName = __FILE__;
+        debug_read_file_result fileResult = Debug_PlatformReadEntireFile(fileName);
+        if (fileResult.Content)
+        {
+            Debug_PlatformWriteEntireFile("test.txt", fileResult.ContentSize, fileResult.Content);
+            Debug_PlatformFreeFileMemory(fileResult.Content);
+        }
         
         memory->IsInitialized = 1;
     }

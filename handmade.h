@@ -9,10 +9,10 @@
         1 - can be less performant
  */
 
-#define Kilobytes(val) ((val)*1024)
-#define Megabytes(val) (Kilobytes((val)*1024))
-#define Gigabytes(val) (Megabytes((val)*1024))
-#define Terabytes(val) (Gigabytes((val)*1024))
+#define Kilobytes(val) ((val)*1024LL)
+#define Megabytes(val) (Kilobytes((val)*1024LL))
+#define Gigabytes(val) (Megabytes((val)*1024LL))
+#define Terabytes(val) (Gigabytes((val)*1024LL))
 #define ArrayCount(array) (sizeof(array) / sizeof((array)[0]))
 
 #if HANDMADE_SLOW
@@ -20,6 +20,25 @@
     if (!(expression)) {*(int *)0 = 0;}
 #else
 #define Assert(expression)
+#endif
+
+inline uint32
+SafeTruncateUInt64(uint64 value)
+{
+    Assert(value <= 0xFFFFFFFF);
+    uint32 result = (uint32)value;
+    return (result);
+}
+
+#if HANDMADE_INTERNAL
+struct debug_read_file_result
+{
+    void *Content;
+    uint32 ContentSize;
+};
+void Debug_PlatformFreeFileMemory(void *memory);
+debug_read_file_result Debug_PlatformReadEntireFile(char *filename);
+bool32 Debug_PlatformWriteEntireFile(char *filename, uint32 memorySize, void *memory);
 #endif
 
 struct game_offscreen_buffer
