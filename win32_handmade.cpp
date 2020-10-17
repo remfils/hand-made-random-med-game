@@ -540,6 +540,97 @@ Win32ProcessXInputDigitalButton(DWORD xInputButtonState, game_button_state *oldS
 }
 
 internal void
+Win32ProcessWindowMessages(game_controller_input *keyboardController)
+{
+    MSG message;
+    while(PeekMessage(&message, 0, 0, 0, PM_REMOVE))
+    {
+        if (message.message == WM_QUIT)
+        {
+            running = false;
+        }
+
+        switch(message.message)
+        {
+        case WM_SYSKEYDOWN:
+        case WM_SYSKEYUP:
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        {
+            uint32 virtualKeyCode = (uint32)message.wParam;
+            bool wasDown = ((message.lParam & (1 << 30)) != 0);
+            bool isDown ((message.lParam & (1 << 31)) == 0);
+
+            if (isDown != wasDown)
+            {
+                if (virtualKeyCode == 'W')
+                {
+                                
+                }
+                else if (virtualKeyCode == 'A')
+                {
+                                
+                }
+                else if (virtualKeyCode == 'S')
+                {
+                                
+                }
+                else if (virtualKeyCode == 'D')
+                {
+                                
+                }
+                else if (virtualKeyCode == 'Q')
+                {
+                    Win32ProcessKeyboardButtonPress(&keyboardController->LeftShoulder, isDown);
+                }
+                else if (virtualKeyCode == 'E')
+                {
+                    Win32ProcessKeyboardButtonPress(&keyboardController->RightShoulder, isDown);
+                }
+                else if (virtualKeyCode == VK_UP)
+                {
+                    Win32ProcessKeyboardButtonPress(&keyboardController->Up, isDown);
+                }
+                else if (virtualKeyCode == VK_DOWN)
+                {
+                    Win32ProcessKeyboardButtonPress(&keyboardController->Down, isDown);
+                }
+                else if (virtualKeyCode == VK_RIGHT)
+                {
+                    Win32ProcessKeyboardButtonPress(&keyboardController->Right, isDown);
+                }
+                else if (virtualKeyCode == VK_LEFT)
+                {
+                    Win32ProcessKeyboardButtonPress(&keyboardController->Left, isDown);
+                }
+                else if (virtualKeyCode == VK_SPACE)
+                {
+            
+                }
+                else if (virtualKeyCode == VK_ESCAPE)
+                {
+                    running = false;
+                }
+                else if (virtualKeyCode == VK_F4)
+                {
+                    bool32 isAlt = (message.lParam & (1 << 29));
+                    if (isAlt)
+                    {
+                        running = false;
+                    }
+                }
+            }
+        
+        } break;
+        default:
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+                   
+    }
+}
+
+internal void
 Win32FillSoundBuffer(win32_sound_output *soundOutput, DWORD byteToLock, DWORD bytesToWrite, game_sound_output_buffer *sourceBuffer)
 {
     void *region1;
@@ -661,97 +752,11 @@ int CALLBACK WinMain(
             running = true;
             while(running)
             {
-                MSG message;
-
                 game_controller_input *keyboardController = &newInput->Controllers[0];
                 game_controller_input zeroController = {};
                 *keyboardController = zeroController;
 
-                while(PeekMessage(&message, 0, 0, 0, PM_REMOVE))
-                {
-                    if (message.message == WM_QUIT)
-                    {
-                        running = false;
-                    }
-
-                    switch(message.message)
-                    {
-                    case WM_SYSKEYDOWN:
-                    case WM_SYSKEYUP:
-                    case WM_KEYDOWN:
-                    case WM_KEYUP:
-                    {
-                        uint32 virtualKeyCode = (uint32)message.wParam;
-                        bool wasDown = ((message.lParam & (1 << 30)) != 0);
-                        bool isDown ((message.lParam & (1 << 31)) == 0);
-
-                        if (isDown != wasDown)
-                        {
-                            if (virtualKeyCode == 'W')
-                            {
-                                
-                            }
-                            else if (virtualKeyCode == 'A')
-                            {
-                                
-                            }
-                            else if (virtualKeyCode == 'S')
-                            {
-                                
-                            }
-                            else if (virtualKeyCode == 'D')
-                            {
-                                
-                            }
-                            else if (virtualKeyCode == 'Q')
-                            {
-                                Win32ProcessKeyboardButtonPress(&keyboardController->LeftShoulder, isDown);
-                            }
-                            else if (virtualKeyCode == 'E')
-                            {
-                                Win32ProcessKeyboardButtonPress(&keyboardController->RightShoulder, isDown);
-                            }
-                            else if (virtualKeyCode == VK_UP)
-                            {
-                                Win32ProcessKeyboardButtonPress(&keyboardController->Up, isDown);
-                            }
-                            else if (virtualKeyCode == VK_DOWN)
-                            {
-                                Win32ProcessKeyboardButtonPress(&keyboardController->Down, isDown);
-                            }
-                            else if (virtualKeyCode == VK_RIGHT)
-                            {
-                                Win32ProcessKeyboardButtonPress(&keyboardController->Right, isDown);
-                            }
-                            else if (virtualKeyCode == VK_LEFT)
-                            {
-                                Win32ProcessKeyboardButtonPress(&keyboardController->Left, isDown);
-                            }
-                            else if (virtualKeyCode == VK_SPACE)
-                            {
-            
-                            }
-                            else if (virtualKeyCode == VK_ESCAPE)
-                            {
-                                running = false;
-                            }
-                            else if (virtualKeyCode == VK_F4)
-                            {
-                                bool32 isAlt = (message.lParam & (1 << 29));
-                                if (isAlt)
-                                {
-                                    running = false;
-                                }
-                            }
-                        }
-        
-                    } break;
-                    default:
-                        TranslateMessage(&message);
-                        DispatchMessage(&message);
-                    }
-                   
-                }
+                Win32ProcessWindowMessages(keyboardController);
 
                 // should pull this more frequently?
 
