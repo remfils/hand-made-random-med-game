@@ -14,15 +14,13 @@ GameOutputSound(game_sound_output_buffer *soundBuffer, int toneHz)
         *sampleOut++ = sampleValue;
         *sampleOut++ = sampleValue;
         
-        tSine += 2.0 * Pi32 * 1.0f / (real32)wavePeriod;
+        tSine += (real32)(2.0f * Pi32 * 1.0f) / (real32)wavePeriod;
     }
 }
 
 internal void
 RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
 {
-    int bytesPerPixel = 4;
-    
     uint8 *row = (uint8 *)buffer->Memory;
     for (int y=0; y < buffer->Height; ++y)
     {
@@ -30,8 +28,8 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
 
         for (int x=0; x < buffer->Width; ++x)
         {
-            uint8 b = x + xOffset;
-            uint8 g = y + yOffset;
+            uint8 b = (uint8)(x + xOffset);
+            uint8 g = (uint8)(y + yOffset);
 
             *pixel++ = ((g << 8) | b);
         }
@@ -72,29 +70,30 @@ GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_sou
 
     if (input0->IsAnalog)
     {
-        gameState->ToneHz = 256 + (int) (128.0f * input0->EndX);
+        gameState->ToneHz = 256 + (int)(128.0f * input0->EndX);
         gameState->XOffset -= (int)(4.0f * input0->EndX);
         gameState->YOffset += (int)(4.0f * input0->EndY);
     }
     else
     {
-        if (input0->Up.EndedDown)
-        {
-            gameState->YOffset += 1;
-        }
-        if (input0->Down.EndedDown)
-        {
-            gameState->YOffset -= 1;
-        }
-        if (input0->Left.EndedDown)
-        {
-            gameState->XOffset += 1;
-        }
-        if (input0->Right.EndedDown)
-        {
-            gameState->XOffset -= 1;
-        }
         
+    }
+
+    if (input0->Up.EndedDown)
+    {
+        gameState->YOffset += 1;
+    }
+    if (input0->Down.EndedDown)
+    {
+        gameState->YOffset -= 1;
+    }
+    if (input0->Left.EndedDown)
+    {
+        gameState->XOffset += 1;
+    }
+    if (input0->Right.EndedDown)
+    {
+        gameState->XOffset -= 1;
     }
     
     // todo: allow sample offsets for more platform options
