@@ -65,6 +65,7 @@ struct game_button_state
 
 struct game_controller_input
 {
+    bool32 IsConnected;
     bool32 IsAnalog;
     real32 StickAverageX;
     real32 StickAverageY;

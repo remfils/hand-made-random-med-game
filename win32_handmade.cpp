@@ -473,11 +473,11 @@ Win32ProcessXInputLeftStickValue(SHORT stickValue, SHORT stickDeadzoneThreshold)
     
     if (stickValue < -stickDeadzoneThreshold)
     {
-        value = (real32)stickValue / 32768.0f;
+        value = (real32)stickValue / (32768.0f - stickDeadzoneThreshold);
     }
     else if (stickValue > stickDeadzoneThreshold)
     {
-        value = (real32)stickValue / 32767.0f;
+        value = (real32)stickValue / (32767.0f - stickDeadzoneThreshold);
     }
 
     return value;
@@ -703,6 +703,8 @@ int CALLBACK WinMain(
                 game_controller_input zeroController = {};
                 *keyboardController = zeroController;
 
+                keyboardController->IsConnected = true;
+
                 for (int buttonIndex = 0; buttonIndex < ArrayCount(keyboardController->Buttons); ++buttonIndex)
                 {
                     keyboardController->Buttons[buttonIndex].EndedDown = oldKeyboardController->Buttons[buttonIndex].EndedDown;
@@ -727,20 +729,40 @@ int CALLBACK WinMain(
                     if (XInputGetState(controllerIndex, &controllerState) == ERROR_SUCCESS)
                     {
                         // controller is ok
+                        newController->IsConnected = true;
 
                         // look at controllerState.DwPacketNumber
 
                         XINPUT_GAMEPAD *pad = &controllerState.Gamepad;
 
-                        bool dPadUp = (pad->wButtons & XINPUT_GAMEPAD_DPAD_UP);
-                        bool dPadDown = (pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN);
-                        bool dPadLeft = (pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT);
-                        bool dPadRight = (pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT);
-
                         newController->IsAnalog = true ;
 
                         newController->StickAverageX = Win32ProcessXInputLeftStickValue(pad->sThumbLX, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
                         newController->StickAverageY = Win32ProcessXInputLeftStickValue(pad->sThumbLY, XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
+
+                        // process dpad as if it is analog input
+
+                        if (pad->wButtons & XINPUT_GAMEPAD_DPAD_UP)
+                        {
+                            newController->StickAverageY = 1.0f;
+                            newController->IsAnalog = false;
+                        }
+                        if (pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN)
+                        {
+                            newController->StickAverageY = -1.0f;
+                            newController->IsAnalog = false;
+                        }
+                        if (pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT)
+                        {
+                            newController->StickAverageX = -1.0f;
+                            newController->IsAnalog = false;
+                        }
+                        if (pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT)
+                        {
+                            newController->StickAverageX = 1.0f;
+                            newController->IsAnalog = false;
+                        }
+                        
 
                         // process analog input as if it was a dpad
 
@@ -800,7 +822,7 @@ int CALLBACK WinMain(
                     }
                     else
                     {
-                        // controller not available
+                        newController->IsConnected = false;
                     }
 
                     gamePadControllerIndex++;

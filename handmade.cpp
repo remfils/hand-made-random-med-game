@@ -70,11 +70,16 @@ GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_sou
     {
         game_controller_input *inputController = &input->Controllers[controllerIndex];
 
+        if (!inputController->IsConnected)
+        {
+            continue;
+        }
+
         if (inputController->IsAnalog)
         {
             // gameState->ToneHz = 256 + (int)(128.0f * inputController->EndX);
-            // gameState->XOffset -= (int)(4.0f * inputController->StickAverageX);
-            // gameState->YOffset += (int)(4.0f * inputController->StickAverageY);
+            gameState->XOffset -= (int)(4.0f * inputController->StickAverageX);
+            gameState->YOffset += (int)(4.0f * inputController->StickAverageY);
         }
         else
         {
