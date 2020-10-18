@@ -66,34 +66,37 @@ GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_sou
         memory->IsInitialized = 1;
     }
 
-    game_controller_input *input0 = &input->Controllers[0];
+    for (int controllerIndex=0; controllerIndex<ArrayCount(input->Controllers); controllerIndex++)
+    {
+        game_controller_input *inputController = &input->Controllers[controllerIndex];
 
-    if (input0->IsAnalog)
-    {
-        gameState->ToneHz = 256 + (int)(128.0f * input0->EndX);
-        gameState->XOffset -= (int)(4.0f * input0->EndX);
-        gameState->YOffset += (int)(4.0f * input0->EndY);
-    }
-    else
-    {
+        if (inputController->IsAnalog)
+        {
+            // gameState->ToneHz = 256 + (int)(128.0f * inputController->EndX);
+            // gameState->XOffset -= (int)(4.0f * inputController->StickAverageX);
+            // gameState->YOffset += (int)(4.0f * inputController->StickAverageY);
+        }
+        else
+        {
         
-    }
+        }
 
-    if (input0->Up.EndedDown)
-    {
-        gameState->YOffset += 1;
-    }
-    if (input0->Down.EndedDown)
-    {
-        gameState->YOffset -= 1;
-    }
-    if (input0->Left.EndedDown)
-    {
-        gameState->XOffset += 1;
-    }
-    if (input0->Right.EndedDown)
-    {
-        gameState->XOffset -= 1;
+        if (inputController->MoveUp.EndedDown)
+        {
+            gameState->YOffset += 1;
+        }
+        if (inputController->MoveDown.EndedDown)
+        {
+            gameState->YOffset -= 1;
+        }
+        if (inputController->MoveLeft.EndedDown)
+        {
+            gameState->XOffset += 1;
+        }
+        if (inputController->MoveRight.EndedDown)
+        {
+            gameState->XOffset -= 1;
+        }
     }
     
     // todo: allow sample offsets for more platform options
