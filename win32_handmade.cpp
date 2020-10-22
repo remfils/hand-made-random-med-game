@@ -353,8 +353,8 @@ Win32InitDirectSound(HWND window, int32 bufferSize, int32 samplesPerSecond)
                 bufferDescription.dwFlags = DSBCAPS_PRIMARYBUFFER;
                 
                 LPDIRECTSOUNDBUFFER primaryBuffer;
-                HRESULT Error = directSound->CreateSoundBuffer(&bufferDescription, &primaryBuffer, 0);
-                if (SUCCEEDED(Error))
+                HRESULT result = directSound->CreateSoundBuffer(&bufferDescription, &primaryBuffer, 0);
+                if (SUCCEEDED(result))
                 {
                     if (SUCCEEDED(primaryBuffer->SetFormat(&waveFormat)))
                     {
@@ -378,8 +378,8 @@ Win32InitDirectSound(HWND window, int32 bufferSize, int32 samplesPerSecond)
             bufferDescription.dwFlags = DSBCAPS_GETCURRENTPOSITION2;
             bufferDescription.dwBufferBytes = bufferSize;
             bufferDescription.lpwfxFormat = &waveFormat;
-            HRESULT error = directSound->CreateSoundBuffer(&bufferDescription, &globalSecondaryBuffer, 0);
-            if (SUCCEEDED(error))
+            HRESULT result = directSound->CreateSoundBuffer(&bufferDescription, &globalSecondaryBuffer, 0);
+            if (SUCCEEDED(result))
             {
                 OutputDebugStringA("this is test");
             }
@@ -401,11 +401,11 @@ Win32ClearSoundBuffer(win32_sound_output *soundOutput)
     void *region2;
     DWORD regionSize2;
     
-    HRESULT error = globalSecondaryBuffer->Lock(0, soundOutput->secondaryBufferSize,
+    HRESULT result = globalSecondaryBuffer->Lock(0, soundOutput->secondaryBufferSize,
         &region1, &regionSize1, &region2, &regionSize2,
         0);
 
-    if (SUCCEEDED(error))
+    if (SUCCEEDED(result))
     {
         uint8 *destSample = (uint8 *)region1;
         for (DWORD byteIndex = 0; byteIndex < regionSize1; ++byteIndex)
@@ -418,6 +418,47 @@ Win32ClearSoundBuffer(win32_sound_output *soundOutput)
         {
             *destSample++ = 0;
         } 
+
+        globalSecondaryBuffer->Unlock(region1, regionSize1, region2, regionSize2);
+    }
+}
+
+internal void
+Win32FillSoundBuffer(win32_sound_output *soundOutput, DWORD byteToLock, DWORD bytesToWrite, game_sound_output_buffer *sourceBuffer)
+{
+    void *region1;
+    DWORD regionSize1;
+    void *region2;
+    DWORD regionSize2;
+
+    HRESULT result = globalSecondaryBuffer->Lock(byteToLock, bytesToWrite,
+        &region1, &regionSize1, &region2, &regionSize2,
+        0); 
+    if (SUCCEEDED(result))
+    {
+        DWORD region1SampleCount = regionSize1 / soundOutput->bytesPerSample;
+        int16 *sampleOut = (int16 *)region1;
+        int16 *sourceSample = sourceBuffer->Samples;
+
+        for (DWORD sampleIndex = 0;
+             sampleIndex < region1SampleCount;
+             ++sampleIndex)
+        {
+            *sampleOut++ = *sourceSample++;
+            *sampleOut++ = *sourceSample++;
+            ++soundOutput->runningSampleIndex;
+        }
+
+        DWORD region2SampleCount = regionSize2 / soundOutput->bytesPerSample;
+        sampleOut = (int16 *)region2;
+        for (DWORD sampleIndex = 0;
+             sampleIndex < region2SampleCount;
+             ++sampleIndex)
+        {
+            *sampleOut++ = *sourceSample++;
+            *sampleOut++ = *sourceSample++;
+            ++soundOutput->runningSampleIndex;
+        }
 
         globalSecondaryBuffer->Unlock(region1, regionSize1, region2, regionSize2);
     }
@@ -548,47 +589,6 @@ Win32ProcessWindowMessages(game_controller_input *keyboardController)
     }
 }
 
-internal void
-Win32FillSoundBuffer(win32_sound_output *soundOutput, DWORD byteToLock, DWORD bytesToWrite, game_sound_output_buffer *sourceBuffer)
-{
-    void *region1;
-    DWORD regionSize1;
-    void *region2;
-    DWORD regionSize2;
-
-    HRESULT error = globalSecondaryBuffer->Lock(byteToLock, bytesToWrite,
-        &region1, &regionSize1, &region2, &regionSize2,
-        0); 
-    if (SUCCEEDED(error))
-    {
-        DWORD region1SampleCount = regionSize1 / soundOutput->bytesPerSample;
-        int16 *sampleOut = (int16 *)region1;
-        int16 *sourceSample = sourceBuffer->Samples;
-
-        for (DWORD sampleIndex = 0;
-             sampleIndex < region1SampleCount;
-             ++sampleIndex)
-        {
-            *sampleOut++ = *sourceSample++;
-            *sampleOut++ = *sourceSample++;
-            ++soundOutput->runningSampleIndex;
-        }
-
-        DWORD region2SampleCount = regionSize2 / soundOutput->bytesPerSample;
-        sampleOut = (int16 *)region2;
-        for (DWORD sampleIndex = 0;
-             sampleIndex < region2SampleCount;
-             ++sampleIndex)
-        {
-            *sampleOut++ = *sourceSample++;
-            *sampleOut++ = *sourceSample++;
-            ++soundOutput->runningSampleIndex;
-        }
-
-        globalSecondaryBuffer->Unlock(region1, regionSize1, region2, regionSize2);
-    }
-}
-
 inline LARGE_INTEGER
 Win32GetWallClock(void)
 {
@@ -676,7 +676,7 @@ int CALLBACK WinMain(
 
 #define monitorRefreshRate 60
 #define gameUpdateHz (monitorRefreshRate / 2)
-#define frameAudioLatency 4
+#define frameAudioLatency 5
     
     real32 targetSecondsPerFrame = (real32)1.0f / (real32) gameUpdateHz;
 
@@ -707,6 +707,7 @@ int CALLBACK WinMain(
             win32_sound_output soundOutput = {};
 
             soundOutput.samplesPerSecond = 48000;
+            soundOutput.runningSampleIndex = 0;
             soundOutput.bytesPerSample = sizeof(int16) * 2;
             soundOutput.LatencySampleCount = frameAudioLatency * (soundOutput.samplesPerSecond / gameUpdateHz);
             soundOutput.secondaryBufferSize = soundOutput.samplesPerSecond * soundOutput.bytesPerSample;
@@ -907,7 +908,7 @@ int CALLBACK WinMain(
 
                 game_sound_output_buffer soundBuffer = {};
                 soundBuffer.SamplesPerSecond = soundOutput.samplesPerSecond;
-                soundBuffer.SampleCount = bytesToWrite / soundOutput.samplesPerSecond;
+                soundBuffer.SampleCount = bytesToWrite / soundOutput.bytesPerSample;
                 soundBuffer.Samples = samples;
                 
                 game_offscreen_buffer buf = {};
