@@ -676,7 +676,6 @@ int CALLBACK WinMain(
 
 #define monitorRefreshRate 60
 #define gameUpdateHz (monitorRefreshRate / 2)
-#define frameAudioLatency 5
     
     real32 targetSecondsPerFrame = (real32)1.0f / (real32) gameUpdateHz;
 
@@ -709,7 +708,7 @@ int CALLBACK WinMain(
             soundOutput.samplesPerSecond = 48000;
             soundOutput.runningSampleIndex = 0;
             soundOutput.bytesPerSample = sizeof(int16) * 2;
-            soundOutput.LatencySampleCount = frameAudioLatency * (soundOutput.samplesPerSecond / gameUpdateHz);
+            soundOutput.LatencySampleCount = 4 * (soundOutput.samplesPerSecond / gameUpdateHz);
             soundOutput.secondaryBufferSize = soundOutput.samplesPerSecond * soundOutput.bytesPerSample;
             Win32InitDirectSound(windowHandle, soundOutput.secondaryBufferSize, soundOutput.samplesPerSecond);
             Win32ClearSoundBuffer(&soundOutput);
@@ -742,7 +741,10 @@ int CALLBACK WinMain(
             gameMemory.PermanentStorage = (void *)VirtualAlloc(baseAddress, totalSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
             gameMemory.TransientStorage = (uint8 *)gameMemory.PermanentStorage + gameMemory.PermanentStorageSize;
 
-            DWORD lastPlayCursor = 0; 
+            DWORD lastPlayCursor = 0;
+            DWORD lastWriteCursor = 0;
+            DWORD audioLatencyBytes = 0;
+            real32 audioLatencySeconds = 0;
             bool32 soundIsValid = false;
             
             running = true;
@@ -903,6 +905,26 @@ int CALLBACK WinMain(
                     {
                         bytesToWrite = targetCursor - byteToLock;
                     }
+
+#if HANDMADE_INTERNAL
+                    DWORD debugPlayCursor;
+                    DWORD debugWriteCursor;
+                        
+                    if (globalSecondaryBuffer->GetCurrentPosition(&debugPlayCursor, &debugWriteCursor) == DS_OK)
+                    {
+                        DWORD unwrappedWriteCursor = debugWriteCursor;
+                        if (unwrappedWriteCursor < debugPlayCursor)
+                        {
+                            unwrappedWriteCursor += soundOutput.secondaryBufferSize;
+                        }
+                        audioLatencyBytes = unwrappedWriteCursor - debugPlayCursor;
+                        audioLatencySeconds = (audioLatencyBytes / (real32)soundOutput.bytesPerSample) / (real32)soundOutput.samplesPerSecond;
+                    }
+                    
+                    char buffer[256];
+                    sprintf_s(buffer, 256, "LPC: %u, TC:%u, AuLat:%f\n", lastPlayCursor, targetCursor, audioLatencySeconds);
+                    OutputDebugStringA(buffer);
+#endif
                 }
                 
 
@@ -969,6 +991,7 @@ int CALLBACK WinMain(
                 if (globalSecondaryBuffer->GetCurrentPosition(&playCursor, &writeCursor) == DS_OK)
                 {
                     lastPlayCursor = playCursor;
+                    lastWriteCursor = writeCursor;
                     if (!soundIsValid)
                     {
                         soundOutput.runningSampleIndex = writeCursor / soundOutput.bytesPerSample;
@@ -983,10 +1006,12 @@ int CALLBACK WinMain(
 #if HANDMADE_INTERNAL
                 if (soundIsValid)
                 {
+                    Assert(debugSoundCursorsIndex < ArrayCount(debugSoundCursors));
+                    
                     win32_debug_sound *cur = &debugSoundCursors[debugSoundCursorsIndex++];
                     cur->PlayCursor = playCursor;
                     cur->WriteCursor = writeCursor;
-                    if (debugSoundCursorsIndex > ArrayCount(debugSoundCursors))
+                    if (debugSoundCursorsIndex == ArrayCount(debugSoundCursors))
                     {
                         debugSoundCursorsIndex = 0;
                     }
@@ -1005,7 +1030,7 @@ int CALLBACK WinMain(
 
                 // game profile info
                 
-                #if 1
+                #if 0
 
                 real64 FPS = (real64)GlobalPerfCounterFrequency / (real64)cyclesElapsed;
                 real64 MCPF = ((real64)cyclesElapsed / (1000.0f * 1000.0f)); 
