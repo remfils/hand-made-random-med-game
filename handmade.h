@@ -117,4 +117,6 @@ struct game_input
     game_controller_input Controllers[5];
 };
 
-void GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_sound_output_buffer *soundBuffer, game_input *input);
+internal void GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_input *input);
+
+internal void GameGetSoundSamples(game_memory *memory, game_sound_output_buffer *soundBuffer);
