@@ -1,4 +1,4 @@
-/*
+ /*
   TODO: this is not a platform layer
 
   - saved game locations (save state)
@@ -17,32 +17,10 @@
   just a partial list of stuff
  */
 #include <stdint.h>
-// todo: remove
-#include <math.h>
-
-#define internal static
-#define local_persist static
-#define global_variable static
-
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-typedef int8_t  int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
-typedef int32 bool32;
-typedef float real32;
-typedef double real64;
-
-#define Pi32 3.1415926535f
 
 #include "handmade.h"
-#include "handmade.cpp"
 
 #include <malloc.h>
-
 #include <windows.h>
 #include <xinput.h>
 #include <dsound.h>
@@ -57,6 +35,71 @@ global_variable int64 GlobalPerfCounterFrequency;
 global_variable bool running;
 global_variable win32_offscreen_buffer globalBackbuffer;
 global_variable LPDIRECTSOUNDBUFFER globalSecondaryBuffer;
+
+
+internal void
+Win32SetGameFunctionsToStubs(win32_game_code *game)
+{
+    game->UpdateAndRender = GameUpdateAndRenderStub;
+    game->GetSoundSamples = GameGetSoundSamplesStub;
+}
+
+inline FILETIME
+Win32GetLastWriteTime(char *filename)
+{
+    WIN32_FIND_DATA findData;
+    HANDLE findHandle = FindFirstFileA(filename, &findData);
+
+    FILETIME lastWriteTime = {};
+    if (findHandle != INVALID_HANDLE_VALUE)
+    {
+        lastWriteTime = findData.ftLastWriteTime;
+        FindClose(findHandle);
+    }
+
+    return(lastWriteTime);
+}
+
+internal win32_game_code
+Win32LoadGameCode(char *sourceName, char *tmpName)
+{
+    win32_game_code game = {};
+
+    CopyFileA(sourceName, tmpName, FALSE);
+
+    game.DLLLastWriteTime = Win32GetLastWriteTime(sourceName);
+
+    game.HandmadeModule = LoadLibrary("handmade_tmp.dll");
+    
+    if (game.HandmadeModule)
+    {
+        game.UpdateAndRender = (game_update_and_render *)GetProcAddress(game.HandmadeModule, "GameUpdateAndRender");
+        game.GetSoundSamples = (game_get_sound_samples *)GetProcAddress(game.HandmadeModule, "GameGetSoundSamples");
+
+        game.IsValid = (game.UpdateAndRender
+            && game.GetSoundSamples);
+    }
+
+    if (!game.IsValid)
+    {
+        Win32SetGameFunctionsToStubs(&game);
+    }
+
+    return game;
+}
+
+internal void
+Win32UnloadGameCode(win32_game_code *game)
+{
+    if (game->HandmadeModule)
+    {
+        FreeLibrary(game->HandmadeModule);
+    }
+
+    game->IsValid = false;
+
+    Win32SetGameFunctionsToStubs(game);
+}
 
 // XInputGetState
 
@@ -156,8 +199,8 @@ Win32DisplayBufferInWindow(HDC deviceContext, int windowWidth, int windowHeight,
 }
 
 #if HANDMADE_INTERNAL
-internal void
-Debug_PlatformFreeFileMemory(void *memory)
+
+DEBUG_PLATFORM_FREE_FILE_MEMORY(Debug_PlatformFreeFileMemory)
 {
     if (memory)
     {
@@ -165,8 +208,7 @@ Debug_PlatformFreeFileMemory(void *memory)
     }
 }
 
-internal debug_read_file_result
-Debug_PlatformReadEntireFile(char *filename)
+DEBUG_PLATFORM_READ_ENTIRE_FILE(Debug_PlatformReadEntireFile)
 {
     debug_read_file_result result = {};
     
@@ -222,8 +264,7 @@ Debug_PlatformReadEntireFile(char *filename)
 }
 
 
-bool32
-Debug_PlatformWriteEntireFile(char *filename, uint32 memorySize, void *memory)
+DEBUG_PLATFORM_WRITE_ENTIRE_FILE(Debug_PlatformWriteEntireFile)
 {
     bool32 result = false;
     
@@ -647,6 +688,23 @@ Win32DebugSyncDisplay(win32_offscreen_buffer *backbuffer, int soundCursorsCount,
     }
 }
 
+internal void
+CatStrings(size_t sourceACount, char *sourceA,
+    size_t sourceBCount, char *sourceB,
+    size_t destCount, char *dest)
+{
+    for (int index = 0; index < sourceACount; index ++)
+    {
+        *dest++ = *sourceA++;
+    }
+
+    for (int index = 0; index < sourceBCount; index ++)
+    {
+        *dest++ = *sourceB++;
+    }
+
+    *dest++ = '\0';
+}
 
 
 int CALLBACK WinMain(
@@ -656,6 +714,23 @@ int CALLBACK WinMain(
     int       showCode)
 {
 
+    char moduleFilename[MAX_PATH];
+    DWORD sizeOfFilename = GetModuleFileNameA(0, moduleFilename, MAX_PATH);
+    char *lastSlash = moduleFilename;
+    for (char *scan = moduleFilename; *scan; ++scan)
+    {
+        if (*scan == '\\')
+        {
+            lastSlash = scan + 1;
+        }
+    }
+    char sourceDLLFileName[] = "handemade.dll";
+    char sourceDLLFullPath[MAX_PATH];
+    CatStrings(lastSlash - moduleFilename, moduleFilename, sizeof(sourceDLLFileName), sourceDLLFileName, sizeof(sourceDLLFullPath), sourceDLLFullPath);
+
+    char tmpDLLFileName[] = "handemade_tmp.dll";
+    char tmpDLLFullPath[MAX_PATH];
+    CatStrings(lastSlash - moduleFilename, moduleFilename, sizeof(tmpDLLFileName), tmpDLLFileName, sizeof(tmpDLLFullPath), tmpDLLFullPath);
     
     UINT desiredSchedulerMS = 1;
     bool32 sleepIsGranural = timeBeginPeriod(desiredSchedulerMS) == TIMERR_NOERROR;
@@ -728,9 +803,15 @@ int CALLBACK WinMain(
 
             int16 *samples = (int16 *)VirtualAlloc(0, soundOutput.secondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-            game_memory gameMemory = {};
+            game_memory  gameMemory = {};
             gameMemory.PermanentStorageSize = Megabytes(64);
             gameMemory.TransientStorageSize = Gigabytes((uint64)1);
+
+            // platform specific functions
+            gameMemory.DEBUG_PlatformFreeFileMemory = Debug_PlatformFreeFileMemory;
+            gameMemory.DEBUG_PlatformReadEntireFile = Debug_PlatformReadEntireFile;
+            gameMemory.DEBUG_PlatformWriteEntireFile = Debug_PlatformWriteEntireFile;
+            
 
             #if HANDMADE_INTERNAL
             LPVOID baseAddress = (LPVOID)Terabytes((uint64)2);
@@ -745,10 +826,22 @@ int CALLBACK WinMain(
             DWORD audioLatencyBytes = 0;
             real32 audioLatencySeconds = 0;
             bool32 soundIsValid = false;
-            
+
+            win32_game_code game = Win32LoadGameCode(sourceDLLFullPath, tmpDLLFullPath);
+
             running = true;
             while(running)
             {
+                // check for dll reload
+                FILETIME newDLLWriteTime = Win32GetLastWriteTime("handmade.dll");
+                if (CompareFileTime(&newDLLWriteTime, &game.DLLLastWriteTime) != 0)
+                {
+                    Win32UnloadGameCode(&game);
+                    game = Win32LoadGameCode(sourceDLLFullPath, tmpDLLFullPath);
+                }
+
+                // controllers
+                
                 game_controller_input *oldKeyboardController = &oldInput->Controllers[0];
                 game_controller_input *keyboardController = &newInput->Controllers[0];
                 *keyboardController = {};
@@ -885,7 +978,7 @@ int CALLBACK WinMain(
                 buf.Pitch = globalBackbuffer.Pitch;
                 buf.BytesPerPixel = globalBackbuffer.BytesPerPixel;
                 
-                GameUpdateAndRender(&gameMemory, &buf, newInput);
+                game.UpdateAndRender(&gameMemory, &buf, newInput);
 
 
                 // send vibrations
@@ -965,7 +1058,7 @@ int CALLBACK WinMain(
                     soundBuffer.SampleCount = bytesToWrite / soundOutput.bytesPerSample;
                     soundBuffer.Samples = samples;
                 
-                    GameGetSoundSamples(&gameMemory, &soundBuffer);
+                    game.GetSoundSamples(&gameMemory, &soundBuffer);
 
 #if HANDMADE_INTERNAL
                     DWORD debugPlayCursor;
@@ -1039,13 +1132,13 @@ int CALLBACK WinMain(
                     win32_debug_sound *cur = &debugSoundCursors[debugSoundCursorsIndex];
                     cur->FlipPlayCursor = playCursor;
                     cur->FlipWriteCursor = writeCursor;
-                    if (debugSoundCursorsIndex == ArrayCount(debugSoundCursors))
-                    {
-                        debugSoundCursorsIndex = 0;
-                    }
                 }
 
                 debugSoundCursorsIndex++;
+                if (debugSoundCursorsIndex == ArrayCount(debugSoundCursors))
+                {
+                    debugSoundCursorsIndex = 0;
+                }
 #endif
 
 
@@ -1069,6 +1162,7 @@ int CALLBACK WinMain(
                 game_input *tmpInput = newInput;
                 newInput = oldInput;
                 oldInput = tmpInput;
+                
             }
         }
         else

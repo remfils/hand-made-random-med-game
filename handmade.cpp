@@ -1,24 +1,24 @@
-internal void
-GameOutputSound(game_sound_output_buffer *soundBuffer, int toneHz)
+#include "handmade.h"
+
+void
+GameOutputSound(game_sound_output_buffer *soundBuffer, game_state *gameState)
 {
-    local_persist real32 tSine;
     int16 toneVolume = 2000;
-    int wavePeriod = soundBuffer->SamplesPerSecond / toneHz;
+    int wavePeriod = soundBuffer->SamplesPerSecond / gameState->ToneHz;
     
     int16 *sampleOut = soundBuffer->Samples;
     for (int sampleIndex = 0; sampleIndex < soundBuffer->SampleCount; ++sampleIndex)
     {
-        // real32 t = 2.0 * Pi32 * (real32)soundOutput->runningSampleIndex / (real32)soundOutput->wavePeriod;
-        real32 sineValue = sinf(tSine);
+        real32 sineValue = sinf(gameState->TSine);
         int16 sampleValue = (int16)(sineValue * toneVolume);
         *sampleOut++ = sampleValue;
         *sampleOut++ = sampleValue;
         
-        tSine += (real32)(2.0f * Pi32 * 1.0f) / (real32)wavePeriod;
+        gameState->TSine += (real32)(2.0f * Pi32 * 1.0f) / (real32)wavePeriod;
     }
 }
 
-internal void
+void
 RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
 {
     uint8 *row = (uint8 *)buffer->Memory;
@@ -38,13 +38,8 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
     }
 }
 
-internal void
-GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_input *input)
+extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
-    // local_persist int xOffset = 0;
-    // local_persist int yOffset = 0;
-    // local_persist int toneHz = 512;
-
     Assert(sizeof(game_state) <= memory->PermanentStorageSize);
     
     game_state *gameState = (game_state *)memory->PermanentStorage;
@@ -56,11 +51,11 @@ GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_inp
         gameState->ToneHz = 256;
 
         char *fileName = __FILE__;
-        debug_read_file_result fileResult = Debug_PlatformReadEntireFile(fileName);
+        debug_read_file_result fileResult = memory->DEBUG_PlatformReadEntireFile(fileName);
         if (fileResult.Content)
         {
-            Debug_PlatformWriteEntireFile("test.txt", fileResult.ContentSize, fileResult.Content);
-            Debug_PlatformFreeFileMemory(fileResult.Content);
+            memory->DEBUG_PlatformWriteEntireFile("test.txt", fileResult.ContentSize, fileResult.Content);
+            memory->DEBUG_PlatformFreeFileMemory(fileResult.Content);
         }
         
         memory->IsInitialized = 1;
@@ -77,7 +72,6 @@ GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_inp
 
         if (inputController->IsAnalog)
         {
-            // gameState->ToneHz = 256 + (int)(128.0f * inputController->EndX);
             gameState->XOffset -= (int)(4.0f * inputController->StickAverageX);
             gameState->YOffset += (int)(4.0f * inputController->StickAverageY);
         }
@@ -107,9 +101,9 @@ GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_inp
     RenderGradient(buffer, gameState->XOffset, gameState->YOffset);
 }
 
-internal void
-GameGetSoundSamples(game_memory *memory, game_sound_output_buffer *soundOutput)
+
+extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
 {
     game_state *gameState = (game_state*)memory->PermanentStorage;
-    GameOutputSound(soundOutput, gameState->ToneHz);
+    GameOutputSound(soundBuffer, gameState);
 }
