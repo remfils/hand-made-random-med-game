@@ -38,6 +38,24 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
     }
 }
 
+void
+RenderPlayer(game_offscreen_buffer *buffer, int playerX, int playerY)
+{
+    int squareSide = 20;
+    int playerColor = 0xFF00FF;
+
+    for (int x = playerX; x < playerX + squareSide; ++x)
+    {
+        uint8 *pixel = ((uint8 *)buffer->Memory + x * buffer->BytesPerPixel + playerY * buffer->Pitch);
+                
+        for (int y=playerY; y < playerY + squareSide; ++y)
+        {
+            *(uint32 *)pixel = playerColor;
+            pixel += buffer->Pitch;
+        }
+    }
+}
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
     Assert(sizeof(game_state) <= memory->PermanentStorageSize);
@@ -49,6 +67,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->XOffset = 0;
         gameState->YOffset = 0;
         gameState->ToneHz = 256;
+
+        gameState->PlayerX = 100;
+        gameState->PlayerY = 100;
 
         char *fileName = __FILE__;
         debug_read_file_result fileResult = memory->DEBUG_PlatformReadEntireFile(fileName);
@@ -72,8 +93,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         if (inputController->IsAnalog)
         {
-            gameState->XOffset -= (int)(4.0f * inputController->StickAverageX);
-            gameState->YOffset += (int)(4.0f * inputController->StickAverageY);
+            // gameState->XOffset -= (int)(4.0f * inputController->StickAverageX);
+            // gameState->YOffset += (int)(4.0f * inputController->StickAverageY);
+
+            gameState->PlayerX += (int)(30.0f * inputController->StickAverageX);
+            gameState->PlayerY -= (int)(30.0f * inputController->StickAverageY);
         }
         else
         {
@@ -99,6 +123,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
     
     RenderGradient(buffer, gameState->XOffset, gameState->YOffset);
+
+    RenderPlayer(buffer, gameState->PlayerX, gameState->PlayerY);
 }
 
 

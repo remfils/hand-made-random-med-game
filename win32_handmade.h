@@ -44,3 +44,15 @@ struct win32_debug_sound
     DWORD FlipPlayCursor;
     DWORD FlipWriteCursor;
 };
+
+struct win32_state
+{
+    HANDLE RecordingFile;
+    int InputRecordingIndex;
+
+    HANDLE PlayBackFile;
+    int InputPlayBackIndex;
+
+    void *GameMemory;
+    uint64 GameMemorySize;
+};

@@ -134,6 +134,9 @@ struct game_state
     int XOffset;
     int YOffset;
     real32 TSine;
+
+    int PlayerX;
+    int PlayerY;
 };
 
 struct game_memory
