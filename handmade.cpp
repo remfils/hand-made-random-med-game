@@ -96,8 +96,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             // gameState->XOffset -= (int)(4.0f * inputController->StickAverageX);
             // gameState->YOffset += (int)(4.0f * inputController->StickAverageY);
 
-            gameState->PlayerX += (int)(30.0f * inputController->StickAverageX);
-            gameState->PlayerY -= (int)(30.0f * inputController->StickAverageY);
+            gameState->PlayerX += (int)(10.0f * inputController->StickAverageX);
+            gameState->PlayerY -= (int)(10.0f * inputController->StickAverageY);
         }
         else
         {

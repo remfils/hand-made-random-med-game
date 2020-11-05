@@ -55,4 +55,7 @@ struct win32_state
 
     void *GameMemory;
     uint64 GameMemorySize;
+
+    char ExeFullFilename[MAX_PATH];
+    char *ExeFullDirName;
 };
