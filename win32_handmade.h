@@ -45,6 +45,14 @@ struct win32_debug_sound
     DWORD FlipWriteCursor;
 };
 
+struct win32_replay_buffer
+{
+    HANDLE FileHandle;
+    char Filename[MAX_PATH];
+    void *MemoryBlock;
+    HANDLE MemoryMap;
+};
+
 struct win32_state
 {
     HANDLE RecordingFile;
@@ -53,9 +61,10 @@ struct win32_state
     HANDLE PlayBackFile;
     int InputPlayBackIndex;
 
-    void *GameMemory;
-    uint64 GameMemorySize;
-
     char ExeFullFilename[MAX_PATH];
     char *ExeFullDirName;
+
+    void *GameMemory;
+    uint64 GameMemorySize;
+    win32_replay_buffer ReplayBuffers[4];
 };

@@ -72,11 +72,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->PlayerY = 100;
 
         char *fileName = __FILE__;
-        debug_read_file_result fileResult = memory->DEBUG_PlatformReadEntireFile(fileName);
+        debug_read_file_result fileResult = memory->DEBUG_PlatformReadEntireFile(thread, fileName);
         if (fileResult.Content)
         {
-            memory->DEBUG_PlatformWriteEntireFile("test.txt", fileResult.ContentSize, fileResult.Content);
-            memory->DEBUG_PlatformFreeFileMemory(fileResult.Content);
+            memory->DEBUG_PlatformWriteEntireFile(thread, "test.txt", fileResult.ContentSize, fileResult.Content);
+            memory->DEBUG_PlatformFreeFileMemory(thread, fileResult.Content);
         }
         
         memory->IsInitialized = 1;
@@ -124,7 +124,31 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     RenderGradient(buffer, gameState->XOffset, gameState->YOffset);
 
-    RenderPlayer(buffer, gameState->PlayerX, gameState->PlayerY);
+    RenderPlayer(buffer, input->MouseX, input->MouseY);
+
+    if (input->MouseButtons[0].EndedDown)
+    {
+        int testSpace = 50;
+        RenderPlayer(buffer, input->MouseX + testSpace, input->MouseY + testSpace);
+
+        RenderPlayer(buffer, input->MouseX - testSpace, input->MouseY - testSpace);
+
+        RenderPlayer(buffer, input->MouseX + testSpace, input->MouseY - testSpace);
+
+        RenderPlayer(buffer, input->MouseX - testSpace, input->MouseY + testSpace);
+    }
+
+    if (input->MouseButtons[1].EndedDown)
+    {
+        int testSpace = 50;
+        RenderPlayer(buffer, input->MouseX + testSpace, input->MouseY);
+
+        RenderPlayer(buffer, input->MouseX - testSpace, input->MouseY);
+
+        RenderPlayer(buffer, input->MouseX, input->MouseY - testSpace);
+
+        RenderPlayer(buffer, input->MouseX, input->MouseY + testSpace);
+    }
 }
 
 
