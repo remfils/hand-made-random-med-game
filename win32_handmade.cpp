@@ -1015,10 +1015,10 @@ int CALLBACK WinMain(
                 replayBuffer.FileHandle =
                     CreateFileA(replayBuffer.Filename, GENERIC_WRITE|GENERIC_READ, 0,0, CREATE_ALWAYS, 0,0);
 
-                DWORD maxSizeHigh = (winState.GameMemorySize >> 32);
-                DWORD maxSizeLow = (winState.GameMemorySize & 0xFFFFFFFF);
+                LARGE_INTEGER maxSize;
+                maxSize.QuadPart = winState.GameMemorySize;
 
-                replayBuffer.MemoryMap = CreateFileMapping(replayBuffer.FileHandle, 0, PAGE_READWRITE, maxSizeHigh, maxSizeLow, 0);
+                replayBuffer.MemoryMap = CreateFileMapping(replayBuffer.FileHandle, 0, PAGE_READWRITE, maxSize.HighPart, maxSize.LowPart, 0);
 
                 replayBuffer.MemoryBlock = MapViewOfFile(replayBuffer.MemoryMap, FILE_MAP_ALL_ACCESS, 0,0, winState.GameMemorySize);
                 
