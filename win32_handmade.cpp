@@ -904,7 +904,7 @@ int CALLBACK WinMain(
     windowClass.hInstance = instance;
     windowClass.lpszClassName = "HandmadeHeroWindowClass";
 
-    Win32ResizeDIBSection(&globalBackbuffer, 1280, 720);
+    Win32ResizeDIBSection(&globalBackbuffer, 960, 540);
 
     LARGE_INTEGER perfCounterFrequencyResult;
     QueryPerformanceFrequency(&perfCounterFrequencyResult);
@@ -940,7 +940,6 @@ int CALLBACK WinMain(
             }
     
             int gameUpdateHz = monitorRefreshHz / 2;
-    
             real32 targetSecondsPerFrame = (real32)1.0f / (real32) gameUpdateHz;
 
     
@@ -966,6 +965,8 @@ int CALLBACK WinMain(
             game_input inputs[2] = {};
             game_input *newInput = &inputs[0];
             game_input *oldInput = &inputs[1];
+
+            newInput->SecondToAdvanceOverUpdate = targetSecondsPerFrame;
 
             LARGE_INTEGER lastCounter;
             QueryPerformanceCounter(&lastCounter);
@@ -1398,7 +1399,7 @@ int CALLBACK WinMain(
 
 
 #if HANDMADE_INTERNAL
-                Win32DebugSyncDisplay(&globalBackbuffer, ArrayCount(debugSoundCursors), debugSoundCursors, &soundOutput, targetSecondsPerFrame);
+                //Win32DebugSyncDisplay(&globalBackbuffer, ArrayCount(debugSoundCursors), debugSoundCursors, &soundOutput, targetSecondsPerFrame);
 #endif
                 
                 Win32DisplayBufferInWindow(deviceContext, dim.Width, dim.Height, &globalBackbuffer, 0, 0, dim.Width, dim.Height);

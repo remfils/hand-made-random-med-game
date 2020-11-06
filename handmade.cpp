@@ -1,5 +1,12 @@
 #include "handmade.h"
 
+int32
+RoundRealToInt(real32 value)
+{
+    int32 result = (int32)(value + 0.5f);
+    return(result);
+}
+
 void
 GameOutputSound(game_sound_output_buffer *soundBuffer, game_state *gameState)
 {
@@ -7,14 +14,18 @@ GameOutputSound(game_sound_output_buffer *soundBuffer, game_state *gameState)
     int wavePeriod = soundBuffer->SamplesPerSecond / gameState->ToneHz;
     
     int16 *sampleOut = soundBuffer->Samples;
+
     for (int sampleIndex = 0; sampleIndex < soundBuffer->SampleCount; ++sampleIndex)
     {
-        real32 sineValue = sinf(gameState->TSine);
-        int16 sampleValue = (int16)(sineValue * toneVolume);
-        *sampleOut++ = sampleValue;
-        *sampleOut++ = sampleValue;
+        *sampleOut++ = 0;
+        *sampleOut++ = 0;
         
-        gameState->TSine += (real32)(2.0f * Pi32 * 1.0f) / (real32)wavePeriod;
+        // real32 sineValue = sinf(gameState->TSine);
+        // int16 sampleValue = (int16)(sineValue * toneVolume);
+        // *sampleOut++ = sampleValue;
+        // *sampleOut++ = sampleValue;
+        
+        // gameState->TSine += (real32)(2.0f * Pi32 * 1.0f) / (real32)wavePeriod;
     }
 }
 
@@ -39,21 +50,59 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
 }
 
 void
+RenderRectangle(game_offscreen_buffer *buffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, uint32 color)
+{
+    int32 minX = RoundRealToInt(realMinX);
+    int32 minY = RoundRealToInt(realMinY);
+    int32 maxX = RoundRealToInt(realMaxX);
+    int32 maxY = RoundRealToInt(realMaxY);
+
+    if (minX < 0)
+    {
+        minX = 0;
+    }
+    if (minY < 0)
+    {
+        minY = 0;
+    }
+
+    if (maxX > buffer->Width)
+    {
+        maxX = buffer->Width;
+    }
+    if (maxY > buffer->Height)
+    {
+        maxY = buffer->Height;
+    }
+    
+    uint8 *row = (uint8 *)buffer->Memory + buffer->Pitch * minY + minX * buffer->BytesPerPixel;
+    for (int y = minY; y < maxY; ++y)
+    {
+        uint32 *pixel = (uint32 *)row;
+
+        for (int x = minX; x < maxX; ++x)
+        {
+            *(uint32 *)pixel = color;
+            pixel++;
+        }
+        row += buffer->Pitch;
+    }
+}
+
+void
+ClearRenderBuffer(game_offscreen_buffer *buffer)
+{
+    uint32 bgColor = 0x002200;    
+    RenderRectangle(buffer, 0, 0, (real32)buffer->Width, (real32)buffer->Height, bgColor);
+}
+
+void
 RenderPlayer(game_offscreen_buffer *buffer, int playerX, int playerY)
 {
-    int squareSide = 20;
+    real32 squareHalfWidth = 10;
     int playerColor = 0xFF00FF;
 
-    for (int x = playerX; x < playerX + squareSide; ++x)
-    {
-        uint8 *pixel = ((uint8 *)buffer->Memory + x * buffer->BytesPerPixel + playerY * buffer->Pitch);
-                
-        for (int y=playerY; y < playerY + squareSide; ++y)
-        {
-            *(uint32 *)pixel = playerColor;
-            pixel += buffer->Pitch;
-        }
-    }
+    RenderRectangle(buffer, (real32)playerX - squareHalfWidth, (real32)playerY - squareHalfWidth, (real32)playerX + squareHalfWidth, (real32)playerY + squareHalfWidth, playerColor);
 }
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
@@ -121,8 +170,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             gameState->XOffset -= 1;
         }
     }
-    
-    RenderGradient(buffer, gameState->XOffset, gameState->YOffset);
+
+    ClearRenderBuffer(buffer);
+
+    RenderRectangle(buffer, (real32)gameState->XOffset, (real32)gameState->YOffset, (real32)input->MouseX, (real32)input->MouseY, 0xFF0000);
 
     RenderPlayer(buffer, input->MouseX, input->MouseY);
 
