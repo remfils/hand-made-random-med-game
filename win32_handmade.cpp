@@ -939,7 +939,7 @@ int CALLBACK WinMain(
                 monitorRefreshHz = win32RefreshRate;
             }
     
-            int gameUpdateHz = monitorRefreshHz / 2;
+            int gameUpdateHz = monitorRefreshHz / 1;
             real32 targetSecondsPerFrame = (real32)1.0f / (real32) gameUpdateHz;
 
     
@@ -965,8 +965,6 @@ int CALLBACK WinMain(
             game_input inputs[2] = {};
             game_input *newInput = &inputs[0];
             game_input *oldInput = &inputs[1];
-
-            newInput->SecondToAdvanceOverUpdate = targetSecondsPerFrame;
 
             LARGE_INTEGER lastCounter;
             QueryPerformanceCounter(&lastCounter);
@@ -1049,8 +1047,10 @@ int CALLBACK WinMain(
             running = true;
             while(running)
             {
+                newInput->DtForFrame = targetSecondsPerFrame;
+                
                 // check for dll reload
-                FILETIME newDLLWriteTime = Win32GetLastWriteTime("handmade.dll");
+                FILETIME newDLLWriteTime = Win32GetLastWriteTime(sourceDLLFullPath);
                 if (CompareFileTime(&newDLLWriteTime, &game.DLLLastWriteTime) != 0)
                 {
                     Win32UnloadGameCode(&game);
@@ -1361,10 +1361,24 @@ int CALLBACK WinMain(
 
                 if (secondsElapsedForFrame < targetSecondsPerFrame)
                 {
+                    LARGE_INTEGER sleepStartTime = Win32GetWallClock();
+                    
                     if (sleepIsGranural)
                     {
                         DWORD sleepMs = (DWORD)((targetSecondsPerFrame - secondsElapsedForFrame) * (real32)1000.0f);
                         Sleep(sleepMs);
+                    }
+
+                    real32 testSecondsElapsedForFrame = Win32GetSecondsElapsed(lastCounter, Win32GetWallClock());
+
+                    if (testSecondsElapsedForFrame < targetSecondsPerFrame)
+                    {
+                        // log missed sleep
+                    }
+
+                    while(secondsElapsedForFrame < targetSecondsPerFrame)
+                    {
+                        secondsElapsedForFrame = Win32GetSecondsElapsed(lastCounter, Win32GetWallClock());
                     }
                 }
                 else

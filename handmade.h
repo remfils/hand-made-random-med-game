@@ -58,6 +58,13 @@ struct thread_context
     int Placeholder;  
 };
 
+struct color
+{
+    real32 Red;
+    real32 Green;
+    real32 Blue;
+};
+
 #if HANDMADE_INTERNAL
 struct debug_read_file_result
 {
@@ -140,8 +147,8 @@ struct game_state
     int YOffset;
     real32 TSine;
 
-    int PlayerX;
-    int PlayerY;
+    real32 PlayerX;
+    real32 PlayerY;
 };
 
 struct game_memory
@@ -166,7 +173,7 @@ struct game_input
     int32 MouseY;
     int32 MouseZ;
 
-    real32 SecondToAdvanceOverUpdate;
+    real32 DtForFrame;
     
     game_controller_input Controllers[5];
 };

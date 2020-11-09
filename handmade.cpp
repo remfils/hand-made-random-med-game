@@ -7,6 +7,17 @@ RoundRealToInt(real32 value)
     return(result);
 }
 
+uint32 GetUintColor(color color)
+{
+    uint32 uColor = (uint32)(
+        (RoundRealToInt(color.Red * 255.0f) << 16)
+        | (RoundRealToInt(color.Green * 255.0f) << 8)
+        | (RoundRealToInt(color.Blue * 255.0f) << 0)
+        );
+
+    return uColor;
+}
+
 void
 GameOutputSound(game_sound_output_buffer *soundBuffer, game_state *gameState)
 {
@@ -50,8 +61,10 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
 }
 
 void
-RenderRectangle(game_offscreen_buffer *buffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, uint32 color)
+RenderRectangle(game_offscreen_buffer *buffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, color color)
 {
+    uint32 uColor = GetUintColor(color);
+    
     int32 minX = RoundRealToInt(realMinX);
     int32 minY = RoundRealToInt(realMinY);
     int32 maxX = RoundRealToInt(realMaxX);
@@ -82,7 +95,7 @@ RenderRectangle(game_offscreen_buffer *buffer, real32 realMinX, real32 realMinY,
 
         for (int x = minX; x < maxX; ++x)
         {
-            *(uint32 *)pixel = color;
+            *(uint32 *)pixel = uColor;
             pixel++;
         }
         row += buffer->Pitch;
@@ -92,7 +105,11 @@ RenderRectangle(game_offscreen_buffer *buffer, real32 realMinX, real32 realMinY,
 void
 ClearRenderBuffer(game_offscreen_buffer *buffer)
 {
-    uint32 bgColor = 0x002200;    
+    color bgColor;
+    bgColor.Red = 0.3f;
+    bgColor.Green = 0.3f;
+    bgColor.Blue = 0.3f;
+    
     RenderRectangle(buffer, 0, 0, (real32)buffer->Width, (real32)buffer->Height, bgColor);
 }
 
@@ -100,7 +117,10 @@ void
 RenderPlayer(game_offscreen_buffer *buffer, int playerX, int playerY)
 {
     real32 squareHalfWidth = 10;
-    int playerColor = 0xFF00FF;
+    color playerColor;
+    playerColor.Red = 1;
+    playerColor.Green = 0;
+    playerColor.Blue = 1;
 
     RenderRectangle(buffer, (real32)playerX - squareHalfWidth, (real32)playerY - squareHalfWidth, (real32)playerX + squareHalfWidth, (real32)playerY + squareHalfWidth, playerColor);
 }
@@ -150,32 +170,105 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         }
         else
         {
-        
-        }
+            real32 speed = 128.0f * input->DtForFrame;
+            
+            real32 playerDx = 0.0f;
+            real32 playerDy = 0.0f;
+            if (inputController->MoveUp.EndedDown)
+            {
+                playerDy = -1.0f;
+            }
+            if (inputController->MoveDown.EndedDown)
+            {
+                playerDy = 1.0f;
+            }
+            if (inputController->MoveLeft.EndedDown)
+            {
+                playerDx = -1.0f;
+                
+            }
+            if (inputController->MoveRight.EndedDown)
+            {
+                playerDx = 1.0f;
+            }
 
-        if (inputController->MoveUp.EndedDown)
-        {
-            gameState->YOffset += 1;
-        }
-        if (inputController->MoveDown.EndedDown)
-        {
-            gameState->YOffset -= 1;
-        }
-        if (inputController->MoveLeft.EndedDown)
-        {
-            gameState->XOffset += 1;
-        }
-        if (inputController->MoveRight.EndedDown)
-        {
-            gameState->XOffset -= 1;
+            gameState->PlayerX += playerDx * speed;
+            gameState->PlayerY += playerDy * speed;
         }
     }
 
+
     ClearRenderBuffer(buffer);
 
-    RenderRectangle(buffer, (real32)gameState->XOffset, (real32)gameState->YOffset, (real32)input->MouseX, (real32)input->MouseY, 0xFF0000);
+    uint32 tileMap[9][16] =
+        {
+            {1, 0, 1, 0,  0, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 1},
+            {1, 0, 0, 1,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 1},
+            {1, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 1},
+            {1, 0, 0, 0,  1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 1},
+            {0, 0, 0, 0,  1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 0},
+            {1, 0, 0, 0,  1, 0, 0, 1,  0, 0, 0, 0,  0, 0, 0, 1},
+            {1, 0, 0, 0,  1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 1},
+            {1, 0, 0, 1,  0, 0, 0, 0,  1, 0, 0, 0,  0, 0, 0, 1},
+            {1, 0, 1, 0,  0, 0, 0, 0,  0, 1, 0, 0,  0, 0, 0, 1}
+        };
 
-    RenderPlayer(buffer, input->MouseX, input->MouseY);
+    real32 topPadding = 10;
+    real32 leftPadding = 10;
+    real32 tileWidth = 50;
+    for (int row = 0;
+         row < 9;
+        ++row)
+    {
+        for (int col=0;
+             col<16;
+             ++col)
+        {
+            uint32 tileId = tileMap[row][col];
+            
+            color color;
+            if (tileId == 1)
+            {
+                color.Red = 0.3f;
+                color.Green = 0.3f;
+                color.Blue = 1;                
+            }
+            else
+            {
+                color.Red = 0.2f;
+                color.Green = 0.2f;
+                color.Blue = 0.2f;
+            }
+
+            real32 x = ((real32)col) * tileWidth + leftPadding;
+            real32 y = ((real32)row) * tileWidth + topPadding;
+            RenderRectangle(buffer, x, y, x + tileWidth, y + tileWidth, color);
+        }
+    }
+
+    // color redColor;
+    // redColor.Red = 1;
+    // redColor.Green = 0;
+    // redColor.Blue = 0;
+    
+    // RenderRectangle(buffer, (real32)gameState->XOffset, (real32)gameState->YOffset, (real32)input->MouseX, (real32)input->MouseY, redColor);
+
+    // RenderPlayer(buffer, input->MouseX, input->MouseY);
+
+
+    color playerColor;
+    playerColor.Red = 1.0f;
+    playerColor.Green = 1.0f;
+    playerColor.Blue = 0;
+
+    real32 playerWidth = 0.75 * tileWidth;
+    real32 playerHeight = tileWidth;
+
+    real32 playerLeft = gameState->PlayerX - 0.5f * playerWidth;
+    real32 playerTop = gameState->PlayerY - playerHeight;
+
+    RenderRectangle(buffer, playerLeft, playerTop, playerLeft + playerWidth, playerTop + playerHeight, playerColor);
+    
 
     if (input->MouseButtons[0].EndedDown)
     {
