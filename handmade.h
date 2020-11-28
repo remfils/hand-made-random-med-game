@@ -149,6 +149,8 @@ struct game_state
 
     real32 PlayerX;
     real32 PlayerY;
+
+    int CurrentTileIndex;
 };
 
 struct game_memory

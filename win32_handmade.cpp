@@ -221,9 +221,14 @@ Win32ResizeDIBSection(win32_offscreen_buffer *buffer, int width, int height)
 static void
 Win32DisplayBufferInWindow(HDC deviceContext, int windowWidth, int windowHeight, win32_offscreen_buffer *buffer, int x, int y, int width, int height)
 {
+    // PatBlt(deviceContext, 0, 0, windowWidth, windowHeight, BLACKNESS);
+
+    int offsetX = 10;
+    int offsetY = 10;
+    
     StretchDIBits(
         deviceContext,
-        0, 0, buffer->Width, buffer->Height,
+        offsetX, offsetY, buffer->Width, buffer->Height,
         0, 0, buffer->Width, buffer->Height,
         buffer->Memory,
         &buffer->Info,
@@ -1044,6 +1049,16 @@ int CALLBACK WinMain(
 
             win32_game_code game = Win32LoadGameCode(sourceDLLFullPath, tmpDLLFullPath);
 
+
+
+            {
+                HDC deviceContext = GetDC(windowHandle);
+                win32_window_dimension dim = Win32GetWindowDimension(windowHandle);
+                PatBlt(deviceContext, 0, 0, dim.Width, dim.Height, BLACKNESS);
+            }
+
+            
+
             running = true;
             while(running)
             {
@@ -1415,8 +1430,9 @@ int CALLBACK WinMain(
 #if HANDMADE_INTERNAL
                 //Win32DebugSyncDisplay(&globalBackbuffer, ArrayCount(debugSoundCursors), debugSoundCursors, &soundOutput, targetSecondsPerFrame);
 #endif
-                
+
                 Win32DisplayBufferInWindow(deviceContext, dim.Width, dim.Height, &globalBackbuffer, 0, 0, dim.Width, dim.Height);
+
                 ReleaseDC(windowHandle, deviceContext);
                 
                 #if 0
