@@ -1,3 +1,14 @@
+/*
+  HANDMADE_INTERNAL:
+  	0 - build for public release
+        1 - build for developer ony
+
+  HANDMADE_SLOW:
+  	0 - no slow code is allowed
+        1 - can be less performant
+ */
+
+
 #include <stdint.h>
 // todo: remove
 #include <math.h>
@@ -10,27 +21,24 @@ typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
+
 typedef int8_t  int8;
 typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 typedef int32 bool32;
+
 typedef float real32;
 typedef double real64;
 
 #define Pi32 3.1415926535f
 
+#if HANDMADE_SLOW
+#define Assert(expression) if (!(expression)) {*(int *)0 = 0;}
+#else
+#define Assert(expression)
+#endif
 
-
-/*
-  HANDMADE_INTERNAL:
-  	0 - build for public release
-        1 - build for developer ony
-
-  HANDMADE_SLOW:
-  	0 - no slow code is allowed
-        1 - can be less performant
- */
 
 #define Kilobytes(val) ((val)*1024LL)
 #define Megabytes(val) (Kilobytes((val)*1024LL))
@@ -38,12 +46,6 @@ typedef double real64;
 #define Terabytes(val) (Gigabytes((val)*1024LL))
 #define ArrayCount(array) (sizeof(array) / sizeof((array)[0]))
 
-#if HANDMADE_SLOW
-#define Assert(expression) \
-    if (!(expression)) {*(int *)0 = 0;}
-#else
-#define Assert(expression)
-#endif
 
 uint32
 SafeTruncateUInt64(uint64 value)
@@ -94,6 +96,7 @@ struct game_offscreen_buffer
     int Height;
     int Pitch;
     int BytesPerPixel = 4;
+    int MemorySize;
 };
 
 struct game_sound_output_buffer
@@ -136,36 +139,10 @@ struct game_controller_input
 
             game_button_state Start;
             game_button_state Back;
+
+            game_button_state Terminator; // todo: check if persists
         };
     };
-};
-
-struct game_state
-{
-    int ToneHz;
-    int XOffset;
-    int YOffset;
-    real32 TSine;
-
-    real32 PlayerX;
-    real32 PlayerY;
-
-    int CurrentTileIndex;
-};
-
-struct game_memory
-{
-    bool32 IsInitialized;
-    uint64 PermanentStorageSize;
-    void *PermanentStorage; // should be initialized to zero
-
-    uint64 TransientStorageSize;
-    void *TransientStorage; // should be initialized to zero
-
-    /* FN */
-    debug_platform_free_file_memory *DEBUG_PlatformFreeFileMemory;
-    debug_platform_read_entire_file *DEBUG_PlatformReadEntireFile;
-    debug_platform_write_entire_file *DEBUG_PlatformWriteEntireFile;
 };
 
 struct game_input
@@ -179,6 +156,89 @@ struct game_input
     
     game_controller_input Controllers[5];
 };
+
+inline game_controller_input *GetController(game_input *input, int controllerIndex)
+{
+    Assert(controllerIndex < ArrayCount(input->Controllers));
+    return &input->Controllers[controllerIndex];
+}
+
+struct game_state
+{
+    int ToneHz;
+    int XOffset;
+    int YOffset;
+    real32 TSine;
+
+    real32 PlayerX;
+    real32 PlayerY;
+
+    int CurrentTileIndexX;
+    int CurrentTileIndexY;
+};
+
+struct game_memory
+{
+    bool32 IsInitialized;
+    uint64 PermanentStorageSize;
+    void *PermanentStorage; // should be initialized to zero
+
+    uint64 TransientStorageSize;
+    void *TransientStorage; // should be initialized to zero
+
+#if HANDMADE_INTERNAL
+    debug_platform_free_file_memory *DEBUG_PlatformFreeFileMemory;
+    debug_platform_read_entire_file *DEBUG_PlatformReadEntireFile;
+    debug_platform_write_entire_file *DEBUG_PlatformWriteEntireFile;
+#endif
+};
+
+struct tile_map
+{
+    
+    uint32 *Tiles;
+};
+
+struct canonical_position
+{
+    int32 TileMapX;
+    int32 TileMapY;
+
+    int32 TileX;
+    int32 TileY;
+
+    // this is tile relative X and Y
+    real32 X;
+    real32 Y;
+};
+
+struct raw_position
+{
+    int32 TileMapX;
+    int32 TileMapY;
+
+    // this is tile MAP relative X and Y
+    
+    real32 X;
+    real32 Y;
+};
+
+struct world
+{
+    real32 TileWidth;
+    real32 TileHeight;
+    real32 UpperLeftX;
+    real32 UpperLeftY;
+    int32 TileCountX;
+    int32 TileCountY;
+        
+    int32 TileMapCountX;
+    int32 TileMapCountY;
+
+    tile_map *TileMaps;
+};
+
+
 
 #define GAME_UPDATE_AND_RENDER(name) void name(thread_context *thread, game_memory *memory, game_offscreen_buffer *buffer, game_input *input)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);

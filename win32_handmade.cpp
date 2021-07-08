@@ -221,8 +221,6 @@ Win32ResizeDIBSection(win32_offscreen_buffer *buffer, int width, int height)
 static void
 Win32DisplayBufferInWindow(HDC deviceContext, int windowWidth, int windowHeight, win32_offscreen_buffer *buffer, int x, int y, int width, int height)
 {
-    // PatBlt(deviceContext, 0, 0, windowWidth, windowHeight, BLACKNESS);
-
     int offsetX = 10;
     int offsetY = 10;
     
@@ -987,9 +985,11 @@ int CALLBACK WinMain(
             gameMemory.TransientStorageSize = Gigabytes((uint64)1);
 
             // platform specific functions
+#if HANDMADE_INTERNAL
             gameMemory.DEBUG_PlatformFreeFileMemory = Debug_PlatformFreeFileMemory;
             gameMemory.DEBUG_PlatformReadEntireFile = Debug_PlatformReadEntireFile;
             gameMemory.DEBUG_PlatformWriteEntireFile = Debug_PlatformWriteEntireFile;
+#endif
             
 
             #if HANDMADE_INTERNAL
