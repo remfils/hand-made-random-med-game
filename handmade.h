@@ -163,6 +163,46 @@ inline game_controller_input *GetController(game_input *input, int controllerInd
     return &input->Controllers[controllerIndex];
 }
 
+struct tile_map
+{
+    
+    uint32 *Tiles;
+};
+
+struct canonical_position
+{
+    int32 TileMapX;
+    int32 TileMapY;
+
+    int32 TileX;
+    int32 TileY;
+
+    /* uint32 TileX; */
+    /* uint32 TileY; */
+
+    // this is tile relative X and Y
+    real32 RelX;
+    real32 RelY;
+};
+
+
+struct world
+{
+    real32 TileSideInMeters;
+    int32 TileSideInPixels;
+    real32 MetersToPixels;
+    
+    real32 UpperLeftX;
+    real32 UpperLeftY;
+    int32 TileCountX;
+    int32 TileCountY;
+        
+    int32 TileMapCountX;
+    int32 TileMapCountY;
+
+    tile_map *TileMaps;
+};
+
 struct game_state
 {
     int ToneHz;
@@ -170,11 +210,7 @@ struct game_state
     int YOffset;
     real32 TSine;
 
-    real32 PlayerX;
-    real32 PlayerY;
-
-    int CurrentTileIndexX;
-    int CurrentTileIndexY;
+    canonical_position PlayerPosition;
 };
 
 struct game_memory
@@ -191,51 +227,6 @@ struct game_memory
     debug_platform_read_entire_file *DEBUG_PlatformReadEntireFile;
     debug_platform_write_entire_file *DEBUG_PlatformWriteEntireFile;
 #endif
-};
-
-struct tile_map
-{
-    
-    uint32 *Tiles;
-};
-
-struct canonical_position
-{
-    int32 TileMapX;
-    int32 TileMapY;
-
-    int32 TileX;
-    int32 TileY;
-
-    // this is tile relative X and Y
-    real32 X;
-    real32 Y;
-};
-
-struct raw_position
-{
-    int32 TileMapX;
-    int32 TileMapY;
-
-    // this is tile MAP relative X and Y
-    
-    real32 X;
-    real32 Y;
-};
-
-struct world
-{
-    real32 TileWidth;
-    real32 TileHeight;
-    real32 UpperLeftX;
-    real32 UpperLeftY;
-    int32 TileCountX;
-    int32 TileCountY;
-        
-    int32 TileMapCountX;
-    int32 TileMapCountY;
-
-    tile_map *TileMaps;
 };
 
 
