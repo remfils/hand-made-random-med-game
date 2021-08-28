@@ -19,7 +19,7 @@ TruncateReal32ToInt32(real32 val)
 inline int32
 RoundReal32ToInt32(real32 value)
 {
-    int32 result = (int32)(value + 0.5f);
+    int32 result = (int32)roundf(value);
 
     return(result);
 }

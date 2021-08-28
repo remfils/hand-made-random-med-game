@@ -22,6 +22,8 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 
+typedef size_t memory_index;
+
 typedef int8_t  int8;
 typedef int16_t int16;
 typedef int32_t int32;
@@ -161,51 +163,22 @@ inline game_controller_input *GetController(game_input *input, int controllerInd
 {
     Assert(controllerIndex < ArrayCount(input->Controllers));
     return &input->Controllers[controllerIndex];
-}
-
-struct tile_chunk
-{
-    
-    uint32 *Tiles;
 };
 
-struct tile_chunk_position
+#include "handmade_intrinsics.h"
+#include "handmade_tile.h"
+
+
+struct memory_arena
 {
-    uint32 TileChunkX;
-    uint32 TileChunkY;
-
-    uint32 RelTileX;
-    uint32 RelTileY;
+    memory_index Size;
+    uint8 *Base;
+    memory_index Used;
 };
-
-struct world_position
-{
-    uint32 AbsTileX;
-    uint32 AbsTileY;
-
-    // this is tile relative X and Y
-    real32 RelX;
-    real32 RelY;
-};
-
 
 struct world
 {
-    uint32 ChunkShift;
-    uint32 ChunkMask;
-    uint32 ChunkDim;
-    
-    real32 TileSideInMeters;
-    int32 TileSideInPixels;
-    real32 MetersToPixels;
-    
-    real32 LowerLeftX;
-    real32 LowerLeftY;
-        
-    uint32 TileMapCountX;
-    uint32 TileMapCountY;
-
-    tile_chunk *TileChunk;
+    tile_map *TileMap;
 };
 
 struct game_state
@@ -215,7 +188,10 @@ struct game_state
     int YOffset;
     real32 TSine;
 
-    world_position PlayerPosition;
+    memory_arena WorldArena;
+
+    world * World;
+    tile_map_position PlayerPosition;
 };
 
 struct game_memory
