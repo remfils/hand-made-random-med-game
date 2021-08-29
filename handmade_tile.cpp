@@ -1,24 +1,29 @@
 internal tile_chunk*
-GetTileChunk(tile_map * tileMap, uint32 tileX, uint32 tileY)
+GetTileChunk(tile_map * tileMap, uint32 tileX, uint32 tileY, uint32 tileZ)
 {
     tile_chunk *tileChunk = 0;
 
-    if ((tileX >= 0) && (tileX < tileMap->TileMapCountX) &&
-        (tileY >= 0) && (tileY < tileMap->TileMapCountY))
+    if ((tileX >= 0) && (tileX < tileMap->TileChunkCountX) &&
+        (tileY >= 0) && (tileY < tileMap->TileChunkCountY) &&
+        (tileZ >= 0) && (tileZ < tileMap->TileChunkCountZ))
     {
-        tileChunk = &tileMap->TileChunks[tileY * tileMap->TileMapCountX + tileX];
+        tileChunk = &tileMap->TileChunks[
+            tileZ * tileMap->TileChunkCountY * tileMap->TileChunkCountX
+            + tileY * tileMap->TileChunkCountX
+            + tileX];
     }
 
     return tileChunk;
 }
 
 inline tile_chunk_position
-GetChunkPositionFor(tile_map *tileMap, uint32 absTileX, uint32 absTileY)
+GetChunkPositionFor(tile_map *tileMap, uint32 absTileX, uint32 absTileY, uint32 absTileZ)
 {
     tile_chunk_position result;
 
     result.TileChunkX = absTileX >> tileMap->ChunkShift;
     result.TileChunkY = absTileY >> tileMap->ChunkShift;
+    result.TileChunkZ = absTileZ;
     result.RelTileX = absTileX & tileMap->ChunkMask;
     result.RelTileY = absTileY & tileMap->ChunkMask;
 
@@ -41,7 +46,7 @@ GetTileValue(tile_map * tileMap, tile_chunk *tileChunk, uint32 testX, uint32 tes
 {
     uint32 tileChunkValue = 0;
     
-    if (tileChunk)
+    if (tileChunk && tileChunk->Tiles)
     {
         tileChunkValue = GetTileValueUnchecked(tileMap, tileChunk, testX, testY);
     }
@@ -52,18 +57,18 @@ GetTileValue(tile_map * tileMap, tile_chunk *tileChunk, uint32 testX, uint32 tes
 internal uint32
 GetTileValue(tile_map * tileMap, tile_map_position wp)
 {
-    tile_chunk_position chunkPos = GetChunkPositionFor(tileMap, wp.AbsTileX, wp.AbsTileY);
-    tile_chunk *tileChunk = GetTileChunk(tileMap, chunkPos.TileChunkX, chunkPos.TileChunkY);
+    tile_chunk_position chunkPos = GetChunkPositionFor(tileMap, wp.AbsTileX, wp.AbsTileY, wp.AbsTileZ);
+    tile_chunk *tileChunk = GetTileChunk(tileMap, chunkPos.TileChunkX, chunkPos.TileChunkY, chunkPos.TileChunkZ);
     uint32 tileChunkValue = GetTileValue(tileMap, tileChunk, chunkPos.RelTileX, chunkPos.RelTileY);
     
     return tileChunkValue;
 }
 
 internal uint32
-GetTileValue(tile_map *tileMap, uint32 absTileX, uint32 absTileY)
+GetTileValue(tile_map *tileMap, uint32 absTileX, uint32 absTileY, uint32 absTileZ)
 {
-    tile_chunk_position chunkPos = GetChunkPositionFor(tileMap, absTileX, absTileY);
-    tile_chunk *tileChunk = GetTileChunk(tileMap, chunkPos.TileChunkX, chunkPos.TileChunkY);
+    tile_chunk_position chunkPos = GetChunkPositionFor(tileMap, absTileX, absTileY, absTileZ);
+    tile_chunk *tileChunk = GetTileChunk(tileMap, chunkPos.TileChunkX, chunkPos.TileChunkY, chunkPos.TileChunkZ);
     uint32 tileChunkValue = GetTileValue(tileMap, tileChunk, chunkPos.RelTileX, chunkPos.RelTileY);
 
     return tileChunkValue;
@@ -74,7 +79,7 @@ IsTileMapPointEmpty(tile_map *tileMap, tile_map_position wp)
 {
     uint32 tileChunkValue = GetTileValue(tileMap, wp);
 
-    return tileChunkValue == 0;
+    return tileChunkValue == 1;
 }
 
 inline void
@@ -118,18 +123,28 @@ SetTileValue(tile_map * tileMap, tile_chunk *tileChunk, uint32 testX, uint32 tes
     }
 }
 
-internal void
-SetTileValue(memory_arena * arena, tile_map *tileMap, uint32 absTileX, uint32 absTileY, uint32 val)
+internal void InitTileChunk(memory_arena *memoryArena, tile_map *tileMap, tile_chunk *tileChunk)
 {
-    tile_chunk_position chunkPos = GetChunkPositionFor(tileMap, absTileX, absTileY);
-    tile_chunk *tileChunk = GetTileChunk(tileMap, chunkPos.TileChunkX, chunkPos.TileChunkY);
+    uint32 tileCount = tileMap->ChunkDim * tileMap->ChunkDim;
+    tileChunk->Tiles = PushArray(memoryArena, tileCount, uint32);
 
-    // if (!tileChunk)
-    // {
-        
-    // }
+    for (uint32 tindex = 0;
+         tindex < tileCount;
+         ++tindex) {
+        tileChunk->Tiles[tindex] = 1;
+    }
+}
 
-    // todo: on demand tile chunkg creation
+internal void
+SetTileValue(memory_arena * arena, tile_map *tileMap, uint32 absTileX, uint32 absTileY, uint32 absTileZ, uint32 val)
+{
+    tile_chunk_position chunkPos = GetChunkPositionFor(tileMap, absTileX, absTileY, absTileZ);
+    tile_chunk *tileChunk = GetTileChunk(tileMap, chunkPos.TileChunkX, chunkPos.TileChunkY, chunkPos.TileChunkZ);
+
+    if (!tileChunk->Tiles)
+    {
+        InitTileChunk(arena, tileMap, tileChunk);
+    }
 
     SetTileValue(tileMap, tileChunk, chunkPos.RelTileX, chunkPos.RelTileY, val);
 }
