@@ -79,7 +79,7 @@ IsTileMapPointEmpty(tile_map *tileMap, tile_map_position wp)
 {
     uint32 tileChunkValue = GetTileValue(tileMap, wp);
 
-    return tileChunkValue == 1;
+    return tileChunkValue == 1 || tileChunkValue == 3 || tileChunkValue == 4;
 }
 
 inline void
@@ -149,3 +149,13 @@ SetTileValue(memory_arena * arena, tile_map *tileMap, uint32 absTileX, uint32 ab
     SetTileValue(tileMap, tileChunk, chunkPos.RelTileX, chunkPos.RelTileY, val);
 }
 
+
+internal bool
+AreOnSameTile(tile_map_position posA, tile_map_position posB)
+{
+    bool32 result = posA.AbsTileX == posB.AbsTileX
+        && posA.AbsTileY == posB.AbsTileY
+        && posA.AbsTileZ == posB.AbsTileZ;
+
+    return result;
+}

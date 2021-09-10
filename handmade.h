@@ -69,7 +69,6 @@ struct color
     real32 Blue;
 };
 
-#if HANDMADE_INTERNAL
 struct debug_read_file_result
 {
     void *Content;
@@ -89,7 +88,6 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 /* void Debug_PlatformFreeFileMemory(void *memory); */
 /* debug_read_file_result Debug_PlatformReadEntireFile(char *filename); */
 /* bool32 Debug_PlatformWriteEntireFile(char *filename, uint32 memorySize, void *memory);  */
-#endif
 
 struct game_offscreen_buffer
 {
@@ -192,6 +190,8 @@ struct game_state
 
     world * World;
     tile_map_position PlayerPosition;
+
+    uint32 * PixelsToDraw;
 };
 
 struct game_memory
@@ -202,12 +202,9 @@ struct game_memory
 
     uint64 TransientStorageSize;
     void *TransientStorage; // should be initialized to zero
-
-#if HANDMADE_INTERNAL
     debug_platform_free_file_memory *DEBUG_PlatformFreeFileMemory;
     debug_platform_read_entire_file *DEBUG_PlatformReadEntireFile;
     debug_platform_write_entire_file *DEBUG_PlatformWriteEntireFile;
-#endif
 };
 
 

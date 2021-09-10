@@ -16,6 +16,49 @@ PushSize_(memory_arena *arena, memory_index size)
 #include "random.h"
 
 
+
+#pragma pack(push, 1)
+struct bitmap_header {
+    uint16 FileType;
+    uint32 FileSize;
+    uint16 Reserved1;
+    uint16 Reserved2;
+    uint32 BitmapOffset;
+    uint32 Size;
+    int32 Width;
+    int32 Height;
+    uint16 Planes;
+    uint16 BitsPerPixel;
+};
+#pragma pack(pop)
+
+
+internal uint32 *DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireFile, char *filename)
+{
+    debug_read_file_result readResult = ReadEntireFile(thread, filename);
+
+    uint32 * result = 0;
+
+    if (readResult.Content)
+    {
+        void *content = readResult.Content;
+
+        bitmap_header *header = (bitmap_header *) content;
+
+        uint32 *pixels = (uint32 *)((uint8 *)content + header->BitmapOffset);
+
+        result = pixels;
+    }
+    else
+    {
+        // todo: error
+    }
+    
+    return result;
+}
+
+
+
 uint32 GetUintColor(color color)
 {
     uint32 uColor = (uint32)(
@@ -167,6 +210,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     if (!memory->IsInitialized)
     {
+
+        gameState->PixelsToDraw = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/testing.bmp");
+
         InitializeArena(&gameState->WorldArena, memory->PermanentStorageSize - sizeof(game_state), (uint8 *)memory->PermanentStorage + sizeof(game_state));
         
         gameState->XOffset = 0;
@@ -206,23 +252,41 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         uint32 screenX = 0;
         uint32 screenY = 0;
+        uint32 absTileZ = 0;
         uint32 screenIndex = 100;
 
         bool isDoorLeft = false;
         bool isDoorRight = false;
         bool isDoorTop = false;
         bool isDoorBottom = false;
-        
-        while (screenIndex--) {
-            uint32 rand = RandomNumberTable[screenIndex] % 2;
+        bool isDoorUp = false;
+        bool isDoorDown = false;
 
+        uint32 drawZDoorCounter = 0;
+        
+
+        while (screenIndex--) {
+            uint32 rand;
+            if (drawZDoorCounter > 0) {
+                rand = RandomNumberTable[screenIndex] % 2;
+            } else {
+                rand = RandomNumberTable[screenIndex] % 3;
+            }
+            
             if (rand == 0) {
                 isDoorRight = true;
             }
-            else {
+            else if (rand == 1) {
                 isDoorTop = true;
+            } else {
+                drawZDoorCounter = 2;
+                if (absTileZ == 0) {
+                    isDoorUp = true;
+                } else {
+                    isDoorDown = true;
+                }
             }
-            
+
             for (uint32 tileY = 0;
                  tileY < tilesPerScreenHeight;
                  ++tileY)
@@ -233,7 +297,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 {
                     uint32 absTileX = screenX * tilesPerScreenWidth + tileX;
                     uint32 absTileY = screenY * tilesPerScreenHeight + tileY;
-                    uint32 absTileZ = 0;
 
                     uint32 tileVal = 1;
                     if (tileX == 0) {
@@ -285,8 +348,46 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         }
                     }
 
+                    if (drawZDoorCounter != 0 && isDoorUp) {
+                        if (tileY == tilesPerScreenHeight / 2 && (tileX - 1 == tilesPerScreenWidth / 2)) {
+                            tileVal = 3;
+                        }
+                    }
+
+                    if (drawZDoorCounter != 0 && isDoorDown) {
+                        if (tileY == tilesPerScreenHeight / 2 && (tileX + 1 == tilesPerScreenWidth / 2)) {
+                            tileVal = 4;
+                        }
+                    }
+
                     SetTileValue(&gameState->WorldArena, world->TileMap, absTileX, absTileY, absTileZ, tileVal);
                 }   
+            }
+
+            if (rand == 2) {
+                if (isDoorUp) {
+                    ++absTileZ;
+                }
+                else if (isDoorDown) {
+                    --absTileZ;
+                }
+            }
+
+            if (drawZDoorCounter > 0) {
+                --drawZDoorCounter;
+
+                if (drawZDoorCounter == 0) {
+                    isDoorUp = false;
+                    isDoorDown = false;
+                } else {
+                    if (isDoorDown) {
+                        isDoorDown = false;
+                        isDoorUp = true;
+                    } else if (isDoorUp) {
+                        isDoorDown = true;
+                        isDoorUp = false;
+                    }
+                }
             }
 
             isDoorLeft = isDoorRight;
@@ -294,10 +395,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             isDoorRight = false;
             isDoorTop = false;
             
-            
             if (rand == 0) {
                 screenX += 1;
-            } else {
+            } else if (rand == 1) {
                 screenY += 1;
             }
         }
@@ -380,6 +480,17 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             if (IsTileMapPointEmpty(tileMap, playerLeft)
                 && IsTileMapPointEmpty(tileMap, playerRight))
             {
+
+                if (!AreOnSameTile(gameState->PlayerPosition, newPlayerPosition)) {
+                    uint32 newTileValue = GetTileValue(tileMap, newPlayerPosition);
+                    if (newTileValue == 3) {
+                        ++newPlayerPosition.AbsTileZ;
+                    } else if (newTileValue == 4) {
+                        --newPlayerPosition.AbsTileZ;
+                    }
+                }
+                
+                
                 tile_map_position canPos = newPlayerPosition;
 
                 gameState->PlayerPosition = canPos;
@@ -406,11 +517,20 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             uint32 tileId = GetTileValue(tileMap, col, row, z);
             
             color color;
-            if (tileId == 2)
+
+            if (tileId == 4) {
+                color.Red = 0.5f;
+                color.Green = 0.5f;
+                color.Blue = 0;
+            } else if (tileId == 3) {
+                color.Red = 0.5f;
+                color.Green = 0.9f;
+                color.Blue = 0;
+            } else if (tileId == 2)
             {
                 color.Red = 0.3f;
                 color.Green = 0.3f;
-                color.Blue = 1;                
+                color.Blue = 1;
             }
             else if (tileId == 1)
             {
@@ -477,6 +597,17 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         RenderPlayer(buffer, input->MouseX, input->MouseY - testSpace);
 
         RenderPlayer(buffer, input->MouseX, input->MouseY + testSpace);
+    }
+    uint32 *src = gameState->PixelsToDraw;
+    uint32 *dst = (uint32 *)buffer->Memory;
+    for (int y =0;
+         y < buffer->Height;
+         ++y) {
+        for (int x =0;
+             x < buffer->Height;
+             ++x) {
+            *dst++ = *src++;
+        }   
     }
 }
 
