@@ -221,7 +221,24 @@ RenderBitmap(game_offscreen_buffer *buffer, loaded_bitmap *bitmap, real32 realX,
 
         for (int x = minX; x < maxX; ++x)
         {
-            *dst++ = *src++;
+            real32 a = (real32)((*src >> 24) & 0xff) / 255.0f;
+            real32 sr = (real32)((*src >> 16) & 0xff);
+            real32 sg = (real32)((*src >> 8) & 0xff);
+            real32 sb = (real32)((*src >> 0) & 0xff);
+
+            real32 dr = (real32)((*dst >> 16) & 0xff);
+            real32 dg = (real32)((*dst >> 8) & 0xff);
+            real32 db = (real32)((*dst >> 0) & 0xff);
+
+            real32 r = (1.0f - a) * dr + a * sr;
+            real32 g = (1.0f - a) * dg + a * sg;
+            real32 b = (1.0f - a) * db + a * sb;
+
+            
+            *dst = ((uint32)(r + 0.5f) << 16) | ((uint32)(g + 0.5f) << 8) | ((uint32)(b + 0.5f) << 0);
+            
+            *dst++;
+            *src++;
         }
 
         dstrow += buffer->Pitch;
@@ -584,10 +601,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 
 
-
     RenderBitmap(buffer, &gameState->LoadedBitmap, 0, 0);
-
-
     
     for (int32 relCol = -10; relCol < 10; ++relCol)
     {
@@ -656,6 +670,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     real32 playerTop = screenCenterY - MetersToPixels * playerHeight;
 
     // RenderRectangle(buffer, playerLeft, playerTop, playerLeft + playerWidth * MetersToPixels, playerTop + playerHeight * MetersToPixels, playerColor);
+    RenderBitmap(buffer, &gameState->PlayerCape, playerLeft, playerTop);
+    RenderBitmap(buffer, &gameState->PlayerTorso, playerLeft, playerTop);
     RenderBitmap(buffer, &gameState->PlayerHead, playerLeft, playerTop);
     
 
