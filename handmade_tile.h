@@ -1,3 +1,10 @@
+struct tile_map_diff
+{
+    real32 dX;
+    real32 dY;
+    real32 dZ;
+};
+
 struct tile_map_position
 {
     uint32 AbsTileX;

@@ -94,6 +94,14 @@ Win32GetLastWriteTime(char *filename)
     return(lastWriteTime);
 }
 
+inline BOOL
+Win32IsFileExists(char *filename)
+{
+    WIN32_FILE_ATTRIBUTE_DATA attributes = {};
+    BOOL isOk =  GetFileAttributesEx(filename, GetFileExInfoStandard, &attributes);
+    return isOk;
+}
+
 internal win32_game_code
 Win32LoadGameCode(char *sourceName, char *tmpName)
 {
@@ -907,7 +915,7 @@ int CALLBACK WinMain(
     windowClass.hInstance = instance;
     windowClass.lpszClassName = "HandmadeHeroWindowClass";
 
-    Win32ResizeDIBSection(&globalBackbuffer, 960, 540);
+    Win32ResizeDIBSection(&globalBackbuffer, 1088, 576);
 
     LARGE_INTEGER perfCounterFrequencyResult;
     QueryPerformanceFrequency(&perfCounterFrequencyResult);
@@ -1047,6 +1055,9 @@ int CALLBACK WinMain(
             char tmpDLLFullPath[MAX_PATH];
             Win32BuildAppPathFileName(&winState, "handmade_tmp.dll", MAX_PATH, tmpDLLFullPath);
 
+            char lockFullFilePath[MAX_PATH];
+            Win32BuildAppPathFileName(&winState, "tmp.lock", MAX_PATH, lockFullFilePath);
+
             win32_game_code game = Win32LoadGameCode(sourceDLLFullPath, tmpDLLFullPath);
 
 
@@ -1068,8 +1079,10 @@ int CALLBACK WinMain(
                 FILETIME newDLLWriteTime = Win32GetLastWriteTime(sourceDLLFullPath);
                 if (CompareFileTime(&newDLLWriteTime, &game.DLLLastWriteTime) != 0)
                 {
-                    Win32UnloadGameCode(&game);
-                    game = Win32LoadGameCode(sourceDLLFullPath, tmpDLLFullPath);
+                    if (!Win32IsFileExists(lockFullFilePath)) {
+                        Win32UnloadGameCode(&game);
+                        game = Win32LoadGameCode(sourceDLLFullPath, tmpDLLFullPath);
+                    }
                 }
 
                 // mouse

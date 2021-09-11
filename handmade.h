@@ -187,6 +187,17 @@ struct loaded_bitmap
     uint32 *Pixels;
 };
 
+
+struct hero_bitmaps
+{
+    int32 AlignX;
+    int32 AlignY;
+
+    loaded_bitmap Head;
+    loaded_bitmap Cape;
+    loaded_bitmap Torso;
+};
+
 struct game_state
 {
     int ToneHz;
@@ -197,12 +208,14 @@ struct game_state
     memory_arena WorldArena;
 
     world * World;
+
+    tile_map_position CameraPosition;
     tile_map_position PlayerPosition;
 
     loaded_bitmap LoadedBitmap;
-    loaded_bitmap PlayerHead;
-    loaded_bitmap PlayerCape;
-    loaded_bitmap PlayerTorso;
+    
+    uint32 HeroFacingDirection;
+    hero_bitmaps HeroBitmaps[4];
 };
 
 struct game_memory
