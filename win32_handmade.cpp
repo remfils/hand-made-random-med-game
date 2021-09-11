@@ -18,7 +18,8 @@
  */
 #include <stdint.h>
 
-#include "handmade.h"
+#include "handmade_platform.h"
+#include "handmade_platform.cpp"
 
 #include <malloc.h>
 #include <windows.h>
@@ -35,6 +36,38 @@ global_variable int64 GlobalPerfCounterFrequency;
 global_variable bool running;
 global_variable win32_offscreen_buffer globalBackbuffer;
 global_variable LPDIRECTSOUNDBUFFER globalSecondaryBuffer;
+global_variable bool DEBUGShowCursor = true;
+global_variable WINDOWPLACEMENT globalWindowsPosition = { sizeof(globalWindowsPosition) };
+
+
+internal void
+Win32ToggleFullscreen(HWND window)
+{
+    // src: https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
+
+    DWORD style = GetWindowLong(window, GWL_STYLE);
+    if (style & WS_OVERLAPPEDWINDOW)
+    {
+        MONITORINFO mi = { sizeof(mi) };
+        if (GetWindowPlacement(window, &globalWindowsPosition) &&
+            GetMonitorInfo(MonitorFromWindow(window,
+                    MONITOR_DEFAULTTOPRIMARY), &mi))
+        {
+            SetWindowLong(window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+            SetWindowPos(window, HWND_TOP,
+                mi.rcMonitor.left, mi.rcMonitor.top,
+                mi.rcMonitor.right - mi.rcMonitor.left,
+                mi.rcMonitor.bottom - mi.rcMonitor.top,
+                SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+        }
+    }
+    else
+    {
+        SetWindowLong(window, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+        SetWindowPlacement(window, &globalWindowsPosition);
+        SetWindowPos(window, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    }
+}
 
 
 internal int
@@ -151,7 +184,7 @@ X_INPUT_GET_STATE(XInputGetStateStub)
 {
     return(ERROR_DEVICE_NOT_CONNECTED);
 }
-static x_input_get_state *XInputGetState_ = XInputGetStateStub;
+internal x_input_get_state *XInputGetState_ = XInputGetStateStub;
 #define XInputGetState XInputGetState_
 
 // XInputSetState
@@ -163,10 +196,10 @@ X_INPUT_SET_STATE(XInputSetStateStub)
 {
     return(ERROR_DEVICE_NOT_CONNECTED);
 }
-static x_input_set_state *XInputSetState_ = XInputSetStateStub;
+internal x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
-static void
+internal void
 Win32InitXInput(void)
 {
     HMODULE xInputLibrary = LoadLibrary("xinput1_4.dll");
@@ -197,7 +230,7 @@ Win32GetWindowDimension(HWND window)
      return dim;
 }
 
-static void
+internal void
 Win32ResizeDIBSection(win32_offscreen_buffer *buffer, int width, int height)
 {
     if (buffer->Memory)
@@ -226,21 +259,42 @@ Win32ResizeDIBSection(win32_offscreen_buffer *buffer, int width, int height)
     // RenderGradient(0, 0);
 }
 
-static void
+internal void
 Win32DisplayBufferInWindow(HDC deviceContext, int windowWidth, int windowHeight, win32_offscreen_buffer *buffer, int x, int y, int width, int height)
 {
     int offsetX = 10;
     int offsetY = 10;
-    
-    StretchDIBits(
-        deviceContext,
-        offsetX, offsetY, buffer->Width, buffer->Height,
-        0, 0, buffer->Width, buffer->Height,
-        buffer->Memory,
-        &buffer->Info,
-        DIB_RGB_COLORS, // should be this most of the time
-        SRCCOPY // rastor operation code
-        );   
+
+    if ((windowWidth > buffer->Width * 2) &&
+        (windowHeight > buffer->Height * 2))
+    {
+        StretchDIBits(
+            deviceContext,
+            0, 0, windowWidth, windowHeight,
+            0, 0, buffer->Width, buffer->Height,
+            buffer->Memory,
+            &buffer->Info,
+            DIB_RGB_COLORS, // should be this most of the time
+            SRCCOPY // rastor operation code
+            );   
+    }
+    else
+    {
+        PatBlt(deviceContext, 0, 0, windowWidth, offsetY, BLACKNESS);
+        PatBlt(deviceContext, 0, offsetY + buffer->Height, windowWidth, windowHeight, BLACKNESS);
+        PatBlt(deviceContext, 0, 0, offsetX, windowHeight, BLACKNESS);
+        PatBlt(deviceContext, offsetX + buffer->Width, 0, windowWidth, windowHeight, BLACKNESS);
+
+        StretchDIBits(
+            deviceContext,
+            offsetX, offsetY, buffer->Width, buffer->Height,
+            0, 0, buffer->Width, buffer->Height,
+            buffer->Memory,
+            &buffer->Info,
+            DIB_RGB_COLORS, // should be this most of the time
+            SRCCOPY // rastor operation code
+            );   
+    }
 }
 
 #if HANDMADE_INTERNAL
@@ -351,6 +405,17 @@ MainWindowCallback(HWND window,
     
     switch (message)
     {
+    case WM_SETCURSOR:
+    {
+        if (DEBUGShowCursor)
+        {
+            SetCursor(LoadCursorA(0, IDC_CROSS));
+        }
+        else
+        {
+            SetCursor(0);
+        }
+    } break;
     case WM_ACTIVATEAPP:
     {
         if (wParam == 1)
@@ -776,7 +841,6 @@ Win32ProcessWindowMessages(win32_state *winState, game_controller_input *keyboar
                 {
                     Win32ProcessKeyboardButtonPress(&keyboardController->Back, isDown);
                 }
-                
                 else if (virtualKeyCode == VK_F4)
                 {
                     bool32 isAlt = (message.lParam & (1 << 29));
@@ -812,6 +876,19 @@ Win32ProcessWindowMessages(win32_state *winState, game_controller_input *keyboar
                         else
                         {
                             Win32EndPlayBackInput(winState);
+                        }
+                    }
+                }
+                else if (virtualKeyCode == VK_RETURN)
+                {
+                    if (isDown)
+                    {
+                        bool32 isAlt = (message.lParam & (1 << 29));
+                        if (isAlt)
+                        {
+                            if (message.hwnd) {
+                                Win32ToggleFullscreen(message.hwnd);
+                            }
                         }
                     }
                 }
@@ -913,6 +990,7 @@ int CALLBACK WinMain(
     windowClass.style = CS_HREDRAW | CS_VREDRAW;
     windowClass.lpfnWndProc = MainWindowCallback;
     windowClass.hInstance = instance;
+    //windowClass.hIcon = ??;
     windowClass.lpszClassName = "HandmadeHeroWindowClass";
 
     Win32ResizeDIBSection(&globalBackbuffer, 1088, 576);

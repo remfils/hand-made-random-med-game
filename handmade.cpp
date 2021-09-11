@@ -101,20 +101,10 @@ GameOutputSound(game_sound_output_buffer *soundBuffer, game_state *gameState)
 
     for (int sampleIndex = 0; sampleIndex < soundBuffer->SampleCount; ++sampleIndex)
     {
-        /* real32 sineValue = sinf(gameState->TSine); */
-        /* int16 sampleValue = (int16)(sineValue * toneVolume); */
-
         int16 sampleValue = 0;
         
         *sampleOut++ = sampleValue;
         *sampleOut++ = sampleValue;
-        
-        // real32 sineValue = sinf(gameState->TSine);
-        // int16 sampleValue = (int16)(sineValue * toneVolume);
-        // *sampleOut++ = sampleValue;
-        // *sampleOut++ = sampleValue;
-        
-        gameState->TSine += (real32)(2.0f * Pi32 * 1.0f) / (real32)wavePeriod;
     }
 }
 
