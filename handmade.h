@@ -12,8 +12,15 @@
 #include <stdint.h>
 // todo: remove
 #include <math.h>
+
 #include "handmade_platform.h"
 #include "handmade_platform.cpp"
+
+
+#include "handmade_math.h"
+
+
+
 
 
 struct color
