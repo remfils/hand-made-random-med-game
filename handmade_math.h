@@ -1,17 +1,11 @@
 #if !defined(HANDMADE_MATH_H)
 
-struct v2
+union v2
 {
-    union {
-        struct {
-            real32 X, Y;
-        };
-        real32 E[2];
+    struct {
+        real32 X, Y;
     };
-    real32 &operator[](int idx) {return((&X)[idx]);}
-
-    inline v2 &operator*=(real32 a);
-    inline v2 &operator+=(v2 a);
+    real32 E[2];
 };
 
 inline v2
@@ -41,11 +35,11 @@ operator+(v2 a, v2 b)
     return res;
 }
 
-inline v2 &v2::
-operator+=(v2 a)
+inline v2
+operator+=(v2 &b, v2 a)
 {
-    *this = *this + a;
-    return *this;
+    b = b + a;
+    return b;
 }
 
 inline v2
@@ -75,11 +69,11 @@ operator*(v2 b, real32 a)
     return res;
 }
 
-inline v2 &v2::
-operator*=(real32 a)
+inline v2
+operator*=(v2 &b, real32 a)
 {
-    *this = *this * a;
-    return *this;
+    b = b * a;
+    return b;
 }
 
 

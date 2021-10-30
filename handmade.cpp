@@ -333,6 +333,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->PlayerPosition.AbsTileY = 2;
         gameState->PlayerPosition.Offset.X = 5.f;
         gameState->PlayerPosition.Offset.Y = 5.f;
+
+        gameState->dPlayerPosition = {0, 0};
         
         gameState->World = PushSize(&gameState->WorldArena, world);
         world *world = gameState->World;
@@ -552,40 +554,49 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         }
         else
         {
-            v2 dPlayer = {};
+            v2 ddPlayer = {};
 
             if (inputController->MoveUp.EndedDown)
             {
-                dPlayer.Y = 1.0f;
+                ddPlayer.Y = 1.0f;
                 gameState->HeroFacingDirection = 1;
             }
             if (inputController->MoveDown.EndedDown)
             {
-                dPlayer.Y = -1.0f;
+                ddPlayer.Y = -1.0f;
                 gameState->HeroFacingDirection = 3;
             }
             if (inputController->MoveLeft.EndedDown)
             {
-                dPlayer.X = -1.0f;
+                ddPlayer.X = -1.0f;
                 gameState->HeroFacingDirection = 2;
                 
             }
             if (inputController->MoveRight.EndedDown)
             {
-                dPlayer.X = 1.0f;
+                ddPlayer.X = 1.0f;
                 gameState->HeroFacingDirection = 0;
             }
 
-            if (dPlayer.X != 0 && dPlayer.Y != 0) {
-                dPlayer.X *= 0.707106781188f;
-                dPlayer.Y *= 0.707106781188f;
+            if (ddPlayer.X != 0 && ddPlayer.Y != 0) {
+                ddPlayer *= 0.707106781188f;
             }
             
-            real32 speed = 4 * input->DtForFrame;
+            real32 speed = 30.0f;
+            ddPlayer *= speed;
+
+            ddPlayer += -7 * gameState->dPlayerPosition;
+
+            // NOTE: here you can add super speed fn
             
             tile_map_position newPlayerPosition = gameState->PlayerPosition;
 
-            newPlayerPosition.Offset += dPlayer * speed;
+            newPlayerPosition.Offset = 0.5f * input->DtForFrame * input->DtForFrame * ddPlayer + gameState->dPlayerPosition * input->DtForFrame
+                + newPlayerPosition.Offset;
+
+            gameState->dPlayerPosition = ddPlayer * input->DtForFrame + gameState->dPlayerPosition;
+
+            
 
             newPlayerPosition = RecanonicalizePosition(tileMap, newPlayerPosition);
             

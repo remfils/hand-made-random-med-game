@@ -93,6 +93,8 @@ struct game_state
     tile_map_position CameraPosition;
     tile_map_position PlayerPosition;
 
+    v2 dPlayerPosition;
+
     loaded_bitmap LoadedBitmap;
     
     uint32 HeroFacingDirection;
