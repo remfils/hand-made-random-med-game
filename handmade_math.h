@@ -76,6 +76,13 @@ operator*=(v2 &b, real32 a)
     return b;
 }
 
+inline real32
+Inner(v2 a, v2 b)
+{
+    real32 res = a.X * b.X + a.Y * b.Y;
+    return res;
+}
+
 
 
 #define HANDMADE_MATH_H

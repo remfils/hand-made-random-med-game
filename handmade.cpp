@@ -296,29 +296,21 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->LoadedBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/new-bg-code.bmp");
         
         
-        gameState->HeroBitmaps[0].AlignX = 34;
-        gameState->HeroBitmaps[0].AlignY = 88;
-        gameState->HeroBitmaps[0].Head = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_head--right.bmp");
-        gameState->HeroBitmaps[0].Cape = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_cape--right.bmp");
-        gameState->HeroBitmaps[0].Torso = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_torso--right.bmp");
+        gameState->HeroBitmaps[0].AlignX = 60;
+        gameState->HeroBitmaps[0].AlignY = 195;
+        gameState->HeroBitmaps[0].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/player/stand_right.bmp");
         
-        gameState->HeroBitmaps[1].AlignX = 34;
-        gameState->HeroBitmaps[1].AlignY = 88;
-        gameState->HeroBitmaps[1].Head = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_head--back.bmp");
-        gameState->HeroBitmaps[1].Cape = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_cape--back.bmp");
-        gameState->HeroBitmaps[1].Torso = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_torso--back.bmp");
+        gameState->HeroBitmaps[1].AlignX = 60;
+        gameState->HeroBitmaps[1].AlignY = 185;
+        gameState->HeroBitmaps[1].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/player/stand_up.bmp");
         
-        gameState->HeroBitmaps[2].AlignX = 34;
-        gameState->HeroBitmaps[2].AlignY = 88;
-        gameState->HeroBitmaps[2].Head = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_head--left.bmp");
-        gameState->HeroBitmaps[2].Cape = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_cape--left.bmp");
-        gameState->HeroBitmaps[2].Torso = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_torso--left.bmp");
+        gameState->HeroBitmaps[2].AlignX = 60;
+        gameState->HeroBitmaps[2].AlignY = 195;
+        gameState->HeroBitmaps[2].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/player/stand_left.bmp");
         
-        gameState->HeroBitmaps[3].AlignX = 34;
-        gameState->HeroBitmaps[3].AlignY = 88;
-        gameState->HeroBitmaps[3].Head = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_head--front.bmp");
-        gameState->HeroBitmaps[3].Cape = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_cape--front.bmp");
-        gameState->HeroBitmaps[3].Torso = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/hero_torso--front.bmp");
+        gameState->HeroBitmaps[3].AlignX = 60;
+        gameState->HeroBitmaps[3].AlignY = 185;
+        gameState->HeroBitmaps[3].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/player/stand_down.bmp");
         
         InitializeArena(&gameState->WorldArena, memory->PermanentStorageSize - sizeof(game_state), (uint8 *)memory->PermanentStorage + sizeof(game_state));
         
@@ -530,7 +522,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     tile_map *tileMap = gameState->World->TileMap;
     
     real32 playerWidth = (real32)0.75 * (real32)TileSideInMeters;
-    real32 playerHeight = (real32)TileSideInMeters;
+    real32 playerHeight = (real32)0.3 * (real32)TileSideInMeters;
     
     for (int controllerIndex=0; controllerIndex<ArrayCount(input->Controllers); controllerIndex++)
     {
@@ -582,7 +574,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 ddPlayer *= 0.707106781188f;
             }
             
-            real32 speed = 30.0f;
+            real32 speed = 50.0f;
             ddPlayer *= speed;
 
             ddPlayer += -7 * gameState->dPlayerPosition;
@@ -607,11 +599,40 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             tile_map_position playerRight = newPlayerPosition;
             playerRight.Offset.X += playerWidth / 2;
             playerRight = RecanonicalizePosition(tileMap, playerRight);
-            
-            if (IsTileMapPointEmpty(tileMap, playerLeft)
-                && IsTileMapPointEmpty(tileMap, playerRight))
+
+
+            bool32 isCollided = false;
+            tile_map_position collidedPos = {};
+            if (!IsTileMapPointEmpty(tileMap, playerLeft))
             {
-                
+                isCollided = true;
+                collidedPos = playerLeft;
+            }
+            if (!IsTileMapPointEmpty(tileMap, playerRight))
+            {
+                isCollided = true;
+                collidedPos = playerRight;
+            }
+            
+            if (isCollided)
+            {
+                v2 r = {};
+                if (collidedPos.AbsTileX < gameState->PlayerPosition.AbsTileX) {
+                    r = {1,0};
+                } 
+                if (collidedPos.AbsTileX > gameState->PlayerPosition.AbsTileX) {
+                    r = {-1,0};
+                }
+                if (collidedPos.AbsTileY < gameState->PlayerPosition.AbsTileY) {
+                    r = {0,1};
+                }
+                if (collidedPos.AbsTileY > gameState->PlayerPosition.AbsTileY) {
+                    r = {0,-1};
+                } 
+                gameState->dPlayerPosition = gameState->dPlayerPosition - 2 * Inner(gameState->dPlayerPosition, r) * r;
+            }
+            else
+            {
                 if (!AreOnSameTile(gameState->PlayerPosition, newPlayerPosition)) {
                     uint32 newTileValue = GetTileValue(tileMap, newPlayerPosition);
                     if (newTileValue == 3) {
@@ -620,7 +641,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         --newPlayerPosition.AbsTileZ;
                     }
                 }
-                
                 
                 tile_map_position canPos = newPlayerPosition;
                 
@@ -743,17 +763,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     if (gameState->HeroFacingDirection == 1)
     {
-        // RenderRectangle(buffer, playerLeft, playerTop, playerLeft + playerWidth * MetersToPixels, playerTop + playerHeight * MetersToPixels, playerColor);
-        RenderBitmap(buffer, &heroBitmaps->Torso, bitmapLeft, bitmapTop);
-        RenderBitmap(buffer, &heroBitmaps->Cape, bitmapLeft, bitmapTop);
-        RenderBitmap(buffer, &heroBitmaps->Head, bitmapLeft, bitmapTop);
+        RenderRectangle(buffer, playerLeft, playerTop, playerLeft + playerWidth * MetersToPixels, playerTop + playerHeight * MetersToPixels, playerColor);
+        RenderBitmap(buffer, &heroBitmaps->Character, bitmapLeft, bitmapTop);
     }
     else
     {
-        // RenderRectangle(buffer, playerLeft, playerTop, playerLeft + playerWidth * MetersToPixels, playerTop + playerHeight * MetersToPixels, playerColor);
-        RenderBitmap(buffer, &heroBitmaps->Cape, bitmapLeft, bitmapTop);
-        RenderBitmap(buffer, &heroBitmaps->Torso, bitmapLeft, bitmapTop);
-        RenderBitmap(buffer, &heroBitmaps->Head, bitmapLeft, bitmapTop);
+        RenderRectangle(buffer, playerLeft, playerTop, playerLeft + playerWidth * MetersToPixels, playerTop + playerHeight * MetersToPixels, playerColor);
+        RenderBitmap(buffer, &heroBitmaps->Character, bitmapLeft, bitmapTop);
     }
     
     if (input->MouseButtons[0].EndedDown)

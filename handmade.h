@@ -75,9 +75,7 @@ struct hero_bitmaps
     int32 AlignX;
     int32 AlignY;
 
-    loaded_bitmap Head;
-    loaded_bitmap Cape;
-    loaded_bitmap Torso;
+    loaded_bitmap Character;
 };
 
 struct game_state
