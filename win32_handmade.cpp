@@ -1008,10 +1008,10 @@ int CALLBACK WinMain(
             windowClass.lpszClassName,
             "Handmade window",
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
+            50,
+            50,
+            1920/2 + 170,
+            700 - 50,
             0, // parent window
             0, // menu
             instance,
@@ -1019,6 +1019,7 @@ int CALLBACK WinMain(
 
         if (windowHandle)
         {
+
             thread_context thread = {};
             
             HDC refreshDC = GetDC(windowHandle);
@@ -1145,8 +1146,6 @@ int CALLBACK WinMain(
                 win32_window_dimension dim = Win32GetWindowDimension(windowHandle);
                 PatBlt(deviceContext, 0, 0, dim.Width, dim.Height, BLACKNESS);
             }
-
-            
 
             running = true;
             while(running)

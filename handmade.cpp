@@ -644,9 +644,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 }
             }
 
-// debug
-            isDoorBottom = true;
-            
             for (uint32 tileY = 0;
                  tileY < tilesPerScreenHeight;
                  ++tileY)
