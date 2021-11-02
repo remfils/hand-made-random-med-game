@@ -11,6 +11,13 @@ FloorReal32ToInt32(real32 val)
 }
 
 inline int32
+CeilReal32ToInt32(real32 val)
+{
+    int32 res = (int32)ceilf(val);
+    return res;
+}
+
+inline int32
 TruncateReal32ToInt32(real32 val)
 {
     return (int32)val;
