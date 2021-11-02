@@ -83,7 +83,12 @@ Inner(v2 a, v2 b)
     return res;
 }
 
-
+inline real32
+LengthSq(v2 a)
+{
+    real32 result = Inner(a, a);
+    return result;
+}
 
 #define HANDMADE_MATH_H
 #endif

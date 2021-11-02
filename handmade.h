@@ -78,6 +78,17 @@ struct hero_bitmaps
     loaded_bitmap Character;
 };
 
+struct entity
+{
+    bool32 Exists;
+    tile_map_position Position;
+    v2 dPosition;
+    uint32 FacingDirection;
+
+    real32 Width;
+    real32 Height;
+};
+
 struct game_state
 {
     int ToneHz;
@@ -88,14 +99,16 @@ struct game_state
 
     world * World;
 
+    // TODO: what to do with multiple players?
+    uint32 CameraFollowingEntityIndex;
     tile_map_position CameraPosition;
-    tile_map_position PlayerPosition;
 
-    v2 dPlayerPosition;
+    uint32 PlayerIndexControllerMap[ArrayCount(((game_input *)0)->Controllers)];
+    uint32 EntityCount;
+    entity Entities[256];
 
     loaded_bitmap LoadedBitmap;
     
-    uint32 HeroFacingDirection;
     hero_bitmaps HeroBitmaps[4];
 };
 

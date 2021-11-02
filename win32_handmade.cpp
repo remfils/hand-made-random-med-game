@@ -835,11 +835,11 @@ Win32ProcessWindowMessages(win32_state *winState, game_controller_input *keyboar
                 }
                 else if (virtualKeyCode == VK_ESCAPE)
                 {
-                    Win32ProcessKeyboardButtonPress(&keyboardController->Start, isDown);
+                    Win32ProcessKeyboardButtonPress(&keyboardController->Back, isDown);
                 }
                 else if (virtualKeyCode == VK_SPACE)
                 {
-                    Win32ProcessKeyboardButtonPress(&keyboardController->Back, isDown);
+                    Win32ProcessKeyboardButtonPress(&keyboardController->Start, isDown);
                 }
                 else if (virtualKeyCode == VK_F4)
                 {

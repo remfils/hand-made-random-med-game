@@ -45,3 +45,10 @@ ATan2(real32 y, real32 x)
     real32 res = atan2f(y, x);
     return res;
 }
+
+inline real32
+AbsoluteValue(real32 val)
+{
+    real32 res = (real32)fabs(val);
+    return res;
+}
