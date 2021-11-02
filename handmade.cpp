@@ -321,12 +321,19 @@ InitializeArena(memory_arena *arena, memory_index size, uint8 *base)
 internal void
 MovePlayer(game_state *gameState, entity *entity, real32 dt, v2 ddPlayer)
 {
+    // normlize ddPlayer
+    real32 ddLen = SquareRoot(LengthSq(ddPlayer));
+    if (ddLen > 1)
+    {
+        ddPlayer = (1.0f / ddLen) * ddPlayer;
+    }
+
     tile_map *tileMap = gameState->World->TileMap;
     
     real32 speed = 50.0f;
     ddPlayer *= speed;
 
-    ddPlayer += -10 * entity->dPosition;
+    ddPlayer += -8 * entity->dPosition;
 
     // NOTE: here you can add super speed fn
     tile_map_position oldPlayerPosition = entity->Position;
@@ -339,100 +346,100 @@ MovePlayer(game_state *gameState, entity *entity, real32 dt, v2 ddPlayer)
 
     // NOTE: old code
 
-    tile_map_position playerLeft = newPlayerPosition;
-    playerLeft.Offset.X -= entity->Width / 2;
-    playerLeft = RecanonicalizePosition(tileMap, playerLeft);
+    // tile_map_position playerLeft = newPlayerPosition;
+    // playerLeft.Offset.X -= entity->Width / 2;
+    // playerLeft = RecanonicalizePosition(tileMap, playerLeft);
             
-    tile_map_position playerRight = newPlayerPosition;
-    playerRight.Offset.X += entity->Width / 2;
-    playerRight = RecanonicalizePosition(tileMap, playerRight);
+    // tile_map_position playerRight = newPlayerPosition;
+    // playerRight.Offset.X += entity->Width / 2;
+    // playerRight = RecanonicalizePosition(tileMap, playerRight);
 
 
-    bool32 isCollided = false;
-    tile_map_position collidedPos = {};
-    if (!IsTileMapPointEmpty(tileMap, playerLeft))
-    {
-        isCollided = true;
-        collidedPos = playerLeft;
-    }
-    if (!IsTileMapPointEmpty(tileMap, playerRight))
-    {
-        isCollided = true;
-        collidedPos = playerRight;
-    }
-
-    if (isCollided)
-    {
-        v2 r = {};
-        if (collidedPos.AbsTileX < entity->Position.AbsTileX) {
-            r = {1,0};
-        } 
-        if (collidedPos.AbsTileX > entity->Position.AbsTileX) {
-            r = {-1,0};
-        }
-        if (collidedPos.AbsTileY < entity->Position.AbsTileY) {
-            r = {0,1};
-        }
-        if (collidedPos.AbsTileY > entity->Position.AbsTileY) {
-            r = {0,-1};
-        } 
-        entity->dPosition = entity->dPosition - 2 * Inner(entity->dPosition, r) * r;
-    }
-    else
-    {
-        if (!AreOnSameTile(entity->Position, newPlayerPosition)) {
-            uint32 newTileValue = GetTileValue(tileMap, newPlayerPosition);
-            if (newTileValue == 3) {
-                ++newPlayerPosition.AbsTileZ;
-            } else if (newTileValue == 4) {
-                --newPlayerPosition.AbsTileZ;
-            }
-        }
-                
-        tile_map_position canPos = newPlayerPosition;
-                
-        entity->Position = canPos;
-    }
-
-
-    // NOTE: new collision code
-
-    // uint32 minTileX = 0;
-    // uint32 minTileY = 0;
-    // uint32 onePastmaxTileY = 0;
-    // uint32 onePastmaxTileX = 0;
-    // uint32 absTileZ = entity->Position.AbsTileZ;
-    // tile_map_position bestPlayerPosition = entity->Position;
-    // real32 bestDistanceSq = LengthSq(playerPositionDelta);
-    // for (uint32 absTileY = minTileY;
-    //      absTileY != onePastmaxTileY;
-    //      ++absTileY)
+    // bool32 isCollided = false;
+    // tile_map_position collidedPos = {};
+    // if (!IsTileMapPointEmpty(tileMap, playerLeft))
     // {
-    //     for (uint32 absTileX = minTileX;
-    //          absTileX != onePastmaxTileX;
-    //          ++absTileX)
-    //     {
-    //         tile_map_position testTilePosition = CenteredTilePoint(absTileX, absTileY, absTileZ);
-
-    //         uint32 tileValue = GetTileValue(tileMap, absTileX, absTileY, absTileZ);
-
-    //         if (IsTileValueEmpty(tileValue))
-    //         {
-    //             v2 minCorner = -0.5f * v2{tileMap->TileSideInMeters, tileMap->TileSideInMeters};
-    //             v2 maxCorner = 0.5f * v2{tileMap->TileSideInMeters, tileMap->TileSideInMeters};
-
-    //             tile_map_diff relNewPlayerPoint = Subtract(tileMap, &testTilePosition, &newPlayerPosition);
-
-    //             v2 testP = ClosestPointInRectangle(minCorner, maxCorner, relNewPlayerPoint);
-    //         }
-    //     }
+    //     isCollided = true;
+    //     collidedPos = playerLeft;
+    // }
+    // if (!IsTileMapPointEmpty(tileMap, playerRight))
+    // {
+    //     isCollided = true;
+    //     collidedPos = playerRight;
     // }
 
+    // if (isCollided)
+    // {
+    //     v2 r = {};
+    //     if (collidedPos.AbsTileX < entity->Position.AbsTileX) {
+    //         r = {1,0};
+    //     } 
+    //     if (collidedPos.AbsTileX > entity->Position.AbsTileX) {
+    //         r = {-1,0};
+    //     }
+    //     if (collidedPos.AbsTileY < entity->Position.AbsTileY) {
+    //         r = {0,1};
+    //     }
+    //     if (collidedPos.AbsTileY > entity->Position.AbsTileY) {
+    //         r = {0,-1};
+    //     } 
+    //     entity->dPosition = entity->dPosition - 2 * Inner(entity->dPosition, r) * r;
+    // }
+    // else
+    // {
+    //     if (!AreOnSameTile(entity->Position, newPlayerPosition)) {
+    //         uint32 newTileValue = GetTileValue(tileMap, newPlayerPosition);
+    //         if (newTileValue == 3) {
+    //             ++newPlayerPosition.AbsTileZ;
+    //         } else if (newTileValue == 4) {
+    //             --newPlayerPosition.AbsTileZ;
+    //         }
+    //     }
+                
+    //     tile_map_position canPos = newPlayerPosition;
+                
+    //     entity->Position = canPos;
+    // }
+
+    uint32 minTileX = Minimum(oldPlayerPosition->Position.X, newPlayerPosition->Position.X);
+    uint32 minTileY = Minimum(oldPlayerPosition->Position.Y, newPlayerPosition->Position.Y);
+    uint32 onePastmaxTileY = Maximum(oldPlayerPosition->Position.X, newPlayerPosition->Position.X) + 1;
+    uint32 onePastmaxTileX = Maximum(oldPlayerPosition->Position.Y, newPlayerPosition->Position.Y) + 1;
+
+    uint32 absTileZ = entity->Position.AbsTileZ;
+
+    // get lower if collision detected
+    real32 tmin = 1.0f;
+    for (uint32 absTileY = minTileY;
+         absTileY != onePastmaxTileY;
+         ++absTileY)
+    {
+        for (uint32 absTileX = minTileX;
+             absTileX != onePastmaxTileX;
+             ++absTileX)
+        {
+            tile_map_position testTilePosition = CenteredTilePoint(absTileX, absTileY, absTileZ);
+
+            uint32 tileValue = GetTileValue(tileMap, absTileX, absTileY, absTileZ);
+
+            if (!IsTileValueEmpty(tileValue))
+            {
+                v2 minCorner = -0.5f * v2{tileMap->TileSideInMeters, tileMap->TileSideInMeters};
+                v2 maxCorner = 0.5f * v2{tileMap->TileSideInMeters, tileMap->TileSideInMeters};
+
+                tile_map_diff relNewPlayerPoint = Subtract(tileMap, &testTilePosition, &newPlayerPosition);
+
+                tResult = (wallX - relNewPlayerPoint.X) / playerPositionDelta.X;
+                
+                TestWall(minCorner.X, relNewPlayerPoint.X)
+            }
+        }
+    }
 
 
     if (entity->dPosition.X == 0 && entity->dPosition.Y == 0)
     {
-        
+        // dont change direction if both zero
     }
     else if (AbsoluteValue(entity->dPosition.X) > AbsoluteValue(entity->dPosition.Y))
     {
@@ -755,9 +762,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     ddPlayer.X = 1.0f;
                 }
 
-                if (ddPlayer.X != 0 && ddPlayer.Y != 0) {
-                    ddPlayer *= 0.707106781188f;
-                }
+                // TODO: remove this
+                // if (ddPlayer.X != 0 && ddPlayer.Y != 0) {
+                //     ddPlayer *= 0.707106781188f;
+                // }
             }
 
             MovePlayer(gameState, controllingEntity, input->DtForFrame, ddPlayer);
