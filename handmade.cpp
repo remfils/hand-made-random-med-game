@@ -109,11 +109,8 @@ InitializePlayer(game_state *gameState, uint32 entityIndex)
     entity->Exists = true;
     entity->Position.AbsTileX = 2;
     entity->Position.AbsTileY = 2;
-    entity->Position.Offset.X = 5.f;
-    entity->Position.Offset.Y = 5.f;
-
-    // DEBUG
-    entity->Position = RecanonicalizePosition(gameState->World->TileMap, entity->Position);
+    entity->Position._Offset.X = 0;
+    entity->Position._Offset.Y = 0;
 
     entity->dPosition = {0, 0};
 
@@ -360,12 +357,10 @@ MovePlayer(game_state *gameState, entity *entity, real32 dt, v2 ddPlayer)
 
     // NOTE: here you can add super speed fn
     tile_map_position oldPlayerPosition = entity->Position;
+
     v2 playerPositionDelta = 0.5f * dt * dt * ddPlayer + entity->dPosition * dt;
     entity->dPosition = ddPlayer * dt + entity->dPosition;
-    
-    tile_map_position newPlayerPosition = entity->Position;
-    newPlayerPosition.Offset += playerPositionDelta;
-    newPlayerPosition = RecanonicalizePosition(tileMap, newPlayerPosition);
+    tile_map_position newPlayerPosition = Offset(tileMap, entity->Position, playerPositionDelta);
 
     // NOTE: old code
 
@@ -424,22 +419,30 @@ MovePlayer(game_state *gameState, entity *entity, real32 dt, v2 ddPlayer)
     //     entity->Position = canPos;
     // }
 
+#if 0
     uint32 minTileX = Minimum(oldPlayerPosition.AbsTileX, newPlayerPosition.AbsTileX);
     uint32 minTileY = Minimum(oldPlayerPosition.AbsTileY, newPlayerPosition.AbsTileY);
     uint32 onePastmaxTileX = Maximum(oldPlayerPosition.AbsTileX, newPlayerPosition.AbsTileX) + 1;
     uint32 onePastmaxTileY = Maximum(oldPlayerPosition.AbsTileY, newPlayerPosition.AbsTileY) + 1;
+#else
+    uint32 startTileX = oldPlayerPosition.AbsTileX;
+    uint32 startTileY = oldPlayerPosition.AbsTileY;
+    uint32 endTileX = newPlayerPosition.AbsTileX;
+    uint32 endTileY = newPlayerPosition.AbsTileY;
+    int32 stepX = SignOf(endTileX - startTileX);
+    int32 stepY = SignOf(endTileY - startTileY);
+#endif
 
     uint32 absTileZ = entity->Position.AbsTileZ;
 
     // get lower if collision detected
     real32 tMin = 1.0f;
-    for (uint32 absTileY = minTileY;
-         absTileY != onePastmaxTileY;
-         ++absTileY)
+
+    uint32 absTileY = startTileY;
+    for (;;)
     {
-        for (uint32 absTileX = minTileX;
-             absTileX != onePastmaxTileX;
-             ++absTileX)
+        uint32 absTileX = startTileX;
+        for (;;)
         {
             tile_map_position testTilePosition = CenteredTilePoint(absTileX, absTileY, absTileZ);
 
@@ -464,14 +467,29 @@ MovePlayer(game_state *gameState, entity *entity, real32 dt, v2 ddPlayer)
                 
                 // TestWall(minCorner.X, minCorner.Y, maxCorner.Y, relOldPlayerPoint.X);
             }
+
+            if (absTileX == endTileX)
+            {
+                break;
+            }
+            else
+            {
+                absTileX += stepX;
+            }
+        }
+
+        if (absTileY == endTileY)
+        {
+            break;
+        }
+        else
+        {
+            absTileY += stepY;
         }
     }
 
-    newPlayerPosition = oldPlayerPosition;
-    newPlayerPosition.Offset += tMin * playerPositionDelta;
-    entity->Position = RecanonicalizePosition(gameState->World->TileMap, newPlayerPosition);
-
-
+    entity->Position = Offset(gameState->World->TileMap, oldPlayerPosition, tMin * playerPositionDelta);
+    
     if (entity->dPosition.X == 0 && entity->dPosition.Y == 0)
     {
         // dont change direction if both zero
@@ -583,8 +601,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         uint32 tilesPerScreenWidth = 17;
         uint32 tilesPerScreenHeight = 9;        
         
+#if 0
+        // TODO: when sparsness use this
+        uint32 screenX = INT32_MAX / 2;
+        uint32 screenY = INT32_MAX / 2;
+#else
         uint32 screenX = 0;
         uint32 screenY = 0;
+#endif
         uint32 absTileZ = 0;
         uint32 screenIndex = 100;
         
@@ -619,6 +643,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     isDoorDown = true;
                 }
             }
+
+// debug
+            isDoorBottom = true;
             
             for (uint32 tileY = 0;
                  tileY < tilesPerScreenHeight;
@@ -902,14 +929,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 color.Blue += 0.2f;
             }
             
-            real32 cenX = screenCenterX - MetersToPixels * gameState->CameraPosition.Offset.X + ((real32) relCol) * TileSideInPixels;
-            real32 cenY = screenCenterY + MetersToPixels * gameState->CameraPosition.Offset.Y - ((real32) relRow ) * TileSideInPixels;
+            real32 cenX = screenCenterX - MetersToPixels * gameState->CameraPosition._Offset.X + ((real32) relCol) * TileSideInPixels;
+            real32 cenY = screenCenterY + MetersToPixels * gameState->CameraPosition._Offset.Y - ((real32) relRow ) * TileSideInPixels;
             
-            real32 minX = cenX - 0.5f * TileSideInPixels;
-            real32 minY = cenY - 0.5f * TileSideInPixels;
+            real32 minX = cenX - 0.4f * TileSideInPixels;
+            real32 minY = cenY - 0.4f * TileSideInPixels;
             // real32 minY = screenCenterY + MetersToPixels * gameState->CameraPosition.TileRelY - ((real32) relRow ) * TileSideInPixels;
-            real32 maxX = cenX + 0.5f * TileSideInPixels;
-            real32 maxY = cenY + 0.5f * TileSideInPixels;
+            real32 maxX = cenX + 0.4f * TileSideInPixels;
+            real32 maxY = cenY + 0.4f * TileSideInPixels;
             
             RenderRectangle(buffer, minX, minY, maxX, maxY, color);
         }

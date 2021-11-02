@@ -103,8 +103,8 @@ RecanonicalizePosition(tile_map *tileMap, tile_map_position pos)
 {
     tile_map_position res = pos;
     
-    RecanonicalizeCoord(tileMap, &res.AbsTileX, &res.Offset.X);
-    RecanonicalizeCoord(tileMap, &res.AbsTileY, &res.Offset.Y);
+    RecanonicalizeCoord(tileMap, &res.AbsTileX, &res._Offset.X);
+    RecanonicalizeCoord(tileMap, &res.AbsTileY, &res._Offset.Y);
 
     return res;
 }
@@ -177,7 +177,7 @@ Subtract(tile_map *tileMap, tile_map_position *a, tile_map_position *b)
     tilePos.Y = (real32)a->AbsTileY - (real32)b->AbsTileY;
 
     tilePos = tilePos * tileMap->TileSideInMeters;
-    result.dXY = tilePos + a->Offset - b->Offset;
+    result.dXY = tilePos + a->_Offset - b->_Offset;
 
     real32 tileDz = (real32)a->AbsTileZ - (real32)b->AbsTileZ;
     result.dZ = tileDz * tileMap->TileSideInMeters;
@@ -196,4 +196,13 @@ CenteredTilePoint(uint32 absTileX, uint32 absTileY, uint32 absTileZ)
     result.AbsTileZ = absTileZ;
 
     return result;
+}
+
+
+inline tile_map_position
+Offset(tile_map *tileMap, tile_map_position pos, v2 offset)
+{
+    pos._Offset += offset;
+    pos = RecanonicalizePosition(tileMap, pos);
+    return pos;
 }

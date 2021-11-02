@@ -59,3 +59,11 @@ SquareRoot(real32 val)
     real32 res = sqrtf(val);
     return res;
 }
+
+
+inline int32
+SignOf(int32 value)
+{
+    int32 result = value >= 0 ? 1 : -1;
+    return result;
+}
