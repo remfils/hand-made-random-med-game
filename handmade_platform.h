@@ -33,6 +33,12 @@ typedef double real64;
 #define Assert(expression)
 #endif
 
+#if HANDMADE_SLOW
+#define InvalidCodePath Assert(!"Invalid code path");
+#else
+#define Assert(expression)
+#endif
+
 
 struct thread_context
 {
