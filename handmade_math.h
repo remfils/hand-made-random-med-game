@@ -90,5 +90,56 @@ LengthSq(v2 a)
     return result;
 }
 
+struct rectangle2
+{
+    v2 Min;
+    v2 Max;
+};
+
+inline rectangle2
+RectMinMax(v2 min, v2 max)
+{
+    rectangle2 rect;
+    rect.Min = min;
+    rect.Max = max;
+    return rect;
+}
+
+inline rectangle2
+RectCenterHalfDim(v2 center, v2 halfDim)
+{
+    rectangle2 rect;
+    rect.Min = center - halfDim;
+    rect.Max = center + halfDim;
+    return rect;
+}
+
+inline rectangle2
+RectCenterDim(v2 center, v2 dim)
+{
+    rectangle2 rect = RectCenterHalfDim(center, dim * 0.5f);
+    return rect;
+}
+
+inline rectangle2
+RectMinDim(v2 min, v2 dim)
+{
+    rectangle2 rect;
+    rect.Min = min;
+    rect.Max = min + dim;
+    return rect;
+}
+
+inline bool32
+IsInRectangle(rectangle2 rect, v2 test)
+{
+    bool32 result = ((test.X >= rect.Min.X) &&
+        (test.Y >= rect.Min.Y) &&
+        (test.X < rect.Max.X) &&
+        (test.Y < rect.Max.Y));
+
+    return result;
+}
+
 #define HANDMADE_MATH_H
 #endif
