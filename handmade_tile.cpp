@@ -1,17 +1,63 @@
 internal tile_chunk*
-GetTileChunk(tile_map * tileMap, uint32 tileX, uint32 tileY, uint32 tileZ)
+GetTileChunk(tile_map * tileMap, int32 tileX, int32 tileY, int32 tileZ, memory_arena *memoryArena = 0)
 {
-    tile_chunk *tileChunk = 0;
+    int32 tileSafeMargin = INT32_MAX - 256;
 
-    if ((tileX >= 0) && (tileX < tileMap->TileChunkCountX) &&
-        (tileY >= 0) && (tileY < tileMap->TileChunkCountY) &&
-        (tileZ >= 0) && (tileZ < tileMap->TileChunkCountZ))
+    Assert(tileX > -tileSafeMargin);
+    Assert(tileY > -tileSafeMargin);
+    Assert(tileZ > -tileSafeMargin);
+    Assert(tileX < tileSafeMargin);
+    Assert(tileY < tileSafeMargin);
+    Assert(tileZ < tileSafeMargin);
+
+
+     // TODO: better hash function!!!!
+    uint32 hashValue = 19 * tileX + 7 * tileY + 3 * tileZ;
+    uint32 hashSlot = hashValue & (ArrayCount(tileMap->TileChunkHash) - 1);
+
+    Assert(hashSlot < ArrayCount(tileMap->TileChunkHash));
+
+    tile_chunk *tileChunk = tileMap->TileChunkHash + hashSlot;
+
+    do
     {
-        tileChunk = &tileMap->TileChunks[
-            tileZ * tileMap->TileChunkCountY * tileMap->TileChunkCountX
-            + tileY * tileMap->TileChunkCountX
-            + tileX];
-    }
+        if (tileX == tileChunk->TileChunkX &&
+            tileY == tileChunk->TileChunkY &&
+            tileZ == tileChunk->TileChunkZ)
+        {
+            break;
+        }
+
+        if (memoryArena && (tileChunk->TileChunkX != 0) && (!tileChunk->NextInHash))
+        {
+            tileChunk->NextInHash = PushSize(memoryArena, tile_chunk);
+            tileChunk = tileChunk->NextInHash;
+            tileChunk->TileChunkX = 0;
+        }
+
+        if (memoryArena && (tileChunk->TileChunkX == 0))
+        {            
+            tileChunk->TileChunkX = tileX;
+            tileChunk->TileChunkY = tileY;
+            tileChunk->TileChunkZ = tileZ;
+            tileChunk->NextInHash = 0;
+
+            uint32 tileCount = tileMap->ChunkDim * tileMap->ChunkDim;
+            tileChunk->Tiles = PushArray(memoryArena, tileCount, uint32);
+
+            // TODO: do we want to always initialize
+
+            for (uint32 tindex = 0;
+                 tindex < tileCount;
+                 ++tindex) {
+                tileChunk->Tiles[tindex] = 1;
+            }
+            
+            break;
+        }
+        
+        tileChunk = tileChunk->NextInHash;
+    } while (tileChunk);
 
     return tileChunk;
 }
@@ -90,7 +136,7 @@ IsTileMapPointEmpty(tile_map *tileMap, tile_map_position wp)
 }
 
 inline void
-RecanonicalizeCoord(tile_map *tileMap, uint32* tileCoord, real32 *relCoord)
+RecanonicalizeCoord(tile_map *tileMap, int32* tileCoord, real32 *relCoord)
 {
     // todo: player can go back
     int32 offset = RoundReal32ToInt32(*relCoord / tileMap->TileSideInMeters);
@@ -147,7 +193,7 @@ internal void
 SetTileValue(memory_arena * arena, tile_map *tileMap, uint32 absTileX, uint32 absTileY, uint32 absTileZ, uint32 val)
 {
     tile_chunk_position chunkPos = GetChunkPositionFor(tileMap, absTileX, absTileY, absTileZ);
-    tile_chunk *tileChunk = GetTileChunk(tileMap, chunkPos.TileChunkX, chunkPos.TileChunkY, chunkPos.TileChunkZ);
+    tile_chunk *tileChunk = GetTileChunk(tileMap, chunkPos.TileChunkX, chunkPos.TileChunkY, chunkPos.TileChunkZ, arena);
 
     if (!tileChunk->Tiles)
     {

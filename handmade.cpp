@@ -152,7 +152,7 @@ MakeEntityLowFrequency(game_state *gameState, uint32 lowIndex)
 inline void
 OffsetEntitiesAndMakeLowFrequencyOutsideArea(game_state *gameState, v2 entityOffsetForFrame, rectangle2 areaBounds)
 {
-    for (uint32 entityIndex = 0;
+    for (uint32 entityIndex = 1;
          entityIndex < gameState->HighEntityCount;
         )
     {
@@ -188,9 +188,11 @@ GetHighEntity(game_state *gameState, uint32 lowIndex)
 {
     entity result = {};
 
-    result.High = MakeEntityHighFrequency(gameState, lowIndex);
-    result.Low = gameState->LowEntities + lowIndex;
-    result.LowIndex = lowIndex;
+    if (lowIndex) {
+        result.High = MakeEntityHighFrequency(gameState, lowIndex);
+        result.Low = gameState->LowEntities + lowIndex;
+        result.LowIndex = lowIndex;
+    }
 
     return result;
 }
@@ -217,10 +219,7 @@ AddPlayer(game_state *gameState)
 
     entity->Collides = true;
 
-    entity->Position.AbsTileX = 2;
-    entity->Position.AbsTileY = 2;
-    entity->Position._Offset.X = 0;
-    entity->Position._Offset.Y = 0;
+    entity->Position = gameState->CameraPosition;
 
     //entity->dPosition = {0, 0};
 
@@ -656,16 +655,16 @@ SetCamera(game_state *gameState, tile_map_position newCameraPosition)
     gameState->CameraPosition = newCameraPosition;
 
     // TODO: fix numbers for tiles
-    uint32 tileSpanX = 17 * 3;
-    uint32 tileSpanY = 9*3;
+    int32 tileSpanX = 17 * 3;
+    int32 tileSpanY = 9 * 3;
     rectangle2 cameraBounds = RectCenterDim(V2(0,0), tileMap->TileSideInMeters * V2((real32)tileSpanX, (real32)tileSpanY));
 
     OffsetEntitiesAndMakeLowFrequencyOutsideArea(gameState, entityOffsetForFrame, cameraBounds);
 
-    uint32 minTileX = newCameraPosition.AbsTileX - tileSpanX / 2;
-    uint32 minTileY = newCameraPosition.AbsTileY - tileSpanY / 2;
-    uint32 maxTileX = newCameraPosition.AbsTileX + tileSpanX / 2;
-    uint32 maxTileY = newCameraPosition.AbsTileY + tileSpanY / 2;
+    int32 minTileX = newCameraPosition.AbsTileX - tileSpanX / 2;
+    int32 minTileY = newCameraPosition.AbsTileY - tileSpanY / 2;
+    int32 maxTileX = newCameraPosition.AbsTileX + tileSpanX / 2;
+    int32 maxTileY = newCameraPosition.AbsTileY + tileSpanY / 2;
 
     for (uint32 entityIndex = 0;
          entityIndex < gameState->LowEntityCount;
@@ -686,9 +685,6 @@ SetCamera(game_state *gameState, tile_map_position newCameraPosition)
             }
         }
     }
-
-
-    // TODO: move entities into high set here
 }
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
@@ -736,36 +732,21 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         
         world->TileMap = PushSize(&gameState->WorldArena, tile_map);
         tile_map *tileMap = world->TileMap;
-        
-        tileMap->TileSideInMeters = TileSideInMeters;
-        
-        tileMap->TileChunkCountX = 64;
-        tileMap->TileChunkCountY = 64;
-        tileMap->TileChunkCountZ = 2;
-        
-        tileMap->LowerLeftX = 0;
-        tileMap->LowerLeftY = (real32)buffer->Height;
-        
-        tileMap->ChunkShift = 4;
-        tileMap->ChunkMask = (1 << tileMap->ChunkShift) - 1;
-        tileMap->ChunkDim = (1 << tileMap->ChunkShift);
-        
-        tileMap->TileChunks = PushArray(&gameState->WorldArena, tileMap->TileChunkCountX * tileMap->TileChunkCountY * tileMap->TileChunkCountZ, tile_chunk);
-
+        InitializeTileMap(tileMap, 1.4f);
         
         // generate tiles
         uint32 tilesPerScreenWidth = 17;
-        uint32 tilesPerScreenHeight = 9;        
+        uint32 tilesPerScreenHeight = 9;
         
-#if 0
-        // TODO: when sparsness use this
-        uint32 screenX = INT32_MAX / 2;
-        uint32 screenY = INT32_MAX / 2;
-#else
-        uint32 screenX = 0;
-        uint32 screenY = 0;
-#endif
-        uint32 absTileZ = 0;
+        uint32 screenBaseX = 0;
+        uint32 screenX = screenBaseX;
+
+        uint32 screenBaseY = 0;
+        uint32 screenY = screenBaseY;
+
+        uint32 screenBaseZ = 0;
+        uint32 absTileZ = screenBaseZ;
+
         uint32 screenIndex = 2;
         
         bool isDoorLeft = false;
@@ -793,7 +774,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 isDoorTop = true;
             } else {
                 drawZDoorCounter = 2;
-                if (absTileZ == 0) {
+                if (absTileZ == screenBaseZ) {
                     isDoorUp = true;
                 } else {
                     isDoorDown = true;
@@ -933,8 +914,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         memory->IsInitialized = 1;
 
         tile_map_position newCameraP = {};
-        newCameraP.AbsTileX = 17 / 2;
-        newCameraP.AbsTileY = 9 / 2;
+        newCameraP.AbsTileX = screenBaseX*17 + 17 / 2;
+        newCameraP.AbsTileY = screenBaseY*9 + 9 / 2;
+        newCameraP.AbsTileZ = screenBaseZ;
         SetCamera(gameState, newCameraP);
     }
     
@@ -1073,9 +1055,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     {
         for (int32 relRow = -10; relRow < 10; ++relRow)
         {
-            uint32 col = gameState->CameraPosition.AbsTileX + relCol;
-            uint32 row = gameState->CameraPosition.AbsTileY + relRow;
-            uint32 z = gameState->CameraPosition.AbsTileZ;
+            int32 col = gameState->CameraPosition.AbsTileX + relCol;
+            int32 row = gameState->CameraPosition.AbsTileY + relRow;
+            int32 z = gameState->CameraPosition.AbsTileZ;
             uint32 tileId = GetTileValue(tileMap, col, row, z);
             
             color color;
