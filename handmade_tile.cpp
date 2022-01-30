@@ -1,14 +1,12 @@
 internal tile_chunk*
 GetTileChunk(tile_map * tileMap, int32 tileX, int32 tileY, int32 tileZ, memory_arena *memoryArena = 0)
 {
-    int32 tileSafeMargin = INT32_MAX - 256;
-
-    Assert(tileX > -tileSafeMargin);
-    Assert(tileY > -tileSafeMargin);
-    Assert(tileZ > -tileSafeMargin);
-    Assert(tileX < tileSafeMargin);
-    Assert(tileY < tileSafeMargin);
-    Assert(tileZ < tileSafeMargin);
+    Assert(tileX > -TILE_SAFE_MARGIN);
+    Assert(tileY > -TILE_SAFE_MARGIN);
+    Assert(tileZ > -TILE_SAFE_MARGIN);
+    Assert(tileX < TILE_SAFE_MARGIN);
+    Assert(tileY < TILE_SAFE_MARGIN);
+    Assert(tileZ < TILE_SAFE_MARGIN);
 
 
      // TODO: better hash function!!!!
@@ -32,10 +30,10 @@ GetTileChunk(tile_map * tileMap, int32 tileX, int32 tileY, int32 tileZ, memory_a
         {
             tileChunk->NextInHash = PushSize(memoryArena, tile_chunk);
             tileChunk = tileChunk->NextInHash;
-            tileChunk->TileChunkX = 0;
+            tileChunk->TileChunkX = TILE_UNINISIALIZED_COORD;
         }
 
-        if (memoryArena && (tileChunk->TileChunkX == 0))
+        if (memoryArena && (tileChunk->TileChunkX == TILE_UNINISIALIZED_COORD))
         {            
             tileChunk->TileChunkX = tileX;
             tileChunk->TileChunkY = tileY;

@@ -1,3 +1,7 @@
+#define TILE_SAFE_MARGIN (INT32_MAX/64)
+#define TILE_UNINISIALIZED_COORD INT32_MAX
+
+
 struct tile_map_diff
 {
     v2 dXY;
@@ -57,6 +61,6 @@ InitializeTileMap(tile_map *tileMap, real32 tileSideInMeters)
     
     for (uint32 tileChunkIndex = 0; tileChunkIndex < ArrayCount(tileMap->TileChunkHash); ++tileChunkIndex)
     {
-        tileMap->TileChunkHash[tileChunkIndex].TileChunkX = 0;
+        tileMap->TileChunkHash[tileChunkIndex].TileChunkX = TILE_UNINISIALIZED_COORD;
     }
 }
