@@ -10,7 +10,7 @@
 
 
 #include <stdint.h>
-// todo: remove
+// TODO: remove
 #include <math.h>
 
 #include "handmade_platform.h"
@@ -49,7 +49,7 @@ inline game_controller_input *GetController(game_input *input, int controllerInd
 };
 
 #include "handmade_intrinsics.h"
-#include "handmade_tile.h"
+#include "handmade_world.h"
 
 
 struct memory_arena
@@ -58,12 +58,6 @@ struct memory_arena
     uint8 *Base;
     memory_index Used;
 };
-
-struct world
-{
-    tile_map *TileMap;
-};
-
 
 struct loaded_bitmap
 {
@@ -102,7 +96,7 @@ struct low_entity
 {
     entity_type Type;
 
-    tile_map_position Position;
+    world_position Position;
     real32 Width;
     real32 Height;
 
@@ -127,6 +121,11 @@ struct entity
     high_entity *High;
 };
 
+struct low_entity_chunk_reference
+{
+    world_chunk *TileChunk;
+    uint32 EntityIndexChunk;
+};
 
 struct game_state
 {
@@ -140,16 +139,16 @@ struct game_state
 
     // TODO: what to do with multiple players?
     uint32 CameraFollowingEntityIndex;
-    tile_map_position CameraPosition;
+    world_position CameraPosition;
 
     uint32 PlayerIndexControllerMap[ArrayCount(((game_input *)0)->Controllers)];
+
+    uint32 LowEntityCount;
+    low_entity LowEntities[100000];
 
     uint32 HighEntityCount;
     high_entity HighEntities_[256];
     
-    uint32 LowEntityCount;
-    low_entity LowEntities[256];
-
     loaded_bitmap LoadedBitmap;
     
     hero_bitmaps HeroBitmaps[4];
