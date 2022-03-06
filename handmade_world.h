@@ -16,9 +16,9 @@ struct world_position
 {
     // TODO: how to remove abstile* 
     
-    int32 AbsTileX;
-    int32 AbsTileY;
-    int32 AbsTileZ;
+    int32 ChunkX;
+    int32 ChunkY;
+    int32 ChunkZ;
 
     v2 _Offset;
 };
@@ -44,11 +44,10 @@ struct world_chunk
 struct world
 {
     real32 TileSideInMeters;
-
-    int32 ChunkShift;
-    int32 ChunkMask;
-    int32 ChunkDim;
+    real32 ChunkSideInMeters;
     world_chunk ChunkHash[4096];
+
+    world_entity_block *FirstFree;
 };
 
 #endif
