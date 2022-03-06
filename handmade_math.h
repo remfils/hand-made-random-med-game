@@ -84,6 +84,13 @@ Inner(v2 a, v2 b)
 }
 
 inline real32
+Square(real32 a)
+{
+    real32 result = a * a;
+    return result;
+}
+
+inline real32
 LengthSq(v2 a)
 {
     real32 result = Inner(a, a);
