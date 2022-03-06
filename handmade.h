@@ -80,6 +80,8 @@ struct high_entity
     v2 dPosition;
     uint32 FacingDirection;
 
+    real32 TBobing;
+
     uint32 LowEntityIndex;
 };
 

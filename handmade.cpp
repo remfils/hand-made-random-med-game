@@ -726,7 +726,7 @@ UpdateFamiliar(game_state *gameState, real32 dt, entity ent)
     }
     
     v2 ddp = {};
-    if (closestHero.High)
+    if (closestHero.High && closestHeroRadSq >= 0.1f)
     {
         real32 acceleration = 0.5f;
         real32 oneOverLength = acceleration / SquareRoot(closestHeroRadSq);
@@ -924,6 +924,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 {
                     uint32 absTileX = screenX * tilesPerScreenWidth + tileX;
                     uint32 absTileY = screenY * tilesPerScreenHeight + tileY;
+
+                    if (tileX == 4 && tileY == 4)
+                    {
+                        AddFamiliar(gameState, absTileX, absTileY, absTileY);
+                    }
                     
                     uint32 tileVal = 1;
                     if (tileX == 0) {
@@ -1048,7 +1053,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         
         AddMonster(gameState, newCameraP.ChunkX+4, newCameraP.ChunkY+4, newCameraP.ChunkZ);
-        AddFamiliar(gameState, newCameraP.ChunkX+8, newCameraP.ChunkY+4, newCameraP.ChunkZ);
 
         SetCamera(gameState, newCameraP);
     }
@@ -1197,7 +1201,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         case EntityType_Familiar:
         {
             UpdateFamiliar(gameState, input->DtForFrame, entity);
-            PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V2(0, 0), 0, V2(0,0), 1);
+
+            entity.High->TBobing += input->DtForFrame;
+            if (entity.High->TBobing > 2.0f * Pi32)
+            {
+                entity.High->TBobing -= 2.0f * Pi32;
+            }
+            PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V2(0, 15.0f * Sin(6 * entity.High->TBobing)), 0, V2(0,0), 1);
         }break;
         }
 

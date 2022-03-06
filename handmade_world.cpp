@@ -237,8 +237,8 @@ ChunkPositionFromTilePosition(world * world, int32 absTileX, int32 absTileY, int
     result.ChunkY = absTileY / TILES_PER_CHUNK;
     result.ChunkZ = absTileZ / TILES_PER_CHUNK;
 
-    result._Offset.X = (real32)(absTileX - (result.ChunkX * TILES_PER_CHUNK)) * world->TileSideInMeters;
-    result._Offset.Y = (real32)(absTileY - (result.ChunkY * TILES_PER_CHUNK)) * world->TileSideInMeters;
+    result._Offset.X = (real32)((absTileX - TILES_PER_CHUNK / 2) - (result.ChunkX * TILES_PER_CHUNK)) * world->TileSideInMeters;
+    result._Offset.Y = (real32)((absTileY - TILES_PER_CHUNK / 2) - (result.ChunkY * TILES_PER_CHUNK)) * world->TileSideInMeters;
     // TODO: move to 3dz
 
     return result;
