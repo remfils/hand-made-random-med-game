@@ -34,7 +34,7 @@ struct world_chunk
 {
     int32 ChunkX, ChunkY, ChunkZ;
 
-    world_entity_block *FirstBlock;
+    world_entity_block FirstBlock;
 
     world_chunk *NextInHash;
 };
@@ -43,9 +43,10 @@ struct world_chunk
 
 struct world
 {
+    uint32 TotalChunksAdded;
     real32 TileSideInMeters;
     real32 ChunkSideInMeters;
-    world_chunk ChunkHash[4096];
+    world_chunk ChunkHash[100];
 
     world_entity_block *FirstFree;
 };

@@ -130,6 +130,25 @@ RectMinDim(v2 min, v2 dim)
     return rect;
 }
 
+
+inline v2 GetMinCorner(rectangle2 rect)
+{
+    v2 result = rect.Min;
+    return result;
+}
+
+inline v2 GetMaxCorner(rectangle2 rect)
+{
+    v2 result = rect.Max;
+    return result;
+}
+
+inline v2 GetCenter(rectangle2 rect)
+{
+    v2 result = 0.5f * (rect.Min + rect.Max);
+    return result;
+}
+
 inline bool32
 IsInRectangle(rectangle2 rect, v2 test)
 {

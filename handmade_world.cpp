@@ -33,7 +33,7 @@ GetWorldChunk(world *world, int32 tileX, int32 tileY, int32 tileZ, memory_arena 
 
     Assert(hashSlot < ArrayCount(world->ChunkHash));
 
-    world_chunk *tileChunk = world->ChunkHash + hashSlot;
+    world_chunk *tileChunk = &world->ChunkHash[hashSlot];
 
     do
     {
@@ -47,8 +47,7 @@ GetWorldChunk(world *world, int32 tileX, int32 tileY, int32 tileZ, memory_arena 
         if (memoryArena && (tileChunk->ChunkX != 0) && (!tileChunk->NextInHash))
         {
             tileChunk->NextInHash = PushSize(memoryArena, world_chunk);
-            tileChunk = tileChunk->NextInHash;
-            tileChunk->ChunkX = TILE_UNINISIALIZED_COORD;
+            tileChunk->NextInHash->ChunkX = TILE_UNINISIALIZED_COORD;
         }
 
         if (memoryArena && (tileChunk->ChunkX == TILE_UNINISIALIZED_COORD))
@@ -79,7 +78,7 @@ RecanonicalizeCoord(world *world, int32* tileCoord, real32 *relCoord)
 }
 
 inline world_position
-MapIntoTileSpace(world *world, world_position basePosition, v2 offset)
+MapIntoChunkSpace(world *world, world_position basePosition, v2 offset)
 {
     world_position res = basePosition;
 
@@ -143,7 +142,8 @@ InitializeWorld(world *world, real32 tileSideInMeters)
     for (uint32 tileChunkIndex = 0; tileChunkIndex < ArrayCount(world->ChunkHash); ++tileChunkIndex)
     {
         world->ChunkHash[tileChunkIndex].ChunkX = TILE_UNINISIALIZED_COORD;
-        world->ChunkHash[tileChunkIndex].FirstBlock->EntityCount = 0;
+        world->ChunkHash[tileChunkIndex].FirstBlock = {};
+        world->ChunkHash[tileChunkIndex].FirstBlock.EntityCount = 0;
     }
 }
 
@@ -166,8 +166,8 @@ ChangeEntityLocation(memory_arena *arena, world *world, uint32 lowEntityIndex, w
             Assert(chunk);
             if (chunk)
             {
-
-                world_entity_block *firstBlock = chunk->FirstBlock;
+                bool32 isBlockFound = false;
+                world_entity_block *firstBlock = &chunk->FirstBlock;
                 for (world_entity_block *block = firstBlock; block; block = block->Next)
                 {
                     for (uint32 index=0; index < block->EntityCount; index++)
@@ -186,9 +186,13 @@ ChangeEntityLocation(memory_arena *arena, world *world, uint32 lowEntityIndex, w
                                 world->FirstFree = nextBlock;
                             }
 
-                            block = 0;
+                            isBlockFound = true;
                             break;
                         }
+                    }
+                    if (isBlockFound)
+                    {
+                        break;
                     }
                 }
             }
@@ -197,7 +201,7 @@ ChangeEntityLocation(memory_arena *arena, world *world, uint32 lowEntityIndex, w
         // add entity to new chunk
 
         world_chunk *chunk = GetWorldChunk(world, newP->ChunkX, newP->ChunkY, newP->ChunkZ, arena);
-        world_entity_block *block = chunk->FirstBlock;
+        world_entity_block *block = &chunk->FirstBlock;
         if (block->EntityCount == ArrayCount(block->LowEntityIndex))
         {
             // out of room, get new block
