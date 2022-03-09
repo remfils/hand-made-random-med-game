@@ -16,7 +16,7 @@
 #include "handmade_platform.h"
 #include "handmade_platform.cpp"
 
-
+#include "handmade_intrinsics.h"
 #include "handmade_math.h"
 
 
@@ -48,7 +48,7 @@ inline game_controller_input *GetController(game_input *input, int controllerInd
     return &input->Controllers[controllerIndex];
 };
 
-#include "handmade_intrinsics.h"
+
 #include "handmade_world.h"
 
 

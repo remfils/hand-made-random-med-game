@@ -169,7 +169,7 @@ ChangeEntityLocationRaw(memory_arena *arena, world *world, uint32 lowEntityIndex
     Assert(!oldP || IsValid(*oldP));
     Assert(!newP || IsValid(*newP));
 
-    if (oldP && AreInSameChunk(oldP, newP))
+    if (oldP && newP && AreInSameChunk(oldP, newP))
     {
         // leave entity as is
     }
@@ -218,31 +218,33 @@ ChangeEntityLocationRaw(memory_arena *arena, world *world, uint32 lowEntityIndex
 
         // add entity to new chunk
 
-        world_chunk *chunk = GetWorldChunk(world, newP->ChunkX, newP->ChunkY, newP->ChunkZ, arena);
-        world_entity_block *block = &chunk->FirstBlock;
-        if (block->EntityCount == ArrayCount(block->LowEntityIndex))
+        if (newP)
         {
-            // out of room, get new block
-
-            world_entity_block *oldBlock = world->FirstFree;
-
-            if (oldBlock)
+            world_chunk *chunk = GetWorldChunk(world, newP->ChunkX, newP->ChunkY, newP->ChunkZ, arena);
+            world_entity_block *block = &chunk->FirstBlock;
+            if (block->EntityCount == ArrayCount(block->LowEntityIndex))
             {
-                world->FirstFree = oldBlock->Next;
-            }
-            else
-            {
-                oldBlock = PushSize(arena, world_entity_block);
-            }
+                // out of room, get new block
 
-            *oldBlock = *block;
-            block->Next = oldBlock;
-            block->EntityCount = 0;
+                world_entity_block *oldBlock = world->FirstFree;
+
+                if (oldBlock)
+                {
+                    world->FirstFree = oldBlock->Next;
+                }
+                else
+                {
+                    oldBlock = PushSize(arena, world_entity_block);
+                }
+
+                *oldBlock = *block;
+                block->Next = oldBlock;
+                block->EntityCount = 0;
+            }
+            Assert(block->EntityCount < ArrayCount(block->LowEntityIndex));
+
+            block->LowEntityIndex[block->EntityCount++] = lowEntityIndex;
         }
-
-        Assert(block->EntityCount < ArrayCount(block->LowEntityIndex));
-        
-        block->LowEntityIndex[block->EntityCount++] = lowEntityIndex;
     }
 }
 

@@ -136,6 +136,13 @@ LengthSq(v2 a)
     return result;
 }
 
+inline real32
+Length(v2 a)
+{
+    real32 result = SquareRoot(LengthSq(a));
+    return result;
+}
+
 struct rectangle2
 {
     v2 Min;
