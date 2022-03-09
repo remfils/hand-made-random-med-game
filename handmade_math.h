@@ -7,6 +7,26 @@ union v2
     };
     real32 E[2];
 };
+union v3
+{
+    struct {
+        real32 X, Y, Z;
+    };
+    struct {
+        real32 R, G, B;
+    };
+    real32 E[3];
+};
+union v4
+{
+    struct {
+        real32 X, Y, Z, W;
+    };
+    struct {
+        real32 R, G, B, A;
+    };
+    real32 E[4];
+};
 
 inline v2
 V2(real32 x, real32 y)
@@ -14,6 +34,25 @@ V2(real32 x, real32 y)
     v2 res;
     res.X = x;
     res.Y = y;
+    return res;
+}
+inline v3
+V3(real32 x, real32 y, real32 z)
+{
+    v3 res;
+    res.X = x;
+    res.Y = y;
+    res.Z = z;
+    return res;
+}
+inline v4
+V4(real32 x, real32 y,real32 z, real32 w)
+{
+    v4 res;
+    res.X = x;
+    res.Y = y;
+    res.Z = z;
+    res.W = w;
     return res;
 }
 

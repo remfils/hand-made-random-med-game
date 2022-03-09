@@ -94,6 +94,15 @@ enum entity_type
     EntityType_Monster
 };
 
+#define HIT_POINT_SUB_COUNT 4
+struct hit_point
+{
+    // TODO: collapse into one variable
+    uint8 Flags;
+    uint32 FilledAmount;
+
+};
+
 struct low_entity
 {
     entity_type Type;
@@ -106,6 +115,10 @@ struct low_entity
     int32 dAbsTileZ;
 
     uint32 HighEntityIndex;
+
+    // TODO: should hit points be entities
+    uint32 HitPointMax;
+    hit_point HitPoints[16];
 };
 
 enum entity_residence
@@ -123,20 +136,6 @@ struct entity
     high_entity *High;
 };
 
-struct entity_visible_piece
-{
-    loaded_bitmap *Bitmap;
-    v2 Offset;
-    real32 Z;
-    real32 Alpha;
-};
-
-struct entity_visible_piece_group
-{
-    uint32 PieceCount;
-    entity_visible_piece Pieces[8];
-};
-
 struct low_entity_chunk_reference
 {
     world_chunk *TileChunk;
@@ -151,6 +150,7 @@ struct game_state
     memory_arena WorldArena;
 
     world * World;
+    real32 MetersToPixels;
 
     // TODO: what to do with multiple players?
     uint32 CameraFollowingEntityIndex;
@@ -175,6 +175,23 @@ struct game_state
 };
 
 
+struct entity_visible_piece
+{
+    loaded_bitmap *Bitmap;
+    v2 Offset;
+    real32 Z;
+    real32 Alpha;
+
+    v2 Dim;
+    real32 R, G, B;
+};
+
+struct entity_visible_piece_group
+{
+    game_state *GameState;
+    uint32 PieceCount;
+    entity_visible_piece Pieces[32];
+};
 
 /* void GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_input *input); */
 
