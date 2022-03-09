@@ -1,5 +1,20 @@
 #define TILES_PER_CHUNK 16
 
+inline world_position
+NullPosition(void)
+{
+    world_position result;
+    result.ChunkX = TILE_UNINISIALIZED_COORD;
+    return result;
+}
+
+inline bool32
+IsValid(world_position wp)
+{
+    bool32 result = wp.ChunkX != TILE_UNINISIALIZED_COORD;
+    return result;
+}
+
 inline bool32
 IsCanonical(world *world, real32 tileRel)
 {
@@ -149,8 +164,11 @@ InitializeWorld(world *world, real32 tileSideInMeters)
 
 
 inline void
-ChangeEntityLocation(memory_arena *arena, world *world, uint32 lowEntityIndex, world_position *oldP, world_position *newP)
+ChangeEntityLocationRaw(memory_arena *arena, world *world, uint32 lowEntityIndex, world_position *oldP, world_position *newP)
 {
+    Assert(!oldP || IsValid(*oldP));
+    Assert(!newP || IsValid(*newP));
+
     if (oldP && AreInSameChunk(oldP, newP))
     {
         // leave entity as is
@@ -227,6 +245,22 @@ ChangeEntityLocation(memory_arena *arena, world *world, uint32 lowEntityIndex, w
         block->LowEntityIndex[block->EntityCount++] = lowEntityIndex;
     }
 }
+
+inline void
+ChangeEntityLocation(memory_arena *arena, world *world, uint32 lowEntityIndex, low_entity *low, world_position *oldP, world_position *newP)
+{
+    ChangeEntityLocationRaw(arena, world, lowEntityIndex, oldP, newP);
+
+    if (newP)
+    {
+        low->Position = *newP;
+    }
+    else
+    {
+        low->Position = NullPosition();
+    }
+}
+
 
 
 inline world_position

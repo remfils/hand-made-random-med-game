@@ -1,9 +1,9 @@
-* to be done [1/638]
+* to be done [2/638]
 ** DONE Handmade Hero Day 060 - Adding Hitpoints
    - State "DONE"       from "TODO"       [2022-03-09 ñð 12:58]
 - [[https://www.youtube.com/watch?v=0_xzS8zxuq4]]
 
-** TODO Handmade Hero Day 061 - Adding a Simple Attack
+** DONE Handmade Hero Day 061 - Adding a Simple Attack
 - [[https://www.youtube.com/watch?v=bHGLcGgwpWg]]
 
 ** TODO Handmade Hero Day 062 - Basic Moving Projectiles
