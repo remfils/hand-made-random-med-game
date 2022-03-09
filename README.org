@@ -8,5 +8,5 @@ game.
 
 see [docs/tasks] (videos) done
 
-#+html: <p align="center"><img src="https://us-central1-progress-markdown.cloudfunctions.net/progress/10.4" /></p>
+#+html: <p align="center"><img src="https://us-central1-progress-markdown.cloudfunctions.net/progress/10" /></p>
 
