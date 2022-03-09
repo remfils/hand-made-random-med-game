@@ -50,7 +50,7 @@ inline game_controller_input *GetController(game_input *input, int controllerInd
 
 
 #include "handmade_world.h"
-
+#include "handmade_sim_region.h"
 
 struct memory_arena
 {
@@ -73,6 +73,7 @@ struct hero_bitmaps
     loaded_bitmap Character;
 };
 
+/*
 struct high_entity
 {
     v2 Position;
@@ -84,6 +85,7 @@ struct high_entity
 
     uint32 LowEntityIndex;
 };
+*/
 
 enum entity_type
 {
@@ -109,13 +111,16 @@ struct low_entity
     entity_type Type;
 
     world_position Position;
+    v2 dP;
     real32 Width;
     real32 Height;
 
     bool32 Collides;
     int32 dAbsTileZ;
 
-    uint32 HighEntityIndex;
+    uint32 FacingDirection;
+    real32 TBobing;
+
 
     // TODO: should hit points be entities
     uint32 HitPointMax;
@@ -133,12 +138,14 @@ enum entity_residence
     EntityResidence_High,
 };
 
+/*
 struct entity
 {
     uint32 LowIndex;
     low_entity *Low;
     high_entity *High;
 };
+*/
 
 struct low_entity_chunk_reference
 {
@@ -165,8 +172,6 @@ struct game_state
     uint32 LowEntityCount;
     low_entity LowEntities[100000];
 
-    uint32 HighEntityCount;
-    high_entity HighEntities_[256];
     
     loaded_bitmap LoadedBitmap;
     loaded_bitmap EnemyDemoBitmap;
