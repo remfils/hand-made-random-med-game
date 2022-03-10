@@ -87,47 +87,10 @@ struct high_entity
 };
 */
 
-enum entity_type
-{
-    EntityType_NULL,
-    EntityType_Hero,
-    EntityType_Wall,
-    EntityType_Familiar,
-    EntityType_Monster,
-    EntityType_Sword
-};
-
-#define HIT_POINT_SUB_COUNT 4
-struct hit_point
-{
-    // TODO: collapse into one variable
-    uint8 Flags;
-    uint32 FilledAmount;
-
-};
-
 struct low_entity
 {
-    entity_type Type;
-
-    world_position Position;
-    v2 dP;
-    real32 Width;
-    real32 Height;
-
-    bool32 Collides;
-    int32 dAbsTileZ;
-
-    uint32 FacingDirection;
-    real32 TBobing;
-
-
-    // TODO: should hit points be entities
-    uint32 HitPointMax;
-    hit_point HitPoints[16];
-
-    uint32 SwordLowIndex;
-    real32 DistanceRemaining;
+    world_position WorldP;
+    sim_entity Sim;
 };
 
 enum entity_residence

@@ -255,11 +255,11 @@ ChangeEntityLocation(memory_arena *arena, world *world, uint32 lowEntityIndex, l
 
     if (newP)
     {
-        low->Position = *newP;
+        low->WorldP = *newP;
     }
     else
     {
-        low->Position = NullPosition();
+        low->WorldP = NullPosition();
     }
 }
 
