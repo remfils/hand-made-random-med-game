@@ -18,8 +18,9 @@ IsValid(world_position wp)
 inline bool32
 IsCanonical(world *world, real32 tileRel)
 {
-    bool32 result = ((tileRel >= -0.5 * world->ChunkSideInMeters) &&
-        (tileRel <= 0.5 * world->ChunkSideInMeters));
+    real32 eps = 0.0001f;
+    bool32 result = ((tileRel >= -(0.5 * world->ChunkSideInMeters + eps)) &&
+        (tileRel <= (0.5 * world->ChunkSideInMeters + eps)));
     return result;
 }
 
@@ -59,7 +60,7 @@ GetWorldChunk(world *world, int32 tileX, int32 tileY, int32 tileZ, memory_arena 
             break;
         }
 
-        if (memoryArena && (tileChunk->ChunkX != 0) && (!tileChunk->NextInHash))
+        if (memoryArena && (tileChunk->ChunkX != TILE_UNINISIALIZED_COORD) && (!tileChunk->NextInHash))
         {
             tileChunk->NextInHash = PushSize(memoryArena, world_chunk);
             tileChunk->NextInHash->ChunkX = TILE_UNINISIALIZED_COORD;

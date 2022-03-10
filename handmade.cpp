@@ -2,7 +2,7 @@
 
 #define PushSize(arena, type) (type *)PushSize_(arena, sizeof(type))
 #define PushArray(arena, count,  type) (type *)PushSize_(arena, count * sizeof(type))
-void *
+inline void*
 PushSize_(memory_arena *arena, memory_index size)
 {
     Assert((arena->Used + size) <= arena->Size);
@@ -12,9 +12,22 @@ PushSize_(memory_arena *arena, memory_index size)
     return result;
 }
 
+#define ZeroStruct(instance) ZeroSize(sizeof(instance), &(instance))
+inline void
+ZeroSize(memory_index size, void *ptr)
+{
+    // TODO(casey): performance
+    uint8 *byte = (uint8*)ptr;
+    while (size--)
+    {
+        *byte++ = 0;
+    }
+}
+
 #include "handmade_world.cpp"
 #include "random.h"
 #include "handmade_sim_region.cpp"
+#include "handmade_sim_entity.cpp"
 
 
 
@@ -227,7 +240,8 @@ AddPlayer(game_state *gameState)
         gameState->CameraFollowingEntityIndex = lowEntityResult.Index;
     }
 
-    lowEntityResult.Low->Sim.Sword = AddSword(gameState).Index;
+    // add_low_entity_result swordRes = AddSword(gameState);
+    // lowEntityResult.Low->Sim.Sword = &swordRes.Low->Sim;
 
     return lowEntityResult;
 }
@@ -440,77 +454,12 @@ RenderPlayer(game_offscreen_buffer *buffer, int playerX, int playerY)
 }
 
 internal void
-InitializeArena(memory_arena *arena, memory_index size, uint8 *base)
+InitializeArena(memory_arena *arena, memory_index size, void *base)
 {
     arena->Size = size;
-    arena->Base = base;
+    arena->Base = (uint8 *)base;
     arena->Used = 0;
 }
-
-inline void
-UpdateFamiliar(game_state *gameState, real32 dt, entity ent)
-{
-    entity closestHero = {};
-    real32 closestHeroRadSq = Square(90.0f);
-    for (uint32 highEntityIndex = 1;
-         highEntityIndex < gameState->HighEntityCount;
-         ++highEntityIndex)
-    {
-        entity testEntity = EntityFromHighIndex(gameState, highEntityIndex);
-        if (testEntity.Low->Sim.Type == EntityType_Hero)
-        {
-            real32 testD = LengthSq(testEntity.High->Position - ent.High->Position);
-            if (testD < closestHeroRadSq)
-            {
-                closestHero = testEntity;
-                closestHeroRadSq = testD;
-            }
-        }
-    }
-    
-    v2 ddp = {};
-    if (closestHero.High && closestHeroRadSq > 4.0f)
-    {
-        real32 acceleration = 0.5f;
-        real32 oneOverLength = acceleration / SquareRoot(closestHeroRadSq);
-        
-        ddp = oneOverLength * (closestHero.High->Position - ent.High->Position);
-        
-    }
-
-    move_spec moveSpec;
-    moveSpec.UnitMaxAccelVector = true;
-    moveSpec.Speed = 50.0f;
-    moveSpec.Drag = 8.0f;
-    MoveEntity(gameState, ent, dt, &moveSpec, ddp);
-}
-
-inline void
-UpdateMonster(game_state *gameState, real32 dt, entity entity)
-{
-    
-}
-
-inline void
-UpdateSword(game_state *gameState, real32 dt, entity ent)
-{
-    move_spec moveSpec;
-    moveSpec.UnitMaxAccelVector = false;
-    moveSpec.Speed = 0;
-    moveSpec.Drag = 0;
-
-    v2 oldP = ent.High->Position;
-    MoveEntity(gameState, ent, dt, &moveSpec, V2(0,0));
-    real32 discanceTraveled = Length(ent.High->Position - oldP);
-
-    ent.Low->Sim.DistanceRemaining -= discanceTraveled;
-
-    if (ent.Low->Sim.DistanceRemaining < 0.0f) {
-        ChangeEntityLocation(&gameState->WorldArena, gameState->World, ent.Low->Sim.SwordLowIndex, ent.Low, &ent.Low->Sim.Position, 0);
-    }
-}
-
-
 
 
 inline void
@@ -544,19 +493,19 @@ PushPieceRect(entity_visible_piece_group *grp, v2 offset, real32 z, v2 dim, v4 c
 }
 
 inline void
-DrawHitpoints(entity_visible_piece_group *pieceGroup, low_entity *lowEntity)
+DrawHitpoints(entity_visible_piece_group *pieceGroup, sim_entity *simEntity)
 {
     // health bars
-    if (lowEntity->HitPointMax >= 1) {
+    if (simEntity->HitPointMax >= 1) {
         v2 healthDim = V2(0.2f, 0.2f);
         real32 spacingX = healthDim.X;
         real32 firstY = 0.3f;
-        real32 firstX = -1 * (real32)(lowEntity->HitPointMax - 1) * spacingX;
+        real32 firstX = -1 * (real32)(simEntity->HitPointMax - 1) * spacingX;
         for (uint32 idx=0;
-             idx < lowEntity->HitPointMax;
+             idx < simEntity->HitPointMax;
              idx++)
         {
-            hit_point *hp = lowEntity->HitPoints + idx;
+            hit_point *hp = simEntity->HitPoints + idx;
             v4 color = V4(1.0f, 0.0f, 0.0f, 1);
 
             if (hp->FilledAmount == 0)
@@ -588,7 +537,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     if (!memory->IsInitialized)
     {
         AddLowEntity(gameState, EntityType_NULL, 0);
-        gameState->HighEntityCount = 1;
 
         gameState->LoadedBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/new-bg-code.bmp");
 
@@ -810,7 +758,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
     
     world *world = gameState->World;
-
     for (int controllerIndex=0; controllerIndex<ArrayCount(input->Controllers); controllerIndex++)
     {
         game_controller_input *inputController = &input->Controllers[controllerIndex];
@@ -820,27 +767,22 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             continue;
         }
 
-        uint32 lowIndex = gameState->PlayerIndexControllerMap[controllerIndex];
+        controlled_hero *controlledHero = gameState->ControlledHeroes + controllerIndex;
 
-        if (lowIndex == 0)
+        if (controlledHero->StoreIndex == 0)
         {
             if (inputController->Start.EndedDown) {
-                add_low_entity_result entity = AddPlayer(gameState);
-                gameState->PlayerIndexControllerMap[controllerIndex] = entity.Index;
-                
+                controlledHero = PushSize(&gameState->WorldArena, controlled_hero);
+                controlledHero->StoreIndex = AddPlayer(gameState).Index;
             }
         }
         else
         {
-            entity controllingEntity = ForceHighEntity(gameState, gameState->PlayerIndexControllerMap[controllerIndex], 0);
-
-            v2 ddPlayer = {};
-
             if (inputController->IsAnalog)
             {
-                ddPlayer = 4.0f * v2{inputController->StickAverageX, inputController->StickAverageY};
+                controlledHero->ddPRequest = 4.0f * v2{inputController->StickAverageX, inputController->StickAverageY};
 
-                // todo: restore and test analog input
+                // TODO: restore and test analog input
 
                 // gameState->XOffset -= (int)
                 // gameState->YOffset += (int)(4.0f * inputController->StickAverageY);
@@ -853,64 +795,37 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             {
                 if (inputController->MoveUp.EndedDown)
                 {
-                    ddPlayer.Y = 1.0f;
+                    controlledHero->ddPRequest.Y = 1.0f;
                 }
                 if (inputController->MoveDown.EndedDown)
                 {
-                    ddPlayer.Y = -1.0f;
+                    controlledHero->ddPRequest.Y = -1.0f;
                 }
                 if (inputController->MoveLeft.EndedDown)
                 {
-                    ddPlayer.X = -1.0f;
+                    controlledHero->ddPRequest.X = -1.0f;
                 }
                 if (inputController->MoveRight.EndedDown)
                 {
-                    ddPlayer.X = 1.0f;
+                    controlledHero->ddPRequest.X = 1.0f;
                 }
-
-                // TODO: remove this
-                // if (ddPlayer.X != 0 && ddPlayer.Y != 0) {
-                //     ddPlayer *= 0.707106781188f;
-                // }
             }
 
-            move_spec moveSpec;
-            moveSpec.UnitMaxAccelVector = true;
-            moveSpec.Speed = 50.0f;
-            moveSpec.Drag = 8.0f;
-
-            MoveEntity(gameState, controllingEntity, input->DtForFrame, &moveSpec, ddPlayer);
-
-            v2 dSword = V2(0,0);
             if (inputController->ActionUp.EndedDown)
             {
-                dSword.Y = 1;
+                controlledHero->dSwordRequest.Y = 1;
             }
             if (inputController->ActionDown.EndedDown)
             {
-                dSword.Y = -1;
+                controlledHero->dSwordRequest.Y = -1;
             }
             if (inputController->ActionLeft.EndedDown)
             {
-                dSword.X = -1;
+                controlledHero->dSwordRequest.X = -1;
             }
             if (inputController->ActionRight.EndedDown)
             {
-                dSword.X = 1;
-            }
-
-            if (dSword.X != 0 || dSword.Y != 0)
-            {
-                low_entity *swordEntity = GetLowEntity(gameState, controllingEntity.Low->Sim.SwordLowIndex);
-                if (swordEntity && !IsValid(swordEntity->Position))
-                {
-                    world_position *swordPosition = &controllingEntity.Low->Sim.Position;
-                    ChangeEntityLocation(&gameState->WorldArena, gameState->World, controllingEntity.Low->Sim.SwordLowIndex, swordEntity, 0, swordPosition);
-
-                    entity sword = ForceHighEntity(gameState, controllingEntity.Low->Sim.SwordLowIndex, 0);
-                    sword.Low->Sim.DistanceRemaining = 5.0f;
-                    sword.High->dPosition = 7.0f * dSword;
-                }
+                controlledHero->dSwordRequest.X = 1;
             }
         }
     }
@@ -922,8 +837,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     int32 tileSpanY = 9 * 3;
     rectangle2 cameraBounds = RectCenterDim(V2(0,0), world->TileSideInMeters * V2((real32)tileSpanX, (real32)tileSpanY));
 
-    sim_region *simRegion = BeginSim(simArena, gameState->World, gameState->CameraPosition, cameraBounds);
-
+    memory_arena simArena;
+    InitializeArena(&simArena, memory->TransientStorageSize, memory->TransientStorage);
+    sim_region *simRegion = BeginSim(&simArena, gameState, gameState->World, gameState->CameraPosition, cameraBounds);
     
     
     real32 screenCenterX = 0.5f * (real32) buffer->Width;
@@ -937,48 +853,73 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
          ++entityIndex, ++simEntity)
     {
         entity_visible_piece_group pieceGroup = {};
-        low_entity lowEntity = gameState->LowEntities + simEntity->StorageIndex;
+        low_entity *lowEntity = gameState->LowEntities + simEntity->StorageIndex;
 
         // TODO: draw entities on one Z-plane
 
-        hero_bitmaps *heroBitmaps = &gameState->HeroBitmaps[lowEntity->FacingDirection];
+        hero_bitmaps *heroBitmaps = &gameState->HeroBitmaps[simEntity->FacingDirection];
 
         pieceGroup.GameState = gameState;
-        switch (lowEntity->Type) {
+        switch (simEntity->Type) {
         case EntityType_Wall:
         {
             PushPiece(&pieceGroup, &gameState->WallDemoBitmap, V2(0,0), 0, V2(64.0f * 0.5f, 64.0f * 0.5f), 1);
         } break;
         case EntityType_Sword:
         {
-            UpdateSword(gameState, input->DtForFrame, simEntity);
+            UpdateSword(simRegion, input->DtForFrame, simEntity);
 
             PushPiece(&pieceGroup, &gameState->SwordDemoBitmap, V2(0,0), 0, V2(12,60), 1);
         } break;
         case EntityType_Hero:
         {
+            for (uint32 idx=0; idx<ArrayCount(gameState->ControlledHeroes); idx++)
+            {
+                controlled_hero *conHero = gameState->ControlledHeroes+idx;
+                if (conHero->StoreIndex == simEntity->StorageIndex)
+                {
+                    move_spec moveSpec;
+                    moveSpec.UnitMaxAccelVector = true;
+                    moveSpec.Speed = 50.0f;
+                    moveSpec.Drag = 8.0f;
+
+                    MoveEntity(simRegion, simEntity, input->DtForFrame, &moveSpec, conHero->ddPRequest);
+
+                    if (conHero->dSwordRequest.X != 0 || conHero->dSwordRequest.Y != 0)
+                    {
+                        sim_entity *swordEntity = simEntity->Sword.Ptr;
+                        if (swordEntity)
+                        {
+                            swordEntity->P = simEntity->P;
+                            swordEntity->DistanceRemaining = 5.0f;
+                            swordEntity->dP = 7.0f * conHero->dSwordRequest;
+                        }
+                    }
+                }
+            }
+
             PushPiece(&pieceGroup, &heroBitmaps->Character, V2(0,0), 0, heroBitmaps->Align, 1);
 
-            DrawHitpoints(&pieceGroup, lowEntity);
+            DrawHitpoints(&pieceGroup, simEntity);
         } break;
         case EntityType_Monster:
         {
-            UpdateMonster(gameState, input->DtForFrame, simEntity);
+            UpdateMonster(simRegion, input->DtForFrame, simEntity);
             PushPiece(&pieceGroup, &gameState->EnemyDemoBitmap, V2(0, 0), 0, V2(61,197), 1);
 
-            DrawHitpoints(&pieceGroup, lowEntity);
+            DrawHitpoints(&pieceGroup, simEntity);
         } break;
         case EntityType_Familiar:
         {
-            UpdateFamiliar(gameState, input->DtForFrame, simEntity);
+            UpdateFamiliar(simRegion, input->DtForFrame, simEntity);
 
-            lowEntity->TBobing += input->DtForFrame;
-            if (lowEntity->TBobing > 2.0f * Pi32)
+            simEntity->TBobing += input->DtForFrame;
+            if (simEntity->TBobing > 2.0f * Pi32)
             {
-                lowEntity->TBobing -= 2.0f * Pi32;
+                simEntity->TBobing -= 2.0f * Pi32;
             }
 
-            PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V2(0, 0.2f * Sin(13 * lowEntity->TBobing)), 0, V2(58, 203), 1);
+            PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V2(0, 0.2f * Sin(13 * simEntity->TBobing)), 0, V2(58, 203), 1);
         }break;
         }
 
@@ -1014,8 +955,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             c.Green = 0;
             c.Blue = 0;
 
-            real32 halfW = lowEntity->Width * MetersToPixels * 0.5f;
-            real32 halfH = lowEntity->Height * MetersToPixels * 0.5f;
+            real32 halfW = simEntity->Width * MetersToPixels * 0.5f;
+            real32 halfH = simEntity->Height * MetersToPixels * 0.5f;
 
             real32 realMinX = entityX - halfW;
             real32 realMinY = entityY - halfH;

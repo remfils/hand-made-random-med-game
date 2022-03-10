@@ -116,6 +116,14 @@ struct low_entity_chunk_reference
     uint32 EntityIndexChunk;
 };
 
+
+struct controlled_hero
+{
+    uint32 StoreIndex;
+    v2 ddPRequest;
+    v2 dSwordRequest;
+};
+
 struct game_state
 {
     int XOffset;
@@ -130,7 +138,7 @@ struct game_state
     uint32 CameraFollowingEntityIndex;
     world_position CameraPosition;
 
-    uint32 PlayerIndexControllerMap[ArrayCount(((game_input *)0)->Controllers)];
+    controlled_hero ControlledHeroes[ArrayCount(((game_input *)0)->Controllers)];
 
     uint32 LowEntityCount;
     low_entity LowEntities[100000];

@@ -21,7 +21,9 @@ GetHashFromStorageIndex(sim_region *simRegion, uint32 storeIndex)
             offset < ArrayCount(simRegion->Hash);
             ++offset)
         {
-            sim_entity_hash *entry = simRegion->Hash + ((hashValue + offset) & (ArrayCount(simRegion->Hash) - 1));
+            uint32 hashMask = (ArrayCount(simRegion->Hash) - 1);
+            uint32 hashIndex = ((hashValue + offset) & hashMask);
+            sim_entity_hash *entry = simRegion->Hash + hashIndex;
 
             if (entry->Index == storeIndex || entry->Index == 0) {
                 result = entry;
@@ -139,15 +141,16 @@ AddEntity(game_state * gameState, sim_region *region, uint32 sourceIndex, low_en
 
 
 internal sim_region*
-BeginSim(memory_arena *simArena, game_state *gameState, world_position regionCenter, rectangle2 regionBounds)
+BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_position regionCenter, rectangle2 regionBounds)
 {
     sim_region *simRegion = PushSize(simArena, sim_region);
+    ZeroStruct(simRegion->Hash);
 
     simRegion->MaxEntityCount = 4096; // TODO: how many?
     simRegion->EntityCount = 0;
     simRegion->Entities = PushArray(simArena, simRegion->MaxEntityCount, sim_entity);
 
-    simRegion->World = gameState->World;
+    simRegion->World = world;
     simRegion->Origin = regionCenter;
     simRegion->Bounds = regionBounds;
 
@@ -186,6 +189,8 @@ BeginSim(memory_arena *simArena, game_state *gameState, world_position regionCen
             }
         }
     }
+
+    return simRegion;
 }
 
 
