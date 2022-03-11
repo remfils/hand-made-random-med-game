@@ -38,11 +38,18 @@ union entity_reference
     sim_entity *Ptr;
 };
 
+enum sim_entity_flags
+{
+    EntityFlag_Collides = (1 << 1),
+    EntityFlag_Nonspacial = (1 << 2),
+};
+
 struct sim_entity
 {
     uint32 StorageIndex;
 
     entity_type Type;
+    uint32 Flags;
 
     v2 P;
     v2 dP;
@@ -50,8 +57,6 @@ struct sim_entity
 
     real32 Width;
     real32 Height;
-
-    bool32 Collides;
 
     uint32 FacingDirection;
     real32 TBobing;

@@ -1,4 +1,4 @@
-* to be done [4/638]
+* to be done [7/638]
 ** DONE Handmade Hero Day 060 - Adding Hitpoints
    - State "DONE"       from "TODO"       [2022-03-09 ñð 12:58]
 - [[https://www.youtube.com/watch?v=0_xzS8zxuq4]]
@@ -12,13 +12,17 @@
 ** DONE Handmade Hero Day 063 - Simulation Regions
 - [[https://www.youtube.com/watch?v=a7_vSEEgArQ]]
 
-** TODO Handmade Hero Day 064 - Mapping Entity Indexes to Pointers
+** DONE Handmade Hero Day 064 - Mapping Entity Indexes to Pointers
 - [[https://www.youtube.com/watch?v=lHKso30LdU8]]
 
-** TODO Handmade Hero Day 065 - Finishing the Simulation Region Change
+** DONE Handmade Hero Day 065 - Finishing the Simulation Region Change
 - [[https://www.youtube.com/watch?v=XfBTNH0nL4I]]
 
-** TODO Handmade Hero Day 066 - Adding Support for Non-spatial Entities
+finish with this
+
+https://youtu.be/XfBTNH0nL4I?t=1814
+
+** DONE Handmade Hero Day 066 - Adding Support for Non-spatial Entities
 - [[https://www.youtube.com/watch?v=vXPAE5UfcbA]]
 
 ** TODO Handmade Hero Day 067 - Making Updates Conditional

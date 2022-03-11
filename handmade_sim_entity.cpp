@@ -47,19 +47,26 @@ UpdateMonster(sim_region *simRegion, real32 dt, sim_entity *entity)
 inline void
 UpdateSword(sim_region *simRegion, real32 dt, sim_entity *simEntity)
 {
-    move_spec moveSpec;
-    moveSpec.UnitMaxAccelVector = false;
-    moveSpec.Speed = 0;
-    moveSpec.Drag = 0;
 
-    v2 oldP = simEntity->P;
-    MoveEntity(simRegion, simEntity, dt, &moveSpec, V2(0,0));
-    real32 discanceTraveled = Length(simEntity->P - oldP);
+    if (IsSet(simEntity, EntityFlag_Nonspacial))
+    {
+        
+    }
+    else
+    {
+        move_spec moveSpec;
+        moveSpec.UnitMaxAccelVector = false;
+        moveSpec.Speed = 0;
+        moveSpec.Drag = 0;
 
-    simEntity->DistanceRemaining -= discanceTraveled;
+        v2 oldP = simEntity->P;
+        MoveEntity(simRegion, simEntity, dt, &moveSpec, V2(0,0));
+        real32 discanceTraveled = Length(simEntity->P - oldP);
 
-    if (simEntity->DistanceRemaining < 0.0f) {
-        Assert(!"need to make entities to go away");
-        //ChangeEntityLocation(&gameState->WorldArena, gameState->World, ent.Low->Sim.SwordLowIndex, ent.Low, &ent.Low->Sim.Position, 0);
+        simEntity->DistanceRemaining -= discanceTraveled;
+
+        if (simEntity->DistanceRemaining < 0.0f) {
+            MakeEntityNonSpacial(simEntity);
+        }
     }
 }

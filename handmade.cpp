@@ -99,37 +99,6 @@ GetCameraSpaceP(game_state *gameState, low_entity *entityLow)
     return result;
 }
 
-// internal high_entity *
-// MakeEntityHighFrequency(game_state *gameState, low_entity *entityLow, uint32 lowIndex, v2 cameraSpaceP)
-// {
-//     high_entity *result = 0;
-
-//     Assert(entityLow->HighEntityIndex == 0);
-
-//     if (entityLow->HighEntityIndex == 0)
-//     {
-//         if (gameState->HighEntityCount < ArrayCount(gameState->HighEntities_))
-//         {
-//             uint32 highIndex = gameState->HighEntityCount++;
-//             result = &gameState->HighEntities_[highIndex];
-
-//             result->Position = cameraSpaceP;
-//             result->dPosition = V2(0,0);
-//             result->AbsTileZ = entityLow->Position.ChunkZ;
-//             result->FacingDirection = 0;
-//             result->LowEntityIndex = lowIndex;
-
-//             entityLow->HighEntityIndex = highIndex;
-//         }
-//         else
-//         {
-//             InvalidCodePath;
-//         }
-//     }
-
-    
-//     return result;
-// }
 
 struct add_low_entity_result
 {
@@ -137,7 +106,7 @@ struct add_low_entity_result
     uint32 Index;
 };
 internal add_low_entity_result
-AddLowEntity(game_state *gameState, entity_type type, world_position *pos)
+AddLowEntity(game_state *gameState, entity_type type, world_position pos)
 {
     Assert(gameState->LowEntityCount < ArrayCount(gameState->LowEntities));
 
@@ -149,15 +118,9 @@ AddLowEntity(game_state *gameState, entity_type type, world_position *pos)
     *entityLow = {};
     
     entityLow->Sim.Type = type;
+    entityLow->WorldP = NullPosition();
 
-    if (pos)
-    {
-        ChangeEntityLocation(&gameState->WorldArena, gameState->World, ei, entityLow, 0, pos);
-    }
-    else
-    {
-        entityLow->WorldP = NullPosition();
-    }
+    ChangeEntityLocation(&gameState->WorldArena, gameState->World, ei, entityLow, pos);
 
     result.Low = entityLow;
     result.Index = ei;
@@ -180,12 +143,11 @@ InitHitpoints(low_entity *lowEntity, uint32 hitpointCount, uint32 filledAmount =
 internal add_low_entity_result
 AddSword(game_state *gameState)
 {
-    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Sword, 0);
-    
-    lowEntityResult.Low->Sim.Collides = false;
+    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Sword, NullPosition());
 
     lowEntityResult.Low->Sim.Width = (real32)25 / gameState->MetersToPixels;
     lowEntityResult.Low->Sim.Height = (real32)63 / gameState->MetersToPixels;
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Nonspacial);
 
     return lowEntityResult;
 }
@@ -194,9 +156,9 @@ internal add_low_entity_result
 AddMonster(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 {
     world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
-    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Monster, &pos);
+    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Monster, pos);
     
-    lowEntityResult.Low->Sim.Collides = true;
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
 
     InitHitpoints(lowEntityResult.Low, 8, 1);
 
@@ -210,13 +172,13 @@ internal add_low_entity_result
 AddFamiliar(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 {
     world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
-    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Familiar, &pos);
+    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Familiar, pos);
 
     lowEntityResult.Low->WorldP._Offset.X += 8;
    
     lowEntityResult.Low->Sim.Width = (real32)0.75;
     lowEntityResult.Low->Sim.Height = (real32)0.4;
-    lowEntityResult.Low->Sim.Collides = true;
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
 
     return lowEntityResult;
 }
@@ -224,24 +186,24 @@ AddFamiliar(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 internal add_low_entity_result
 AddPlayer(game_state *gameState)
 {
-    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Hero, &gameState->CameraPosition);
+    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Hero, gameState->CameraPosition);
 
     //entity->dPosition = {0, 0};
 
     lowEntityResult.Low->Sim.Width = (real32)0.75;
     lowEntityResult.Low->Sim.Height = (real32)0.4;
-    lowEntityResult.Low->Sim.Collides = true;
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
 
     InitHitpoints(lowEntityResult.Low, 3);
-
-    // ChangeEntityResidence(gameState, entityIndex, EntityResidence_High);
 
     if (gameState->CameraFollowingEntityIndex == 0) {
         gameState->CameraFollowingEntityIndex = lowEntityResult.Index;
     }
 
-    // add_low_entity_result swordRes = AddSword(gameState);
-    // lowEntityResult.Low->Sim.Sword = &swordRes.Low->Sim;
+    add_low_entity_result swordEntity = AddSword(gameState);
+    entity_reference swordRef;
+    swordRef.Index = swordEntity.Index;
+    lowEntityResult.Low->Sim.Sword = swordRef;
 
     return lowEntityResult;
 }
@@ -250,9 +212,9 @@ internal add_low_entity_result
 AddWall(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 {
     world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
-    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Wall, &pos);
+    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Wall, pos);
 
-    lowEntityResult.Low->Sim.Collides = true;
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
     lowEntityResult.Low->Sim.Width = gameState->World->TileSideInMeters;
     lowEntityResult.Low->Sim.Height = gameState->World->TileSideInMeters;
 
@@ -536,7 +498,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     if (!memory->IsInitialized)
     {
-        AddLowEntity(gameState, EntityType_NULL, 0);
+        AddLowEntity(gameState, EntityType_NULL, NullPosition());
 
         gameState->LoadedBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/new-bg-code.bmp");
 
@@ -752,6 +714,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         memory->IsInitialized = 1;
 
         world_position newCameraP = ChunkPositionFromTilePosition(gameState->World, screenBaseX*17 + 17 / 2, screenBaseY*9 + 9 / 2, screenBaseZ);
+        gameState->CameraPosition = newCameraP;
 
         
         AddMonster(gameState, newCameraP.ChunkX+4, newCameraP.ChunkY+4, newCameraP.ChunkZ);
@@ -768,11 +731,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         }
 
         controlled_hero *controlledHero = gameState->ControlledHeroes + controllerIndex;
+        controlledHero->ddPRequest = {0,0};
+        controlledHero->dSwordRequest = {0,0};
 
         if (controlledHero->StoreIndex == 0)
         {
             if (inputController->Start.EndedDown) {
-                controlledHero = PushSize(&gameState->WorldArena, controlled_hero);
                 controlledHero->StoreIndex = AddPlayer(gameState).Index;
             }
         }
@@ -888,11 +852,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     if (conHero->dSwordRequest.X != 0 || conHero->dSwordRequest.Y != 0)
                     {
                         sim_entity *swordEntity = simEntity->Sword.Ptr;
-                        if (swordEntity)
+                        if (swordEntity && IsSet(swordEntity, EntityFlag_Nonspacial))
                         {
-                            swordEntity->P = simEntity->P;
+                            MakeEntitySpacial(swordEntity, simEntity->P, 7.0f * conHero->dSwordRequest);
                             swordEntity->DistanceRemaining = 5.0f;
-                            swordEntity->dP = 7.0f * conHero->dSwordRequest;
                         }
                     }
                 }
