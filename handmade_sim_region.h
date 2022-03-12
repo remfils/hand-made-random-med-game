@@ -70,7 +70,7 @@ struct sim_entity
     hit_point HitPoints[16];
 
     entity_reference Sword;
-    real32 DistanceRemaining;
+    real32 DistanceLimit;
 };
 
 struct sim_entity_hash

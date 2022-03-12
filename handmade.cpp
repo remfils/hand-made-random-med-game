@@ -818,8 +818,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     {
         if (simEntity->Updatable)
         {
-        
-
             entity_visible_piece_group pieceGroup = {};
             low_entity *lowEntity = gameState->LowEntities + simEntity->StorageIndex;
 
@@ -842,17 +840,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 moveSpec.Speed = 0;
                 moveSpec.Drag = 0;
 
-                // TODO: limit MoveEntity by fixed distance
-
-                v2 oldP = simEntity->P;
-
-                // MAKE MOVE
-                
-                real32 discanceTraveled = Length(simEntity->P - oldP);
-
-                simEntity->DistanceRemaining -= discanceTraveled;
-
-                if (simEntity->DistanceRemaining < 0.0f) {
+                if (simEntity->DistanceLimit == 0.0f) {
                     MakeEntityNonSpacial(simEntity);
                 }
 
@@ -869,7 +857,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         moveSpec.Speed = 50.0f;
                         moveSpec.Drag = 8.0f;
 
-                        MoveEntity(simRegion, simEntity, input->DtForFrame, &moveSpec, conHero->ddPRequest);
+                        ddp = conHero->ddPRequest;
 
                         if (conHero->dSwordRequest.X != 0 || conHero->dSwordRequest.Y != 0)
                         {
@@ -877,7 +865,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             if (swordEntity && IsSet(swordEntity, EntityFlag_Nonspacial))
                             {
                                 MakeEntitySpacial(swordEntity, simEntity->P, 7.0f * conHero->dSwordRequest);
-                                swordEntity->DistanceRemaining = 5.0f;
+                                swordEntity->DistanceLimit = 15.0f;
                             }
                         }
                     }
@@ -889,7 +877,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             case EntityType_Monster:
             {
-                UpdateMonster(simRegion, input->DtForFrame, simEntity);
                 PushPiece(&pieceGroup, &gameState->EnemyDemoBitmap, V2(0, 0), 0, V2(61,197), 1);
 
                 DrawHitpoints(&pieceGroup, simEntity);
@@ -938,7 +925,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }break;
             }
 
-            if (simEntity->dP.X || simEntity->dP.Y || ddp.X || ddp.Y)
+            if (!IsSet(simEntity, EntityFlag_Nonspacial))
             {
                 MoveEntity(simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
             }
