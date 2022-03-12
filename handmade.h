@@ -124,6 +124,15 @@ struct controlled_hero
     v2 dSwordRequest;
 };
 
+struct pairwise_collision_rule
+{
+    bool32 ShouldCollide;
+    uint32 StorageIndexA;
+    uint32 StorageIndexB;
+
+    pairwise_collision_rule * NextInHash;
+};
+
 struct game_state
 {
     int XOffset;
@@ -152,7 +161,9 @@ struct game_state
     
     hero_bitmaps HeroBitmaps[4];
 
-
+    // must be a power of two
+    pairwise_collision_rule *CollisionRuleHash[256];
+    pairwise_collision_rule *FirstFreeCollisionRule;
 };
 
 

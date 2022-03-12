@@ -842,6 +842,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                 if (simEntity->DistanceLimit == 0.0f) {
                     MakeEntityNonSpacial(simEntity);
+                    ClearCollisionRulesFor(gameState, simEntity->StorageIndex);
                 }
 
                 PushPiece(&pieceGroup, &gameState->SwordDemoBitmap, V2(0,0), 0, V2(12,60), 1);
@@ -864,6 +865,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             sim_entity *swordEntity = simEntity->Sword.Ptr;
                             if (swordEntity && IsSet(swordEntity, EntityFlag_Nonspacial))
                             {
+                                AddCollisionRule(gameState, simEntity->StorageIndex, swordEntity->StorageIndex, false);
                                 MakeEntitySpacial(swordEntity, simEntity->P, 7.0f * conHero->dSwordRequest);
                                 swordEntity->DistanceLimit = 15.0f;
                             }
@@ -927,7 +929,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             if (!IsSet(simEntity, EntityFlag_Nonspacial))
             {
-                MoveEntity(simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
+                MoveEntity(gameState, simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
             }
 
             real32 entityX = screenCenterX + simEntity->P.X * MetersToPixels;

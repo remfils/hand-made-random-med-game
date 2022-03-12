@@ -454,19 +454,153 @@ TestWall(real32 wallX, real32 relX, real32 relY, real32 playerDeltaX, real32 pla
     return result;
 }
 
-
 internal void
-HandleCollision(sim_region *simRegion, sim_entity *a, sim_entity *b)
+ClearCollisionRulesFor(game_state *gameState, uint32 storageIndex)
 {
-    if (a->Type == EntityType_Monster && b->Type == EntityType_Sword)
+    // TODO: better clear rule handling
+
+    for (uint32 hashBucket = 0;
+         hashBucket < ArrayCount(gameState->CollisionRuleHash);
+        hashBucket++)
     {
-        a->HitPointMax -= 1;
-        MakeEntityNonSpacial(b);
+        for (pairwise_collision_rule **rule = &gameState->CollisionRuleHash[hashBucket];
+             *rule;
+             )
+        {
+            pairwise_collision_rule *nextRule = (*rule)->NextInHash;
+            if (((*rule)->StorageIndexA == storageIndex) ||
+                ((*rule)->StorageIndexB == storageIndex))
+            {
+                pairwise_collision_rule *removedRule = *rule;
+                *rule = (*rule)->NextInHash;
+
+                removedRule->NextInHash = gameState->FirstFreeCollisionRule;
+                gameState->FirstFreeCollisionRule = removedRule;
+            }
+            else
+            {
+                rule = &(*rule)->NextInHash;
+            }
+        }
     }
 }
 
 internal void
-MoveEntity(sim_region *simRegion, sim_entity *movingEntity, real32 dt, move_spec *moveSpec, v2 ddPosition)
+AddCollisionRule(game_state * gameState, uint32 storageIndexA, uint32 storageIndexB, bool32 shouldCollide)
+{
+    
+    if (storageIndexA > storageIndexB)
+    {
+        uint32 temp = storageIndexA;
+        storageIndexA = storageIndexB;
+        storageIndexB = temp;
+    }
+
+    // TODO: beter hash function
+    pairwise_collision_rule *foundRule = 0;
+    uint32 hashBucket = storageIndexA  & (ArrayCount(gameState->CollisionRuleHash) -1);
+    for (pairwise_collision_rule *rule = gameState->CollisionRuleHash[hashBucket];
+         rule;
+         rule = rule->NextInHash)
+    {
+        if (rule->StorageIndexA == storageIndexA) {
+            foundRule = rule;
+            break;
+        }
+    }
+
+    if (!foundRule)
+    {
+        foundRule = gameState->FirstFreeCollisionRule;
+
+        if (foundRule) {
+            gameState->FirstFreeCollisionRule = foundRule->NextInHash;
+        }
+        else
+        {
+            foundRule = PushSize(&gameState->WorldArena, pairwise_collision_rule);
+        }
+        foundRule->NextInHash = gameState->CollisionRuleHash[hashBucket];
+        gameState->CollisionRuleHash[hashBucket] = foundRule;
+    }
+
+    if (foundRule)
+    {
+        foundRule->StorageIndexA = storageIndexA;
+        foundRule->StorageIndexB = storageIndexB;
+        foundRule->ShouldCollide = shouldCollide;
+    }
+}
+
+internal bool32
+ShouldCollide(game_state * gameState, sim_entity *a, sim_entity *b)
+{
+    bool32 result = false;
+    if (a != b)
+    {
+        if ((!IsSet(a, EntityFlag_Nonspacial)) && (!IsSet(b, EntityFlag_Nonspacial)))
+        {
+            result = true;
+        }
+
+        if (a->StorageIndex > b->StorageIndex)
+        {
+            sim_entity *temp = a;
+            a = b;
+            b = temp;
+        }
+
+        // TODO: beter hash function
+        uint32 hashBucket = a->StorageIndex  & (ArrayCount(gameState->CollisionRuleHash) -1);
+        for (pairwise_collision_rule *rule = gameState->CollisionRuleHash[hashBucket];
+             rule;
+             rule = rule->NextInHash)
+        {
+            if (rule->StorageIndexA == a->StorageIndex) {
+                result = rule->ShouldCollide;
+                break;
+            }
+        }
+    }
+
+    return result;
+}
+
+
+internal bool32
+HandleCollision(sim_region *simRegion, sim_entity *a, sim_entity *b)
+{
+    bool32 stopsOnCollision = false;
+
+    if (a->Type == EntityType_Sword)
+    {
+        stopsOnCollision = false;
+    }
+    else
+    {
+        stopsOnCollision = true;
+    }
+
+    if (a->Type > b->Type)
+    {
+        sim_entity *temp = a;
+        a = b;
+        b = temp;
+    }
+
+    if (a->Type == EntityType_Monster && b->Type == EntityType_Sword)
+    {
+        a->HitPointMax -= 1;
+    }
+
+    // TODO: stairs here
+
+    // TODO: stops on collision
+    return stopsOnCollision;
+}
+
+internal void
+MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntity, real32 dt, move_spec *moveSpec, v2 ddPosition)
 {
     Assert(!IsSet(movingEntity, EntityFlag_Nonspacial));
 
@@ -517,8 +651,6 @@ MoveEntity(sim_region *simRegion, sim_entity *movingEntity, real32 dt, move_spec
 
             v2 desiredPosition = movingEntity->P + entityPositionDelta;
 
-            bool32 stopsAtCollision = IsSet(movingEntity, EntityFlag_Collides);
-
             if (!IsSet(movingEntity, EntityFlag_Nonspacial))
             {
 
@@ -528,7 +660,7 @@ MoveEntity(sim_region *simRegion, sim_entity *movingEntity, real32 dt, move_spec
                      ++testEntityIndex)
                 {
                     sim_entity *testEntity = simRegion->Entities + testEntityIndex;
-                    if (movingEntity != testEntity)
+                    if (ShouldCollide(gameState, movingEntity, testEntity))
                     {
                         if (IsSet(testEntity, EntityFlag_Collides) && !IsSet(testEntity, EntityFlag_Nonspacial))
                         {
@@ -575,24 +707,17 @@ MoveEntity(sim_region *simRegion, sim_entity *movingEntity, real32 dt, move_spec
             {
                 entityPositionDelta = desiredPosition - movingEntity->P;
 
+                bool32 stopsAtCollision = HandleCollision(simRegion, movingEntity, hitEntity);
+
                 if (stopsAtCollision)
                 {
                     entityPositionDelta = entityPositionDelta - 1 * Inner(entityPositionDelta, wallNormal) * wallNormal;
                     movingEntity->dP = movingEntity->dP - 1 * Inner(movingEntity->dP, wallNormal) * wallNormal;
                 }
-
-                // TODO: collision table here
-                
-                sim_entity *a = movingEntity;
-                sim_entity *b = hitEntity;
-                if (a->Type > b->Type)
+                else
                 {
-                    sim_entity *temp = a;
-                    a = b;
-                    b = temp;
+                    AddCollisionRule(gameState, movingEntity->StorageIndex, hitEntity->StorageIndex, false);
                 }
-
-                HandleCollision(simRegion, a, b);
             }
             else
             {
