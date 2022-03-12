@@ -150,6 +150,15 @@ struct rectangle2
 };
 
 inline rectangle2
+AddRadiusTo(rectangle2 rect, real32 radX, real32 radY)
+{
+    rectangle2 result;
+    result.Min = rect.Min - V2(radX, radY);
+    result.Max = rect.Max + V2(radX, radY);
+    return result;
+}
+
+inline rectangle2
 RectMinMax(v2 min, v2 max)
 {
     rectangle2 rect;

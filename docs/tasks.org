@@ -1,4 +1,4 @@
-* to be done [7/638]
+* to be done [8/638]
 ** DONE Handmade Hero Day 060 - Adding Hitpoints
    - State "DONE"       from "TODO"       [2022-03-09 ñð 12:58]
 - [[https://www.youtube.com/watch?v=0_xzS8zxuq4]]
@@ -25,7 +25,7 @@ https://youtu.be/XfBTNH0nL4I?t=1814
 ** DONE Handmade Hero Day 066 - Adding Support for Non-spatial Entities
 - [[https://www.youtube.com/watch?v=vXPAE5UfcbA]]
 
-** TODO Handmade Hero Day 067 - Making Updates Conditional
+** DONE Handmade Hero Day 067 - Making Updates Conditional
 - [[https://www.youtube.com/watch?v=lnnb49-FYqU]]
 
 ** TODO Handmade Hero Day 068 - Exact Enforcement of Maximum Movement Distances

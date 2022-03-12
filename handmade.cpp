@@ -816,117 +816,175 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
          entityIndex < simRegion->EntityCount;
          ++entityIndex, ++simEntity)
     {
-        entity_visible_piece_group pieceGroup = {};
-        low_entity *lowEntity = gameState->LowEntities + simEntity->StorageIndex;
-
-        // TODO: draw entities on one Z-plane
-
-        hero_bitmaps *heroBitmaps = &gameState->HeroBitmaps[simEntity->FacingDirection];
-
-        pieceGroup.GameState = gameState;
-        switch (simEntity->Type) {
-        case EntityType_Wall:
+        if (simEntity->Updatable)
         {
-            PushPiece(&pieceGroup, &gameState->WallDemoBitmap, V2(0,0), 0, V2(64.0f * 0.5f, 64.0f * 0.5f), 1);
-        } break;
-        case EntityType_Sword:
-        {
-            UpdateSword(simRegion, input->DtForFrame, simEntity);
+        
 
-            PushPiece(&pieceGroup, &gameState->SwordDemoBitmap, V2(0,0), 0, V2(12,60), 1);
-        } break;
-        case EntityType_Hero:
-        {
-            for (uint32 idx=0; idx<ArrayCount(gameState->ControlledHeroes); idx++)
+            entity_visible_piece_group pieceGroup = {};
+            low_entity *lowEntity = gameState->LowEntities + simEntity->StorageIndex;
+
+            // TODO: draw entities on one Z-plane
+
+            hero_bitmaps *heroBitmaps = &gameState->HeroBitmaps[simEntity->FacingDirection];
+
+            move_spec moveSpec = DefaultMoveSpec();
+            v2 ddp = {};
+
+            pieceGroup.GameState = gameState;
+            switch (simEntity->Type) {
+            case EntityType_Wall:
             {
-                controlled_hero *conHero = gameState->ControlledHeroes+idx;
-                if (conHero->StoreIndex == simEntity->StorageIndex)
+                PushPiece(&pieceGroup, &gameState->WallDemoBitmap, V2(0,0), 0, V2(64.0f * 0.5f, 64.0f * 0.5f), 1);
+            } break;
+            case EntityType_Sword:
+            {
+                moveSpec.UnitMaxAccelVector = false;
+                moveSpec.Speed = 0;
+                moveSpec.Drag = 0;
+
+                // TODO: limit MoveEntity by fixed distance
+
+                v2 oldP = simEntity->P;
+
+                // MAKE MOVE
+                
+                real32 discanceTraveled = Length(simEntity->P - oldP);
+
+                simEntity->DistanceRemaining -= discanceTraveled;
+
+                if (simEntity->DistanceRemaining < 0.0f) {
+                    MakeEntityNonSpacial(simEntity);
+                }
+
+                PushPiece(&pieceGroup, &gameState->SwordDemoBitmap, V2(0,0), 0, V2(12,60), 1);
+            } break;
+            case EntityType_Hero:
+            {
+                for (uint32 idx=0; idx<ArrayCount(gameState->ControlledHeroes); idx++)
                 {
-                    move_spec moveSpec;
-                    moveSpec.UnitMaxAccelVector = true;
-                    moveSpec.Speed = 50.0f;
-                    moveSpec.Drag = 8.0f;
-
-                    MoveEntity(simRegion, simEntity, input->DtForFrame, &moveSpec, conHero->ddPRequest);
-
-                    if (conHero->dSwordRequest.X != 0 || conHero->dSwordRequest.Y != 0)
+                    controlled_hero *conHero = gameState->ControlledHeroes+idx;
+                    if (conHero->StoreIndex == simEntity->StorageIndex)
                     {
-                        sim_entity *swordEntity = simEntity->Sword.Ptr;
-                        if (swordEntity && IsSet(swordEntity, EntityFlag_Nonspacial))
+                        moveSpec.UnitMaxAccelVector = true;
+                        moveSpec.Speed = 50.0f;
+                        moveSpec.Drag = 8.0f;
+
+                        MoveEntity(simRegion, simEntity, input->DtForFrame, &moveSpec, conHero->ddPRequest);
+
+                        if (conHero->dSwordRequest.X != 0 || conHero->dSwordRequest.Y != 0)
                         {
-                            MakeEntitySpacial(swordEntity, simEntity->P, 7.0f * conHero->dSwordRequest);
-                            swordEntity->DistanceRemaining = 5.0f;
+                            sim_entity *swordEntity = simEntity->Sword.Ptr;
+                            if (swordEntity && IsSet(swordEntity, EntityFlag_Nonspacial))
+                            {
+                                MakeEntitySpacial(swordEntity, simEntity->P, 7.0f * conHero->dSwordRequest);
+                                swordEntity->DistanceRemaining = 5.0f;
+                            }
                         }
                     }
                 }
-            }
 
-            PushPiece(&pieceGroup, &heroBitmaps->Character, V2(0,0), 0, heroBitmaps->Align, 1);
+                PushPiece(&pieceGroup, &heroBitmaps->Character, V2(0,0), 0, heroBitmaps->Align, 1);
 
-            DrawHitpoints(&pieceGroup, simEntity);
-        } break;
-        case EntityType_Monster:
-        {
-            UpdateMonster(simRegion, input->DtForFrame, simEntity);
-            PushPiece(&pieceGroup, &gameState->EnemyDemoBitmap, V2(0, 0), 0, V2(61,197), 1);
-
-            DrawHitpoints(&pieceGroup, simEntity);
-        } break;
-        case EntityType_Familiar:
-        {
-            UpdateFamiliar(simRegion, input->DtForFrame, simEntity);
-
-            simEntity->TBobing += input->DtForFrame;
-            if (simEntity->TBobing > 2.0f * Pi32)
+                DrawHitpoints(&pieceGroup, simEntity);
+            } break;
+            case EntityType_Monster:
             {
-                simEntity->TBobing -= 2.0f * Pi32;
-            }
+                UpdateMonster(simRegion, input->DtForFrame, simEntity);
+                PushPiece(&pieceGroup, &gameState->EnemyDemoBitmap, V2(0, 0), 0, V2(61,197), 1);
 
-            PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V2(0, 0.2f * Sin(13 * simEntity->TBobing)), 0, V2(58, 203), 1);
-        }break;
-        }
-
-        real32 entityX = screenCenterX + simEntity->P.X * MetersToPixels;
-        real32 entityY = screenCenterY - simEntity->P.Y * MetersToPixels;
-
-        for (uint32 idx =0; idx < pieceGroup.PieceCount; ++idx)
-        {
-            entity_visible_piece piece = pieceGroup.Pieces[idx];
-            if (piece.Bitmap)
+                DrawHitpoints(&pieceGroup, simEntity);
+            } break;
+            case EntityType_Familiar:
             {
-                RenderBitmap(buffer, piece.Bitmap, entityX + piece.Offset.X, entityY + piece.Offset.Y, piece.Alpha);
+                sim_entity *closestHero = 0;
+                real32 closestHeroRadSq = Square(90.0f);
+
+                // TODO(casey): make spacial queries
+                for (uint32 entityCount = 0;
+                     entityCount < simRegion->EntityCount;
+                     ++entityCount)
+                {
+                    sim_entity *testEntity = simRegion->Entities + entityCount;
+                    if (testEntity->Type == EntityType_Hero)
+                    {
+                        real32 testD = LengthSq(testEntity->P - simEntity->P);
+                        if (testD < closestHeroRadSq)
+                        {
+                            closestHero = testEntity;
+                            closestHeroRadSq = testD;
+                        }
+                    }
+                }
+    
+                if (closestHero && closestHeroRadSq > 4.0f)
+                {
+                    real32 acceleration = 0.5f;
+                    real32 oneOverLength = acceleration / SquareRoot(closestHeroRadSq);
+        
+                    ddp = oneOverLength * (closestHero->P - simEntity->P);
+                }
+
+                moveSpec.UnitMaxAccelVector = true;
+                moveSpec.Speed = 50.0f;
+                moveSpec.Drag = 8.0f;
+
+                simEntity->TBobing += input->DtForFrame;
+                if (simEntity->TBobing > 2.0f * Pi32)
+                {
+                    simEntity->TBobing -= 2.0f * Pi32;
+                }
+
+                PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V2(0, 0.2f * Sin(13 * simEntity->TBobing)), 0, V2(58, 203), 1);
+            }break;
             }
-            else
+
+            if (simEntity->dP.X || simEntity->dP.Y || ddp.X || ddp.Y)
+            {
+                MoveEntity(simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
+            }
+
+            real32 entityX = screenCenterX + simEntity->P.X * MetersToPixels;
+            real32 entityY = screenCenterY - simEntity->P.Y * MetersToPixels;
+
+            for (uint32 idx =0; idx < pieceGroup.PieceCount; ++idx)
+            {
+                entity_visible_piece piece = pieceGroup.Pieces[idx];
+                if (piece.Bitmap)
+                {
+                    RenderBitmap(buffer, piece.Bitmap, entityX + piece.Offset.X, entityY + piece.Offset.Y, piece.Alpha);
+                }
+                else
+                {
+                    color c;
+                    c.Red = piece.R;
+                    c.Green = piece.G;
+                    c.Blue = piece.B;
+
+                    real32 realMinX = entityX + piece.Offset.X;
+                    real32 realMinY = entityY + piece.Offset.Y;
+                    real32 realMaxX = realMinX + piece.Dim.X;
+                    real32 realMaxY = realMinY + piece.Dim.Y;
+                    RenderRectangle(buffer, realMinX, realMinY, realMaxX, realMaxY, c);
+                }
+            }
+
+            if (false) // draw entity bounds
             {
                 color c;
-                c.Red = piece.R;
-                c.Green = piece.G;
-                c.Blue = piece.B;
+                c.Red = 1;
+                c.Green = 0;
+                c.Blue = 0;
 
-                real32 realMinX = entityX + piece.Offset.X;
-                real32 realMinY = entityY + piece.Offset.Y;
-                real32 realMaxX = realMinX + piece.Dim.X;
-                real32 realMaxY = realMinY + piece.Dim.Y;
+                real32 halfW = simEntity->Width * MetersToPixels * 0.5f;
+                real32 halfH = simEntity->Height * MetersToPixels * 0.5f;
+
+                real32 realMinX = entityX - halfW;
+                real32 realMinY = entityY - halfH;
+                real32 realMaxX = entityX + halfW;
+                real32 realMaxY = entityY + halfH;
                 RenderRectangle(buffer, realMinX, realMinY, realMaxX, realMaxY, c);
             }
-        }
-
-        if (false) // draw entity bounds
-        {
-            color c;
-            c.Red = 1;
-            c.Green = 0;
-            c.Blue = 0;
-
-            real32 halfW = simEntity->Width * MetersToPixels * 0.5f;
-            real32 halfH = simEntity->Height * MetersToPixels * 0.5f;
-
-            real32 realMinX = entityX - halfW;
-            real32 realMinY = entityY - halfH;
-            real32 realMaxX = entityX + halfW;
-            real32 realMaxY = entityY + halfH;
-            RenderRectangle(buffer, realMinX, realMinY, realMaxX, realMaxY, c);
-        }
+        }   
     }
     
     if (input->MouseButtons[0].EndedDown)

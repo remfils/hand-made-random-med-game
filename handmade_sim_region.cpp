@@ -119,7 +119,8 @@ LoadEntityReference(game_state *gameState, sim_region *simRegion, entity_referen
         {
             simHash->Index = ref->Index;
             low_entity *low = GetLowEntity(gameState, ref->Index);
-            simHash->Ptr = AddEntity(gameState, simRegion, ref->Index, low, 0);
+            v2 pos = GetSimSpaceP(simRegion, low);
+            simHash->Ptr = AddEntity(gameState, simRegion, ref->Index, low, &pos);
         }
 
         ref->Ptr = simHash->Ptr;
@@ -149,6 +150,7 @@ AddEntityRaw(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, 
             }
         
             simEntity->StorageIndex = sourceIndex;
+            simEntity->Updatable = false;
         }   
         else
         {
@@ -164,18 +166,19 @@ AddEntityRaw(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, 
 }
 
 internal sim_entity*
-AddEntity(game_state * gameState, sim_region *region, uint32 sourceIndex, low_entity *source, v2 *simP)
+AddEntity(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, low_entity *source, v2 *simP)
 {
-    sim_entity *dest = AddEntityRaw(gameState, region, sourceIndex, source);
+    sim_entity *dest = AddEntityRaw(gameState, simRegion, sourceIndex, source);
     if (dest)
     {
         if (simP)
         {
             dest->P = *simP;
+            dest->Updatable = IsInRectangle(simRegion->UpdatableBounds, dest->P);
         }
         else
         {
-            dest->P = GetSimSpaceP(region, source);
+            dest->P = GetSimSpaceP(simRegion, source);
         }
     }
     
@@ -190,6 +193,10 @@ BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_posi
     sim_region *simRegion = PushSize(simArena, sim_region);
     ZeroStruct(simRegion->Hash);
 
+    // TODO: figure out what this is = max(speed + width) on all entities
+    real32 updateSafetyMargin = 1.0f;
+
+
     simRegion->MaxEntityCount = 4096; // TODO: how many?
     simRegion->EntityCount = 0;
     simRegion->Entities = PushArray(simArena, simRegion->MaxEntityCount, sim_entity);
@@ -197,6 +204,7 @@ BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_posi
     simRegion->World = world;
     simRegion->Origin = regionCenter;
     simRegion->Bounds = regionBounds;
+    simRegion->UpdatableBounds = AddRadiusTo(regionBounds, updateSafetyMargin, updateSafetyMargin);
 
     world_position minChunkP = MapIntoChunkSpace(simRegion->World, simRegion->Origin, GetMinCorner(simRegion->Bounds));
     world_position maxChunkP = MapIntoChunkSpace(simRegion->World, simRegion->Origin, GetMaxCorner(simRegion->Bounds));
@@ -428,7 +436,7 @@ internal bool32
 TestWall(real32 wallX, real32 relX, real32 relY, real32 playerDeltaX, real32 playerDeltaY, real32 *tMin, real32 minY, real32 maxY)
 {
     bool32 result = false;
-    real32 tEpsilon = 0.0001f;
+    real32 tEpsilon = 0.001f;
 
     if (playerDeltaX != 0.0f)
     {
