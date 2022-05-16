@@ -137,8 +137,8 @@ AddSword(game_state *gameState)
 {
     add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Sword, NullPosition());
 
-    lowEntityResult.Low->Sim.Width = (real32)25 / gameState->MetersToPixels;
-    lowEntityResult.Low->Sim.Height = (real32)63 / gameState->MetersToPixels;
+    lowEntityResult.Low->Sim.Dim.X = (real32)25 / gameState->MetersToPixels;
+    lowEntityResult.Low->Sim.Dim.Y = (real32)63 / gameState->MetersToPixels;
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Nonspacial);
 
     return lowEntityResult;
@@ -154,8 +154,8 @@ AddMonster(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 
     InitHitpoints(lowEntityResult.Low, 8, 1);
 
-    lowEntityResult.Low->Sim.Width = (real32)0.75;
-    lowEntityResult.Low->Sim.Height = (real32)0.4;
+    lowEntityResult.Low->Sim.Dim.X = (real32)0.75;
+    lowEntityResult.Low->Sim.Dim.Y = (real32)0.4;
 
     return lowEntityResult;
 }
@@ -168,8 +168,8 @@ AddFamiliar(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 
     lowEntityResult.Low->WorldP._Offset.X += 8;
    
-    lowEntityResult.Low->Sim.Width = (real32)0.75;
-    lowEntityResult.Low->Sim.Height = (real32)0.4;
+    lowEntityResult.Low->Sim.Dim.X = (real32)0.75;
+    lowEntityResult.Low->Sim.Dim.Y = (real32)0.4;
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
 
     return lowEntityResult;
@@ -182,8 +182,8 @@ AddPlayer(game_state *gameState)
 
     //entity->dPosition = {0, 0};
 
-    lowEntityResult.Low->Sim.Width = (real32)0.75;
-    lowEntityResult.Low->Sim.Height = (real32)0.4;
+    lowEntityResult.Low->Sim.Dim.X = (real32)0.75;
+    lowEntityResult.Low->Sim.Dim.Y = (real32)0.4;
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
 
     InitHitpoints(lowEntityResult.Low, 3);
@@ -207,8 +207,8 @@ AddWall(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
     add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Wall, pos);
 
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
-    lowEntityResult.Low->Sim.Width = gameState->World->TileSideInMeters;
-    lowEntityResult.Low->Sim.Height = gameState->World->TileSideInMeters;
+    lowEntityResult.Low->Sim.Dim.X = gameState->World->TileSideInMeters;
+    lowEntityResult.Low->Sim.Dim.Y = gameState->World->TileSideInMeters;
 
     return lowEntityResult;
 }
@@ -583,7 +583,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                     if (tileX == 4 && tileY == 4)
                     {
-                        AddFamiliar(gameState, absTileX, absTileY, absTileY);
+                        AddFamiliar(gameState, absTileX, absTileY, absTileZ);
                     }
                     
                     uint32 tileVal = 1;
@@ -796,7 +796,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     memory_arena simArena;
     InitializeArena(&simArena, memory->TransientStorageSize, memory->TransientStorage);
-    sim_region *simRegion = BeginSim(&simArena, gameState, gameState->World, gameState->CameraPosition, cameraBounds);
+    sim_region *simRegion = BeginSim(&simArena, gameState, gameState->World, gameState->CameraPosition, cameraBounds, input->DtForFrame);
     
     
     real32 screenCenterX = 0.5f * (real32) buffer->Width;
@@ -957,8 +957,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 c.Green = 0;
                 c.Blue = 0;
 
-                real32 halfW = simEntity->Width * MetersToPixels * 0.5f;
-                real32 halfH = simEntity->Height * MetersToPixels * 0.5f;
+                real32 halfW = simEntity->Dim.X * MetersToPixels * 0.5f;
+                real32 halfH = simEntity->Dim.Y * MetersToPixels * 0.5f;
 
                 real32 realMinX = entityX - halfW;
                 real32 realMinY = entityY - halfH;

@@ -57,9 +57,7 @@ struct sim_entity
 
     v3 P;
     v3 dP;
-
-    real32 Width;
-    real32 Height;
+    v3 Dim;
 
     uint32 FacingDirection;
     real32 TBobing;
@@ -81,6 +79,8 @@ struct sim_entity_hash
 struct sim_region
 {
     // TODO: hash table stored -> sim
+    real32 MaxEntityRadius;
+    real32 MaxEntityVelocity;
 
     world *World;
 

@@ -164,6 +164,14 @@ AddEntityRaw(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, 
     return simEntity;
 }
 
+inline bool32
+EntityOverlapsRectangle(v3 entityP, v3 entityDim, rectangle3 rect)
+{
+    rectangle3 grown = AddRadiusTo(rect, 0.5 * entityDim);
+    bool32 result = IsInRectangle(grown, entityP);
+    return result;
+}
+
 internal sim_entity*
 AddEntity(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, low_entity *source, v3 *simP)
 {
@@ -173,7 +181,7 @@ AddEntity(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, low
         if (simP)
         {
             dest->P = *simP;
-            dest->Updatable = IsInRectangle(simRegion->UpdatableBounds, dest->P);
+            dest->Updatable = EntityOverlapsRectangle(dest->P, dest->Dim, simRegion->UpdatableBounds);
         }
         else
         {
@@ -187,13 +195,16 @@ AddEntity(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, low
 
 
 internal sim_region*
-BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_position regionCenter, rectangle3 regionBounds)
+BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_position regionCenter, rectangle3 regionBounds, real32 dt)
 {
     sim_region *simRegion = PushSize(simArena, sim_region);
     ZeroStruct(simRegion->Hash);
 
     // TODO: figure out what this is = max(speed + width) on all entities
-    real32 updateSafetyMargin = 1.0f;
+    // TODO: enforce these
+    simRegion->MaxEntityRadius = 5.0f;
+    simRegion->MaxEntityVelocity = 30.0f;
+    real32 updateSafetyMargin = simRegion->MaxEntityRadius + dt * simRegion->MaxEntityVelocity;
     real32 updateSafetyMarginZ = 1.0f;
 
 
@@ -203,8 +214,8 @@ BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_posi
 
     simRegion->World = world;
     simRegion->Origin = regionCenter;
-    simRegion->Bounds = regionBounds;
-    simRegion->UpdatableBounds = AddRadiusTo(regionBounds, V3(updateSafetyMargin, updateSafetyMargin, updateSafetyMarginZ));
+    simRegion->UpdatableBounds = AddRadiusTo(regionBounds, V3(simRegion->MaxEntityRadius, simRegion->MaxEntityRadius, simRegion->MaxEntityRadius));
+    simRegion->Bounds = AddRadiusTo(simRegion->UpdatableBounds, V3(updateSafetyMargin, updateSafetyMargin, updateSafetyMarginZ));;
 
     world_position minChunkP = MapIntoChunkSpace(simRegion->World, simRegion->Origin, GetMinCorner(simRegion->Bounds));
     world_position maxChunkP = MapIntoChunkSpace(simRegion->World, simRegion->Origin, GetMaxCorner(simRegion->Bounds));
@@ -235,7 +246,7 @@ BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_posi
                         {
                             v3 simSpaceP = GetSimSpaceP(simRegion, low);
 
-                            if (IsInRectangle(simRegion->Bounds, simSpaceP))
+                            if (EntityOverlapsRectangle(simSpaceP, low->Sim.Dim, simRegion->Bounds))
                             {
                                 AddEntity(gameState, simRegion, lowEntityIndex, low, &simSpaceP);
                             }    
@@ -415,7 +426,9 @@ EndSim(sim_region *region, game_state *gameState)
                 newCameraPosition.ChunkX -= 17;
             }
 #else
+            real32 offsetZ = gameState->CameraPosition._Offset.Z;
             gameState->CameraPosition = stored->WorldP;
+            gameState->CameraPosition._Offset.Z = offsetZ;
 #endif
         }
     }
@@ -621,6 +634,10 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
     v3 oldEntityPosition = movingEntity->P;
     v3 entityPositionDelta = 0.5f * dt * dt * ddPosition + movingEntity->dP * dt;
     movingEntity->dP = ddPosition * dt + movingEntity->dP;
+
+    // TODO: cap velocity
+    Assert(LengthSq(movingEntity->dP) <= Square(simRegion->MaxEntityVelocity));
+
     v3 newEntityPosition = oldEntityPosition + entityPositionDelta;
 
 
@@ -665,9 +682,9 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
                         if (IsSet(testEntity, EntityFlag_Collides) && !IsSet(testEntity, EntityFlag_Nonspacial))
                         {
                             // TODO: entity have height
-                            v3 minkovskiDiameter = {testEntity->Width + movingEntity->Width,
-                                testEntity->Height + movingEntity->Height,
-                                2 * world->TileDepthInMeters
+                            v3 minkovskiDiameter = {testEntity->Dim.X + movingEntity->Dim.X,
+                                testEntity->Dim.Y + movingEntity->Dim.Y,
+                                testEntity->Dim.Z + movingEntity->Dim.Z
                             };
 
                             v3 minCorner = -0.5f * minkovskiDiameter;

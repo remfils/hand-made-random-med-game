@@ -1434,9 +1434,9 @@ int CALLBACK WinMain(
                         audioLatencySeconds = (audioLatencyBytes / (real32)soundOutput.bytesPerSample) / (real32)soundOutput.samplesPerSecond;
                     }
                     
-                    char buffer[256];
-                    sprintf_s(buffer, 256, "LPC: %u, TC:%u, AuLat:%f\n", 0, targetCursor, audioLatencySeconds);
-                    OutputDebugStringA(buffer);
+                    // char buffer[256];
+                    // sprintf_s(buffer, 256, "LPC: %u, TC:%u, AuLat:%f\n", 0, targetCursor, audioLatencySeconds);
+                    // OutputDebugStringA(buffer);
 #endif
 
                     Win32FillSoundBuffer(&soundOutput, byteToLock, bytesToWrite, &soundBuffer);
@@ -1456,8 +1456,9 @@ int CALLBACK WinMain(
 
                 // count cycles
                 
-                uint64 endCycleCount = __rdtsc();
-                uint64 cyclesElapsed = endCycleCount - lastCycleCount;
+                int64 endCycleCount = __rdtsc();
+                int64 cyclesElapsed = endCycleCount - lastCycleCount;
+
                 
                 LARGE_INTEGER workCounter = Win32GetWallClock();
                 real32 workSecondsElapsed = Win32GetSecondsElapsed(lastCounter, workCounter);
@@ -1488,7 +1489,7 @@ int CALLBACK WinMain(
                 }
                 else
                 {
-                    
+                    int64 DEBUG_VS_CRAP = 0;
                 }
 
                 LARGE_INTEGER endCounter = Win32GetWallClock();
@@ -1525,13 +1526,13 @@ int CALLBACK WinMain(
 
                 ReleaseDC(windowHandle, deviceContext);
                 
-                #if 0
+                #if 1
 
-                real64 FPS = (real64)GlobalPerfCounterFrequency / (real64)cyclesElapsed;
+                float FPS = (float)GlobalPerfCounterFrequency / (float)cyclesElapsed;
                 real64 MCPF = ((real64)cyclesElapsed / (1000.0f * 1000.0f)); 
 
                 char buffer[256];
-                sprintf_s(buffer, "%fms, %f, %fmc/f\n", msPerFrame, FPS, MCPF);
+                sprintf_s(buffer, "/%fms // FPS: %f // %fmc/f\n", msPerFrame, 1/msPerFrame*1000.0f, MCPF);
                 OutputDebugStringA(buffer);
                 #endif
 
