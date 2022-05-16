@@ -15,15 +15,17 @@
    TODO: 
 
    ARCHITECTURE EXPLORATION
+   - Z!
+     - minkovski inclusion test for begin / updatable bounds
+     - clean up with v3
+     - how to go up and down and how to render it
+     - solve puzler from worl_position
    - Collision detection
      - detect entry/exit
      - shape defenition
    - Implement multiple sim region
      - per entity clocking
      - sim region merging for multiple players
-   - Z!
-     - clean up with v3
-     - how to go up and down and how to render it
 
    - Debug code
      - logging

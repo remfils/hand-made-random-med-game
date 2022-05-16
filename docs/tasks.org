@@ -1,4 +1,4 @@
-* to be done [11/638]
+* to be done [12/638]
 ** DONE Handmade Hero Day 060 - Adding Hitpoints
    - State "DONE"       from "TODO"       [2022-03-09 ñð 12:58]
 - [[https://www.youtube.com/watch?v=0_xzS8zxuq4]]
@@ -37,7 +37,7 @@ https://youtu.be/XfBTNH0nL4I?t=1814
 ** DONE [!] Handmade Hero Day 070 - Exploration To-do List
 - [[https://www.youtube.com/watch?v=afWxzIHB5Ss]]
 
-** TODO Handmade Hero Day 071 - Converting to Full 3D Positioning
+** DONE Handmade Hero Day 071 - Converting to Full 3D Positioning
 - [[https://www.youtube.com/watch?v=FVPxhovGsuE]]
 
 ** TODO Handmade Hero Day 072 - Proper 3D Inclusion Tests

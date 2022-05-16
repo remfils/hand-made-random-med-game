@@ -91,14 +91,6 @@ internal loaded_bitmap DEBUGLoadBMP(thread_context *thread, debug_platform_read_
     return result;
 }
 
-inline v2
-GetCameraSpaceP(game_state *gameState, low_entity *entityLow)
-{
-    world_diff diff = Subtract(gameState->World, &entityLow->WorldP, &gameState->CameraPosition);
-    v2 result = diff.dXY;
-    return result;
-}
-
 
 struct add_low_entity_result
 {
@@ -797,9 +789,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     ClearRenderBuffer(buffer);
 
     // TODO: fix numbers for tiles
-    int32 tileSpanX = 17 * 3;
-    int32 tileSpanY = 9 * 3;
-    rectangle2 cameraBounds = RectCenterDim(V2(0,0), world->TileSideInMeters * V2((real32)tileSpanX, (real32)tileSpanY));
+    uint32 tileSpanX = 17 * 3;
+    uint32 tileSpanY = 9 * 3;
+    uint32 tileSpanZ = 1;
+    rectangle3 cameraBounds = RectCenterDim(V3(0,0,0), world->TileSideInMeters * V3((real32)tileSpanX, (real32)tileSpanY, (real32)tileSpanZ));
 
     memory_arena simArena;
     InitializeArena(&simArena, memory->TransientStorageSize, memory->TransientStorage);
@@ -826,7 +819,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             hero_bitmaps *heroBitmaps = &gameState->HeroBitmaps[simEntity->FacingDirection];
 
             move_spec moveSpec = DefaultMoveSpec();
-            v2 ddp = {};
+            v3 ddp = {};
 
             pieceGroup.GameState = gameState;
             switch (simEntity->Type) {
@@ -858,7 +851,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         moveSpec.Speed = 50.0f;
                         moveSpec.Drag = 8.0f;
 
-                        ddp = conHero->ddPRequest;
+                        ddp = V3(conHero->ddPRequest, 0.0f);
 
                         if (conHero->dSwordRequest.X != 0 || conHero->dSwordRequest.Y != 0)
                         {
@@ -866,7 +859,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             if (swordEntity && IsSet(swordEntity, EntityFlag_Nonspacial))
                             {
                                 AddCollisionRule(gameState, simEntity->StorageIndex, swordEntity->StorageIndex, false);
-                                MakeEntitySpacial(swordEntity, simEntity->P, 7.0f * conHero->dSwordRequest);
+                                MakeEntitySpacial(swordEntity, simEntity->P, 7.0f * V3(conHero->dSwordRequest, 0));
                                 swordEntity->DistanceLimit = 15.0f;
                             }
                         }

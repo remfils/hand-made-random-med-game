@@ -55,9 +55,8 @@ struct sim_entity
     entity_type Type;
     uint32 Flags;
 
-    v2 P;
-    v2 dP;
-    int32 AbsTileZ;
+    v3 P;
+    v3 dP;
 
     real32 Width;
     real32 Height;
@@ -86,8 +85,8 @@ struct sim_region
     world *World;
 
     world_position Origin;
-    rectangle2 Bounds;
-    rectangle2 UpdatableBounds;
+    rectangle3 Bounds;
+    rectangle3 UpdatableBounds;
 
     uint32 MaxEntityCount;
     uint32 EntityCount;

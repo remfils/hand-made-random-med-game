@@ -6,12 +6,6 @@
 #define TILE_UNINISIALIZED_COORD INT32_MAX
 
 
-struct world_diff
-{
-    v2 dXY;
-    real32 dZ;
-};
-
 struct world_position
 {
     // TODO: how to remove abstile* 
@@ -20,7 +14,7 @@ struct world_position
     int32 ChunkY;
     int32 ChunkZ;
 
-    v2 _Offset;
+    v3 _Offset;
 };
 
 struct world_entity_block
@@ -45,7 +39,9 @@ struct world
 {
     uint32 TotalChunksAdded;
     real32 TileSideInMeters;
-    real32 ChunkSideInMeters;
+    real32 TileDepthInMeters;
+
+    v3 ChunkDimInMeters;
     world_chunk ChunkHash[100];
 
     world_entity_block *FirstFree;
