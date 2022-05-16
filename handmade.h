@@ -9,6 +9,61 @@
  */
 
 
+
+/* 
+
+   TODO: 
+
+   ARCHITECTURE EXPLORATION
+   - Collision detection
+     - detect entry/exit
+     - shape defenition
+   - Implement multiple sim region
+     - per entity clocking
+     - sim region merging for multiple players
+   - Z!
+     - clean up with v3
+     - how to go up and down and how to render it
+
+   - Debug code
+     - logging
+     - diagrams
+     - a little gui, but only a little
+
+
+   - Rudimentary world generation (just what is needed to be done)
+     - placement of bg things
+     - connectivity
+     - non-overlaping
+     - map display
+   - Meta game / save game
+     - how to enter save slot
+     - persistent unlocks
+     - do we allow saved games? probably yes, just for pausing
+     - continuous save for crash recovery
+   - AI
+     - rudamentary monster behavior
+     - pathfinding
+     - AI "storage"
+   
+   - Animation, should lead into rendering
+     - skeletal animation
+     - particle systems
+
+   - Audio
+     - sound effect triggers
+     - ambient sound
+     - music
+   - Asset streaming
+
+   PRODUCTION
+   - Rendering
+   - Entity system
+   - World generation
+     
+ */
+
+
 #include <stdint.h>
 // TODO: remove
 #include <math.h>

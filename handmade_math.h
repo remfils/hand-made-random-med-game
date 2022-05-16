@@ -150,11 +150,13 @@ struct rectangle2
 };
 
 inline rectangle2
-AddRadiusTo(rectangle2 rect, real32 radX, real32 radY)
+AddRadiusTo(rectangle2 rect, real32 radiusW, real32 radiusH)
 {
     rectangle2 result;
-    result.Min = rect.Min - V2(radX, radY);
-    result.Max = rect.Max + V2(radX, radY);
+
+    result.Min = rect.Min - V2(radiusW, radiusH);
+    result.Max = rect.Max + V2(radiusW, radiusH);
+
     return result;
 }
 
@@ -162,8 +164,10 @@ inline rectangle2
 RectMinMax(v2 min, v2 max)
 {
     rectangle2 rect;
+
     rect.Min = min;
     rect.Max = max;
+
     return rect;
 }
 
@@ -171,8 +175,10 @@ inline rectangle2
 RectCenterHalfDim(v2 center, v2 halfDim)
 {
     rectangle2 rect;
+
     rect.Min = center - halfDim;
     rect.Max = center + halfDim;
+
     return rect;
 }
 
@@ -187,8 +193,10 @@ inline rectangle2
 RectMinDim(v2 min, v2 dim)
 {
     rectangle2 rect;
+
     rect.Min = min;
     rect.Max = min + dim;
+
     return rect;
 }
 
