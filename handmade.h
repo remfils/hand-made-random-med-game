@@ -179,6 +179,12 @@ struct controlled_hero
     v2 dSwordRequest;
 };
 
+enum pairwise_collision_rule_flag
+{
+    PairCollisionFlag_ShouldCollide = 1 << 1,
+    PairCollisionFlag_Temporary = 1 << 2,
+};
+
 struct pairwise_collision_rule
 {
     bool32 ShouldCollide;

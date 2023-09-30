@@ -42,7 +42,8 @@ union entity_reference
 enum sim_entity_flags
 {
     EntityFlag_Collides = (1 << 1),
-    EntityFlag_Nonspacial = (1 << 2)
+    EntityFlag_Nonspacial = (1 << 2),
+    EntityFlag_Immovable = (1 << 3),
 };
 
 struct sim_entity

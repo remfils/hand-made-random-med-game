@@ -195,7 +195,7 @@ AddPlayer(game_state *gameState)
 {
     add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Hero, gameState->CameraPosition);
 
-    //entity->dPosition = {0, 0};
+    // entity->dPosition = {0, 0};
 
     lowEntityResult.Low->Sim.Dim.X = (real32)0.75;
     lowEntityResult.Low->Sim.Dim.Y = (real32)0.4;
@@ -222,7 +222,7 @@ AddWall(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
     add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Wall, pos);
 
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
-    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Nonspacial);
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Immovable);
     lowEntityResult.Low->Sim.Dim.X = gameState->World->TileSideInMeters;
     lowEntityResult.Low->Sim.Dim.Y = gameState->World->TileSideInMeters;
 
@@ -252,8 +252,12 @@ GameOutputSound(game_sound_output_buffer *soundBuffer, game_state *gameState)
     
     for (int sampleIndex = 0; sampleIndex < soundBuffer->SampleCount; ++sampleIndex)
     {
-        real32 sineValue = sinf(tSine);
-        int16 sampleValue = (int16)(sineValue * toneVolume);
+        // TODO: bugs in sound, if want to hear broken sound loop unkomment
+        // 
+        // real32 sineValue = sinf(tSine);
+        // int16 sampleValue = (int16)(sineValue * toneVolume);
+
+        int16 sampleValue = 0;
         
         *sampleOut++ = sampleValue;
         *sampleOut++ = sampleValue;
@@ -607,7 +611,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                     if (famimiliarMaxCount > 0 && tileX == 4 && tileY == 4)
                     {
-                        AddFamiliar(gameState, absTileX, absTileY, absTileZ);
+                        // AddFamiliar(gameState, absTileX, absTileY, absTileZ);
                         famimiliarMaxCount--;
                     }
 
@@ -716,7 +720,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->CameraPosition = newCameraP;
 
         
-        AddMonster(gameState, newCameraP.ChunkX+4, newCameraP.ChunkY+4, newCameraP.ChunkZ);
+        //AddMonster(gameState, newCameraP.ChunkX+4, newCameraP.ChunkY+4, newCameraP.ChunkZ);
     }
     
     world *world = gameState->World;
@@ -931,7 +935,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             }
 
-            if (!IsSet(simEntity, EntityFlag_Nonspacial))
+            if (!IsSet(simEntity, EntityFlag_Nonspacial) && !IsSet(simEntity, EntityFlag_Immovable))
             {
                 MoveEntity(gameState, simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
             }

@@ -1,11 +1,18 @@
-* to be done [0/625]
-** TODO Handmade Hero Day 073 - Temporarily Overlapping Entities
+* to be done [1/625]
+** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
 https://youtu.be/e0yjNipizK0?t=2004
 
 тяжко очень закончить видео, продолжу завтра (нихрена не продолжил, в
 итоге продолжил через месяц, а то и больше)
+
+- пересечение прямоугольников сделано не через алгоритм Минковского
+- для произвольных форм можно будет использовать GDK (чтобы это не значило)
+
+выводы
+- игра пока что тормозит, вроде у Кейси тоже на стриме. НО он не жалуется не разу (это странно)
+- давно не работал с кодом, пок
 
 ** TODO Handmade Hero Day 074 - Moving Entities Up and Down Stairwells
 - [[https://www.youtube.com/watch?v=Hm_CTQwV13U]]

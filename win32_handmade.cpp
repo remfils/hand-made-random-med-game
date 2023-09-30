@@ -1478,7 +1478,7 @@ int CALLBACK WinMain(
                               "LPC:%u, BTL: %u, TC:%u /// PC:%u, WC:%u, DELTA: %u (%fs)\n",
                               0, byteToLock, targetCursor, playCursor, writeCursor, 0 //bytesBetweenSecodns
                               , audioLatencyInSeconds);
-                    OutputDebugStringA(buffer);
+                    //OutputDebugStringA(buffer);
 #endif
 
                     Win32FillSoundBuffer(&SoundOutput, byteToLock, bytesToWrite, &soundBuffer);
@@ -1572,7 +1572,7 @@ int CALLBACK WinMain(
                 }
 #endif
 
-                #if 0
+#if 0
 
                 int32 FPS = (int32)GlobalPerfCounterFrequency / (int32)counterElapsed;
                 real64 MCPF = ((real64)cyclesElapsed / (1000.0f * 1000.0f)); 
@@ -1580,7 +1580,7 @@ int CALLBACK WinMain(
                 char buffer[256];
                 sprintf_s(buffer, "/%fms/f // FPS: %d // %fMc/f\n", msPerFrame, FPS, MCPF);
                 OutputDebugStringA(buffer);
-                #endif
+#endif
 
                 game_input *tmpInput = newInput;
                 newInput = oldInput;

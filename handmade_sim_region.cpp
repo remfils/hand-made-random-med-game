@@ -501,7 +501,6 @@ ClearCollisionRulesFor(game_state *gameState, uint32 storageIndex)
 internal void
 AddCollisionRule(game_state * gameState, uint32 storageIndexA, uint32 storageIndexB, bool32 shouldCollide)
 {
-    
     if (storageIndexA > storageIndexB)
     {
         uint32 temp = storageIndexA;
@@ -583,6 +582,8 @@ ShouldCollide(game_state * gameState, sim_entity *a, sim_entity *b)
 internal bool32
 HandleCollision(game_state *gameState, sim_entity *a, sim_entity *b, bool32 wasOverlapping)
 {
+    // TODO: wasOverlapping is not used
+    
     bool32 stopsOnCollision = false;
 
     if (a->Type == EntityType_Sword)
@@ -668,6 +669,8 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
             rectangle3 testEntityRect = RectCenterDim(testEntity->P, testEntity->Dim);
             if (RectanglesIntersect(movingEntityRect, testEntityRect)) {
                 if (overlappingCount < ArrayCount(overlappingEntities)) {
+                    // TODO: transient collision rules
+                    // AddCollisionRule(gameState, movingEntitty->StorageIndex, testEntity->StorageIndex, false)
                     overlappingEntities[overlappingCount++] = testEntity;
                 } else {
                     InvalidCodePath;
@@ -675,7 +678,7 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
             }
         }
     }
-    
+
     for (uint32 iteration = 0;
          iteration < 4;
          iteration++)
@@ -755,7 +758,7 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
             {
                 entityPositionDelta = desiredPosition - movingEntity->P;
 
-                uint32 overlapIndex = false;
+                uint32 overlapIndex = overlappingCount;
                 for (uint32 testOverlapIndex=0;
                      testOverlapIndex < overlappingCount;
                     ++testOverlapIndex)
@@ -770,8 +773,8 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
                 bool32 wasOverlapping = overlapIndex != overlappingCount;
                 bool32 stopsAtCollision = HandleCollision(gameState, movingEntity, hitEntity, wasOverlapping);
 
-                bool32 addToOverlapping = false;
-                bool32 removeFromOverlapping = false;
+                // bool32 addToOverlapping = false;
+                // bool32 removeFromOverlapping = false;
 
                 if (stopsAtCollision)
                 {
@@ -782,6 +785,8 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
                 {
                     if (wasOverlapping) {
                         overlappingEntities[overlapIndex] = overlappingEntities[--overlappingCount];
+
+                        // remove
                     } else if (overlappingCount < ArrayCount(overlappingEntities)) {
                         overlappingEntities[overlappingCount++] = hitEntity;
                     }  else {
