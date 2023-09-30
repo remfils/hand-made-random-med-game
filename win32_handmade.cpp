@@ -1204,12 +1204,10 @@ int CALLBACK WinMain(
                 Win32ProcessKeyboardButtonPress(&newInput->MouseButtons[1], GetKeyState(VK_MBUTTON) & (1 << 15));
                 Win32ProcessKeyboardButtonPress(&newInput->MouseButtons[2], GetKeyState(VK_RBUTTON) & (1 << 15));
 
-                RemfilsEndStep(stepState);
 
                 // controllers
+                RemfilsEndStepAndNew(stepState, "INP");
 
-                RemfilsStartStep(stepState, "INP");
-                
                 game_controller_input *oldKeyboardController = &oldInput->Controllers[0];
                 game_controller_input *keyboardController = &newInput->Controllers[0];
                 *keyboardController = {};
@@ -1340,7 +1338,6 @@ int CALLBACK WinMain(
                     gamePadControllerIndex++;
                 }
 
-                RemfilsEndStep(stepState);
 
                 game_offscreen_buffer buf = {};
                 buf.Memory = globalBackbuffer.Memory;
@@ -1359,6 +1356,8 @@ int CALLBACK WinMain(
                     Win32PlayBackUserInput(&winState, newInput);
                 }
 
+                RemfilsEndStepAndNew(stepState, "UaR");
+                
                 if (game.UpdateAndRender)
                 {
                     game.UpdateAndRender(&thread, &gameMemory, &buf, newInput);
@@ -1372,7 +1371,33 @@ int CALLBACK WinMain(
                 // vibration.wRightMotorSpeed = 569000;
                 // XInputSetState(0, &vibration);
 
-                RemfilsStartStep(stepState, "SND");
+                RemfilsEndStepAndNew(stepState, "SND");
+
+                ////////////////////////////////////////////////////////////////////////////////////////////////////
+                // SOUND
+                ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                /*
+                  how sound output works:
+
+                  when wake up to write audio
+
+                  Define a *safety value* that is the number of samples
+                  we think our game update loop may vary by
+
+                  1) look and see what the play cursor position is and
+                  forecast ahead where play cursor will be on the next
+                  frame boundary.
+
+                  2.1) Look to see if the writeCursor is before forecast
+                  play cursor. If it is, write up to the next frame
+                  boundary + one frame further
+
+                  2.2) If writeCursor is _after_ next frame
+                  boundary. Write one frames worth of audio +
+                  safetyBytes
+                */
+                
 
                 LARGE_INTEGER audioWallClock = Win32GetWallClock();
                 real32 fromBeginToAudioSeconds = Win32GetSecondsElapsed(flipWallClock, audioWallClock);
@@ -1385,25 +1410,6 @@ int CALLBACK WinMain(
                 DWORD writeCursor;
                 if (globalSecondaryBuffer->GetCurrentPosition(&playCursor, &writeCursor) == DS_OK)
                 {
-                    /*
-                      here is how sound output works:
-                  
-                      when wake up to write audio
-
-                      1) look and see what the play cursor position is
-
-                      2) forecast where play cursor will be on the next
-                      frame boundary (FB)
-
-                      3.1) if write cursor is before FB: write up to next
-                      FB from WC and then one frame furher (perfect audio
-                      sync with low latency card)
-
-                      3.2) else if WC after next FB write one frames
-                      worth of audio plus some samples
-                    */
-
-                
                     if (!soundIsValid)
                     {
                         SoundOutput.RunningSampleIndex = writeCursor / SoundOutput.BytesPerSample;
@@ -1411,11 +1417,11 @@ int CALLBACK WinMain(
                     }
                 
                     byteToLock = ((SoundOutput.RunningSampleIndex * SoundOutput.BytesPerSample) % SoundOutput.SecondaryBufferSize);
-                    DWORD expectedBytesPerFrame = (SoundOutput.SamplesPerSecond *SoundOutput.BytesPerSample) / gameUpdateHz;
+                    DWORD expectedBytesPerFrame = (SoundOutput.SamplesPerSecond * SoundOutput.BytesPerSample) / gameUpdateHz;
                     real32 secondsLeftUntilFlip = (targetSecondsPerFrame - fromBeginToAudioSeconds);
                     DWORD expectedBytesUntilFlip = (DWORD)((secondsLeftUntilFlip / targetSecondsPerFrame) * (real32)expectedBytesPerFrame);
-                    
                     DWORD expectedFrameBoundaryByte = playCursor + expectedBytesUntilFlip;
+                    
                     DWORD safeWriteCursor = writeCursor;
                     if (safeWriteCursor < playCursor)
                     {
@@ -1423,26 +1429,18 @@ int CALLBACK WinMain(
                     }
                     safeWriteCursor += SoundOutput.SafetyBytes;
                     
-                    bool32 audioCardIsLowLatency = (safeWriteCursor < expectedBytesPerFrame);
-
-                    if (audioCardIsLowLatency)
-                    {
-                        targetCursor = ((expectedFrameBoundaryByte + expectedBytesPerFrame)
-                            % SoundOutput.SecondaryBufferSize);
+                    bool32 audioCardIsLowLatency = safeWriteCursor < expectedFrameBoundaryByte;
+                    if (audioCardIsLowLatency) {
+                        targetCursor = expectedFrameBoundaryByte + expectedBytesPerFrame;
+                    } else {
+                        targetCursor = writeCursor + expectedBytesPerFrame + SoundOutput.SafetyBytes;
                     }
-                    else
-                    {
-                        targetCursor = ((writeCursor + expectedBytesPerFrame + SoundOutput.SafetyBytes)
-                            % SoundOutput.SecondaryBufferSize);
-                    }
+                    targetCursor = targetCursor % SoundOutput.SecondaryBufferSize;
                     
-                    if (byteToLock > targetCursor)
-                    {
+                    if (byteToLock > targetCursor) {
                         bytesToWrite = (SoundOutput.SecondaryBufferSize - byteToLock);
                         bytesToWrite += targetCursor;
-                    }
-                    else
-                    {
+                    } else {
                         bytesToWrite = targetCursor - byteToLock;
                     }
 
@@ -1472,13 +1470,14 @@ int CALLBACK WinMain(
                         // audioLatencySeconds = (audioLatencyBytes / (real32)SoundOutput.BytesPerSample) / (real32)SoundOutput.SamplesPerSecond;
                     //}
 
-                    DWORD audioLatencyBytes = safeWriteCursor - playCursor;
+                    audioLatencyBytes = safeWriteCursor - playCursor;
                     real32 audioLatencyInSeconds = ((real32)audioLatencyBytes / (real32)SoundOutput.BytesPerSample) / ((real32)SoundOutput.SamplesPerSecond);
                     
                     char buffer[256];
                     sprintf_s(buffer, 256,
                               "LPC:%u, BTL: %u, TC:%u /// PC:%u, WC:%u, DELTA: %u (%fs)\n",
-                              0, byteToLock, targetCursor, playCursor, writeCursor, bytesBetweenSecodns, audioLatencyInSeconds);
+                              0, byteToLock, targetCursor, playCursor, writeCursor, 0 //bytesBetweenSecodns
+                              , audioLatencyInSeconds);
                     OutputDebugStringA(buffer);
 #endif
 
@@ -1497,9 +1496,7 @@ int CALLBACK WinMain(
                     SoundIsPlaying = true;
                 }
 
-                RemfilsEndStep(stepState);
-
-                RemfilsStartStep(stepState, "WAI");
+                RemfilsEndStepAndNew(stepState, "WAI");
 
                 // count cycles
                 
@@ -1575,7 +1572,7 @@ int CALLBACK WinMain(
                 }
 #endif
 
-                #if 1
+                #if 0
 
                 int32 FPS = (int32)GlobalPerfCounterFrequency / (int32)counterElapsed;
                 real64 MCPF = ((real64)cyclesElapsed / (1000.0f * 1000.0f)); 
@@ -1594,12 +1591,12 @@ int CALLBACK WinMain(
         }
         else
         {
-            
+            // TODO: logging
         }
     }
     else
     {
-        
+        // TODO: logging
     }
     
     return(0);

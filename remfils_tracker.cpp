@@ -1,6 +1,6 @@
 inline LARGE_INTEGER Win32GetWallClock(void);
 
-int32 STEP_MAX_VAL = 5000;
+#define STEP_MAX_VAL 5000
 bool32 IS_REMFILS_BLOCKED_LOGGING = 1;
 
 struct remfils_step {
@@ -11,7 +11,7 @@ struct remfils_step {
 
 struct remfils_step_state {
     int64 GlobalPerfCounterFrequency;
-    remfils_step Steps[5000];
+    remfils_step Steps[STEP_MAX_VAL];
     int64 CurrentStep;
 };
 
@@ -69,4 +69,10 @@ void RemfilsEndStep(remfils_step_state* state)
             WriteFile(fileHandle, outputBuffer, sizeof(char) * charCount, &bytesWritten, 0);
         }
     }
+}
+
+void RemfilsEndStepAndNew(remfils_step_state* state, char key[3])
+{
+    RemfilsEndStep(state);
+    RemfilsStartStep(state, key);
 }
