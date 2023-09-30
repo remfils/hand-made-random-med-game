@@ -16,8 +16,6 @@
 
    ARCHITECTURE EXPLORATION
    - Z!
-     - minkovski inclusion test for begin / updatable bounds
-     - clean up with v3
      - how to go up and down and how to render it
      - solve puzler from worl_position
    - Collision detection
@@ -197,6 +195,8 @@ struct game_state
 
     memory_arena WorldArena;
 
+    real32 tSine;
+
     world * World;
     real32 MetersToPixels;
 
@@ -215,6 +215,7 @@ struct game_state
     loaded_bitmap FamiliarDemoBitmap;
     loaded_bitmap WallDemoBitmap;
     loaded_bitmap SwordDemoBitmap;
+    loaded_bitmap StairwayBitmap;
     
     hero_bitmaps HeroBitmaps[4];
 

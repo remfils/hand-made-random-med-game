@@ -1,50 +1,11 @@
-* to be done [12/638]
-** DONE Handmade Hero Day 060 - Adding Hitpoints
-   - State "DONE"       from "TODO"       [2022-03-09 ñð 12:58]
-- [[https://www.youtube.com/watch?v=0_xzS8zxuq4]]
-
-** DONE Handmade Hero Day 061 - Adding a Simple Attack
-- [[https://www.youtube.com/watch?v=bHGLcGgwpWg]]
-
-** DONE Handmade Hero Day 062 - Basic Moving Projectiles
-- [[https://www.youtube.com/watch?v=F7feQINaRnk]]
-
-** DONE Handmade Hero Day 063 - Simulation Regions
-- [[https://www.youtube.com/watch?v=a7_vSEEgArQ]]
-
-** DONE Handmade Hero Day 064 - Mapping Entity Indexes to Pointers
-- [[https://www.youtube.com/watch?v=lHKso30LdU8]]
-
-** DONE Handmade Hero Day 065 - Finishing the Simulation Region Change
-- [[https://www.youtube.com/watch?v=XfBTNH0nL4I]]
-
-finish with this
-
-https://youtu.be/XfBTNH0nL4I?t=1814
-
-** DONE Handmade Hero Day 066 - Adding Support for Non-spatial Entities
-- [[https://www.youtube.com/watch?v=vXPAE5UfcbA]]
-
-** DONE Handmade Hero Day 067 - Making Updates Conditional
-- [[https://www.youtube.com/watch?v=lnnb49-FYqU]]
-
-** DONE Handmade Hero Day 068 - Exact Enforcement of Maximum Movement Distances
-- [[https://www.youtube.com/watch?v=0ZjYHfYAjQg]]
-
-** DONE Handmade Hero Day 069 - Pairwise Collision Rules
-- [[https://www.youtube.com/watch?v=YrqQLA9SOEc]]
-
-** DONE [!] Handmade Hero Day 070 - Exploration To-do List
-- [[https://www.youtube.com/watch?v=afWxzIHB5Ss]]
-
-** DONE Handmade Hero Day 071 - Converting to Full 3D Positioning
-- [[https://www.youtube.com/watch?v=FVPxhovGsuE]]
-
-** TODO Handmade Hero Day 072 - Proper 3D Inclusion Tests
-- [[https://www.youtube.com/watch?v=tcirDivLd8A]]
-
+* to be done [0/625]
 ** TODO Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
+
+https://youtu.be/e0yjNipizK0?t=2004
+
+тяжко очень закончить видео, продолжу завтра (нихрена не продолжил, в
+итоге продолжил через месяц, а то и больше)
 
 ** TODO Handmade Hero Day 074 - Moving Entities Up and Down Stairwells
 - [[https://www.youtube.com/watch?v=Hm_CTQwV13U]]
@@ -2268,4 +2229,48 @@ when designing there are limitations, that have to be made clear
 - [[https://www.youtube.com/watch?v=KBCNjjeXezM]]
 
 https://youtu.be/KBCNjjeXezM?t=1871
+
+** DONE Handmade Hero Day 060 - Adding Hitpoints
+   - State "DONE"       from "TODO"       [2022-03-09 ñð 12:58]
+- [[https://www.youtube.com/watch?v=0_xzS8zxuq4]]
+
+** DONE Handmade Hero Day 061 - Adding a Simple Attack
+- [[https://www.youtube.com/watch?v=bHGLcGgwpWg]]
+
+** DONE Handmade Hero Day 062 - Basic Moving Projectiles
+- [[https://www.youtube.com/watch?v=F7feQINaRnk]]
+
+** DONE Handmade Hero Day 063 - Simulation Regions
+- [[https://www.youtube.com/watch?v=a7_vSEEgArQ]]
+
+** DONE Handmade Hero Day 064 - Mapping Entity Indexes to Pointers
+- [[https://www.youtube.com/watch?v=lHKso30LdU8]]
+
+** DONE Handmade Hero Day 065 - Finishing the Simulation Region Change
+- [[https://www.youtube.com/watch?v=XfBTNH0nL4I]]
+
+finish with this
+
+https://youtu.be/XfBTNH0nL4I?t=1814
+
+** DONE Handmade Hero Day 066 - Adding Support for Non-spatial Entities
+- [[https://www.youtube.com/watch?v=vXPAE5UfcbA]]
+
+** DONE Handmade Hero Day 067 - Making Updates Conditional
+- [[https://www.youtube.com/watch?v=lnnb49-FYqU]]
+
+** DONE Handmade Hero Day 068 - Exact Enforcement of Maximum Movement Distances
+- [[https://www.youtube.com/watch?v=0ZjYHfYAjQg]]
+
+** DONE Handmade Hero Day 069 - Pairwise Collision Rules
+- [[https://www.youtube.com/watch?v=YrqQLA9SOEc]]
+
+** DONE [!] Handmade Hero Day 070 - Exploration To-do List
+- [[https://www.youtube.com/watch?v=afWxzIHB5Ss]]
+
+** DONE Handmade Hero Day 071 - Converting to Full 3D Positioning
+- [[https://www.youtube.com/watch?v=FVPxhovGsuE]]
+
+** DONE Handmade Hero Day 072 - Proper 3D Inclusion Tests
+- [[https://www.youtube.com/watch?v=tcirDivLd8A]]
 

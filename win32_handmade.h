@@ -25,10 +25,10 @@ struct win32_window_dimension
 
 struct win32_sound_output
 {
-    int samplesPerSecond;
-    uint32 runningSampleIndex;
-    int bytesPerSample;
-    int secondaryBufferSize;
+    int SamplesPerSecond;
+    uint32 RunningSampleIndex;
+    int BytesPerSample;
+    int SecondaryBufferSize;
     int LatencySampleCount;
     DWORD SafetyBytes;
 };

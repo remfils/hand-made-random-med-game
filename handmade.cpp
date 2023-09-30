@@ -31,6 +31,8 @@ ZeroSize(memory_index size, void *ptr)
 
 
 
+global_variable real32 tSine = 0;
+
 #pragma pack(push, 1)
 struct bitmap_header {
     uint16 FileType;
@@ -161,6 +163,19 @@ AddMonster(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 }
 
 internal add_low_entity_result
+AddStairway(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
+{
+    world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
+    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Stairwell, pos);
+
+    lowEntityResult.Low->Sim.Dim.X = (real32)3;
+    lowEntityResult.Low->Sim.Dim.Y = (real32)0.4;
+    lowEntityResult.Low->Sim.Dim.Z = gameState->World->ChunkDimInMeters.Z;
+
+    return lowEntityResult;
+}
+
+internal add_low_entity_result
 AddFamiliar(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 {
     world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
@@ -207,6 +222,7 @@ AddWall(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
     add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Wall, pos);
 
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Nonspacial);
     lowEntityResult.Low->Sim.Dim.X = gameState->World->TileSideInMeters;
     lowEntityResult.Low->Sim.Dim.Y = gameState->World->TileSideInMeters;
 
@@ -228,15 +244,21 @@ internal
 void
 GameOutputSound(game_sound_output_buffer *soundBuffer, game_state *gameState)
 {
-    
     int16 *sampleOut = soundBuffer->Samples;
+
+    real32 toneHz = 256;
+    real32 toneVolume = 1000;
+    real32 wavePeriod = (real32)soundBuffer->SamplesPerSecond / toneHz;
     
     for (int sampleIndex = 0; sampleIndex < soundBuffer->SampleCount; ++sampleIndex)
     {
-        int16 sampleValue = 0;
+        real32 sineValue = sinf(tSine);
+        int16 sampleValue = (int16)(sineValue * toneVolume);
         
         *sampleOut++ = sampleValue;
         *sampleOut++ = sampleValue;
+
+        tSine += (2.0f * Pi32 * 1.0f) / wavePeriod;
     }
 }
 
@@ -498,19 +520,20 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->FamiliarDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/familiar_demo.bmp");
         gameState->WallDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/wall_demo.bmp");
         gameState->SwordDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/sword_demo.bmp");
+        gameState->StairwayBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/Stairway2.bmp");
         
         
         gameState->HeroBitmaps[0].Align = V2(60, 195);
-        gameState->HeroBitmaps[0].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/player/stand_right.bmp");
+        gameState->HeroBitmaps[0].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_right.bmp");
         
         gameState->HeroBitmaps[1].Align = V2(60, 185);
-        gameState->HeroBitmaps[1].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/player/stand_up.bmp");
+        gameState->HeroBitmaps[1].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_up.bmp");
         
         gameState->HeroBitmaps[2].Align = V2(60, 195);
-        gameState->HeroBitmaps[2].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/player/stand_left.bmp");
+        gameState->HeroBitmaps[2].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_left.bmp");
         
         gameState->HeroBitmaps[3].Align = V2(60, 185);
-        gameState->HeroBitmaps[3].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/player/stand_down.bmp");
+        gameState->HeroBitmaps[3].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_down.bmp");
         
         InitializeArena(&gameState->WorldArena, memory->PermanentStorageSize - sizeof(game_state), (uint8 *)memory->PermanentStorage + sizeof(game_state));
         
@@ -543,6 +566,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         bool isDoorDown = false;
         
         uint32 drawZDoorCounter = 0;
+        uint32 famimiliarMaxCount = 1;
         
         
         while (screenIndex--) {
@@ -554,7 +578,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }
 
             // DEBUG, no up and down movement currently
-            rand = RandomNumberTable[screenIndex] % 2;
+            rand = RandomNumberTable[screenIndex] % 3;
             
             if (rand == 0) {
                 isDoorRight = true;
@@ -581,74 +605,57 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     uint32 absTileX = screenX * tilesPerScreenWidth + tileX;
                     uint32 absTileY = screenY * tilesPerScreenHeight + tileY;
 
-                    if (tileX == 4 && tileY == 4)
+                    if (famimiliarMaxCount > 0 && tileX == 4 && tileY == 4)
                     {
                         AddFamiliar(gameState, absTileX, absTileY, absTileZ);
+                        famimiliarMaxCount--;
                     }
-                    
-                    uint32 tileVal = 1;
+
+                    bool isWallTile = false;
+
                     if (tileX == 0) {
-                        if (tileY == (tilesPerScreenHeight / 2)) {
-                            if (isDoorLeft) {
-                                tileVal = 1;
-                            }
-                            else {
-                                tileVal = 2;
-                            }
+                        if (tileY == (tilesPerScreenHeight / 2) && isDoorLeft) {
+                            isWallTile = false;
                         } else {
-                            tileVal = 2;
+                            isWallTile = true;
                         }
                     }
                     if (tileX == (tilesPerScreenWidth -1)) {
-                        if (tileY == (tilesPerScreenHeight / 2)) {
-                            if (isDoorRight) {
-                                tileVal = 1;
-                            }
-                            else {
-                                tileVal = 2;
-                            }
+                        if (tileY == (tilesPerScreenHeight / 2) && isDoorRight) {
+                            isWallTile = false;
                         } else {
-                            tileVal = 2;
+                            isWallTile = true;
                         }
                     }
                     if (tileY == 0) {
-                        if (tileX == (tilesPerScreenWidth / 2)) {
-                            if (isDoorBottom) {
-                                tileVal = 1;
-                            } else {
-                                tileVal = 2;
-                            }
-                            
+                        if (tileX == (tilesPerScreenWidth / 2) && isDoorBottom) {
+                            isWallTile = false;
                         } else {
-                            tileVal = 2;
+                            isWallTile = true;
                         }
                     }
                     if (tileY == (tilesPerScreenHeight -1)) {
-                        if (tileX == (tilesPerScreenWidth / 2)) {
-                            if (isDoorTop) {
-                                tileVal = 1;
-                            } else {
-                                tileVal = 2;
-                            }
-                            
+                        if (tileX == (tilesPerScreenWidth / 2) && isDoorTop) {
+                            isWallTile = false;
                         } else {
-                            tileVal = 2;
+                            isWallTile = true;
                         }
                     }
-                    
+
+                    // TODO: one door span for two chunks?
                     if (drawZDoorCounter != 0 && isDoorUp) {
                         if (tileY == tilesPerScreenHeight / 2 && (tileX - 1 == tilesPerScreenWidth / 2)) {
-                            tileVal = 3;
+                            AddStairway(gameState, absTileX, absTileY, absTileZ);
                         }
                     }
                     
                     if (drawZDoorCounter != 0 && isDoorDown) {
                         if (tileY == tilesPerScreenHeight / 2 && (tileX + 1 == tilesPerScreenWidth / 2)) {
-                            tileVal = 4;
+                            AddStairway(gameState, absTileX, absTileY, absTileZ);
                         }
                     }
                     
-                    if (tileVal == 2)
+                    if (isWallTile)
                     {
                         AddWall(gameState, absTileX, absTileY, absTileZ);
                     }
@@ -907,8 +914,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 }
 
                 moveSpec.UnitMaxAccelVector = true;
-                moveSpec.Speed = 50.0f;
-                moveSpec.Drag = 8.0f;
+                moveSpec.Speed = 100.0f;
+                moveSpec.Drag = 9.0f;
 
                 simEntity->TBobing += input->DtForFrame;
                 if (simEntity->TBobing > 2.0f * Pi32)
@@ -917,7 +924,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 }
 
                 PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V2(0, 0.2f * Sin(13 * simEntity->TBobing)), 0, V2(58, 203), 1);
-            }break;
+            } break;
+            case EntityType_Stairwell:
+            {
+                PushPiece(&pieceGroup, &gameState->StairwayBitmap, V2(0, 0), 0, V2(82, 124), 1);
+            } break;
             }
 
             if (!IsSet(simEntity, EntityFlag_Nonspacial))

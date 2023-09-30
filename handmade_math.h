@@ -461,5 +461,16 @@ IsInRectangle(rectangle3 rect, v3 test)
     return result;
 }
 
+inline bool32
+RectanglesIntersect(rectangle3 a, rectangle3 b)
+{
+    bool32 result = !((b.Max.X > a.Min.X) || (a.Max.X < b.Min.X)
+        || (b.Max.Y > a.Min.Y) || (a.Max.Y < b.Min.Y)
+        || (b.Max.Z > a.Min.Z) || (a.Max.Z < b.Min.Z));
+
+    return result;
+
+}
+
 #define HANDMADE_MATH_H
 #endif
