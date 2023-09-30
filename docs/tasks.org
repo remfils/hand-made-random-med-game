@@ -1,4 +1,4 @@
-* to be done [1/625]
+* to be done [2/625]
 ** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
@@ -14,8 +14,17 @@ https://youtu.be/e0yjNipizK0?t=2004
 - игра пока что тормозит, вроде у Кейси тоже на стриме. НО он не жалуется не разу (это странно)
 - давно не работал с кодом, пок
 
-** TODO Handmade Hero Day 074 - Moving Entities Up and Down Stairwells
+** DONE Handmade Hero Day 074 - Moving Entities Up and Down Stairwells
 - [[https://www.youtube.com/watch?v=Hm_CTQwV13U]]
+
+Получилось добится логики пересечения. Но подьем/спуск по лестнице
+работает дотсаточно коряво.
+
+На скорую руку добавляется логика для работы с Z координатой, логика
+по которой игнорировалась.
+
+- Нужно доработать логику, в которой работает спуск/подьем
+- Рендеринг ТОЛЬКО того, что на этаже
 
 ** TODO Handmade Hero Day 075 - Conditional Movement Based on Step Heights
 - [[https://www.youtube.com/watch?v=bZxa4fdtI2Y]]

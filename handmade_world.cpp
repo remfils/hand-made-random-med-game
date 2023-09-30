@@ -168,13 +168,13 @@ InitializeWorld(world *world, real32 tileSideInMeters)
 
 
 inline world_position
-ChunkPositionFromTilePosition(world * world, int32 absTileX, int32 absTileY, int32 absTileZ)
+ChunkPositionFromTilePosition(world * world, int32 absTileX, int32 absTileY, int32 absTileZ, v3 additionalOffset=V3(0,0,0))
 {
     world_position basePosition = {};
 
     v3 offset = world->TileSideInMeters * V3((real32)absTileX, (real32)absTileY, (real32)absTileZ);
 
-    world_position result = MapIntoChunkSpace(world, basePosition, offset);
+    world_position result = MapIntoChunkSpace(world, basePosition, additionalOffset+ offset);
 
     return result;
 }

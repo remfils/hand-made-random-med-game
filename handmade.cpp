@@ -165,11 +165,12 @@ AddMonster(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 internal add_low_entity_result
 AddStairway(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 {
-    world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
+    world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ,
+                                                       V3(0,0,0.5f * gameState->World->ChunkDimInMeters.Z));
     add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Stairwell, pos);
 
-    lowEntityResult.Low->Sim.Dim.X = (real32)3;
-    lowEntityResult.Low->Sim.Dim.Y = (real32)0.4;
+    lowEntityResult.Low->Sim.Dim.X = (real32)1;
+    lowEntityResult.Low->Sim.Dim.Y = (real32)1;
     lowEntityResult.Low->Sim.Dim.Z = gameState->World->ChunkDimInMeters.Z;
 
     return lowEntityResult;
@@ -186,6 +187,7 @@ AddFamiliar(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
     lowEntityResult.Low->Sim.Dim.X = (real32)0.75;
     lowEntityResult.Low->Sim.Dim.Y = (real32)0.4;
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Movable);
 
     return lowEntityResult;
 }
@@ -200,6 +202,7 @@ AddPlayer(game_state *gameState)
     lowEntityResult.Low->Sim.Dim.X = (real32)0.75;
     lowEntityResult.Low->Sim.Dim.Y = (real32)0.4;
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Movable);
 
     InitHitpoints(lowEntityResult.Low, 3);
 
@@ -222,7 +225,6 @@ AddWall(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
     add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Wall, pos);
 
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
-    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Immovable);
     lowEntityResult.Low->Sim.Dim.X = gameState->World->TileSideInMeters;
     lowEntityResult.Low->Sim.Dim.Y = gameState->World->TileSideInMeters;
 
@@ -648,13 +650,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                     // TODO: one door span for two chunks?
                     if (drawZDoorCounter != 0 && isDoorUp) {
-                        if (tileY == tilesPerScreenHeight / 2 && (tileX - 1 == tilesPerScreenWidth / 2)) {
+                        if (tileY == ((tilesPerScreenHeight / 2) + 2) && ((tileX - 1) == tilesPerScreenWidth / 2)) {
                             AddStairway(gameState, absTileX, absTileY, absTileZ);
                         }
                     }
                     
                     if (drawZDoorCounter != 0 && isDoorDown) {
-                        if (tileY == tilesPerScreenHeight / 2 && (tileX + 1 == tilesPerScreenWidth / 2)) {
+                        if (tileY == (tilesPerScreenHeight / 2) - 2 && (tileX + 1 == tilesPerScreenWidth / 2)) {
                             AddStairway(gameState, absTileX, absTileY, absTileZ);
                         }
                     }
@@ -931,11 +933,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             case EntityType_Stairwell:
             {
-                PushPiece(&pieceGroup, &gameState->StairwayBitmap, V2(0, 0), 0, V2(82, 124), 1);
+                PushPieceRect(&pieceGroup, V2(0, 0), 0, simEntity->Dim.XY, V4(1,1,0,1));
+                // PushPiece(&pieceGroup, &gameState->StairwayBitmap, V2(0, 0), 0, V2(82, 124), 1);
             } break;
             }
 
-            if (!IsSet(simEntity, EntityFlag_Nonspacial) && !IsSet(simEntity, EntityFlag_Immovable))
+            if (!IsSet(simEntity, EntityFlag_Nonspacial) && IsSet(simEntity, EntityFlag_Movable))
             {
                 MoveEntity(gameState, simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
             }

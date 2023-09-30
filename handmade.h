@@ -181,13 +181,13 @@ struct controlled_hero
 
 enum pairwise_collision_rule_flag
 {
-    PairCollisionFlag_ShouldCollide = 1 << 1,
+    PairCollisionFlag_CanCollide = 1 << 1,
     PairCollisionFlag_Temporary = 1 << 2,
 };
 
 struct pairwise_collision_rule
 {
-    bool32 ShouldCollide;
+    bool32 CanCollide;
     uint32 StorageIndexA;
     uint32 StorageIndexB;
 
