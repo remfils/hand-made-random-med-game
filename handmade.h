@@ -234,8 +234,8 @@ struct game_state
 struct entity_visible_piece
 {
     loaded_bitmap *Bitmap;
-    v2 Offset;
-    real32 Z;
+    v3 Offset;
+    real32 EntitiyZC;
     real32 Alpha;
 
     v2 Dim;

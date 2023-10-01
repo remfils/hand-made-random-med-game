@@ -166,13 +166,15 @@ internal add_low_entity_result
 AddStairway(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 {
     world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ,
-                                                       V3(0,0,0.5f * gameState->World->ChunkDimInMeters.Z));
+                                                       V3(0,0,0.5f * gameState->World->TileDepthInMeters));
     add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_Stairwell, pos);
 
-    lowEntityResult.Low->Sim.Dim.X = (real32)1;
-    lowEntityResult.Low->Sim.Dim.Y = (real32)1;
-    lowEntityResult.Low->Sim.Dim.Z = gameState->World->ChunkDimInMeters.Z;
+    lowEntityResult.Low->Sim.Dim.X = gameState->World->TileSideInMeters;
+    lowEntityResult.Low->Sim.Dim.Y = 2*gameState->World->TileSideInMeters;
+    lowEntityResult.Low->Sim.Dim.Z = 1.2f * gameState->World->TileDepthInMeters;
 
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
+    
     return lowEntityResult;
 }
 
@@ -201,6 +203,7 @@ AddPlayer(game_state *gameState)
 
     lowEntityResult.Low->Sim.Dim.X = (real32)0.75;
     lowEntityResult.Low->Sim.Dim.Y = (real32)0.4;
+    lowEntityResult.Low->Sim.Dim.Z = (real32)0.2;
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Movable);
 
@@ -445,27 +448,26 @@ InitializeArena(memory_arena *arena, memory_index size, void *base)
 
 
 inline void
-PushPiece(entity_visible_piece_group *grp, loaded_bitmap *bmp, v2 offset, real32 z, v2 align, real32 alpha = 1.0f)
+PushPiece(entity_visible_piece_group *grp, loaded_bitmap *bmp, v3 offset, v2 align, real32 alpha = 1.0f, real32 EntitiyZC=1.0f)
 {
     Assert(grp->PieceCount < ArrayCount(grp->Pieces));
     entity_visible_piece *renderPice = grp->Pieces + grp->PieceCount;
 
     renderPice->Bitmap = bmp;
-    renderPice->Offset = grp->GameState->MetersToPixels * offset - align;
-    renderPice->Z = grp->GameState->MetersToPixels * z;
+    renderPice->Offset = grp->GameState->MetersToPixels * offset - V3(align.X, align.Y, 0);
     renderPice->Alpha = alpha;
+    renderPice->EntitiyZC = EntitiyZC;
         
     grp->PieceCount++;
 }
 
 inline void
-PushPieceRect(entity_visible_piece_group *grp, v2 offset, real32 z, v2 dim, v4 color)
+PushPieceRect(entity_visible_piece_group *grp, v3 offset, v2 dim, v4 color)
 {
     Assert(grp->PieceCount < ArrayCount(grp->Pieces));
     entity_visible_piece *renderPice = grp->Pieces + grp->PieceCount;
 
     renderPice->Offset = grp->GameState->MetersToPixels * offset;
-    renderPice->Z = grp->GameState->MetersToPixels * z;
     renderPice->Dim = grp->GameState->MetersToPixels * dim;
     renderPice->R = color.R;
     renderPice->G = color.G;
@@ -497,7 +499,7 @@ DrawHitpoints(entity_visible_piece_group *pieceGroup, sim_entity *simEntity)
                 color.B = 0.2f;
             }
                     
-            PushPieceRect(pieceGroup, V2(firstX, firstY), 0, healthDim, color);
+            PushPieceRect(pieceGroup, V3(firstX, firstY, 0), healthDim, color);
             firstX += spacingX + healthDim.X;
         }
     }
@@ -805,7 +807,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     uint32 tileSpanX = 17 * 3;
     uint32 tileSpanY = 9 * 3;
     uint32 tileSpanZ = 1;
-    rectangle3 cameraBounds = RectCenterDim(V3(0,0,0), world->TileSideInMeters * V3((real32)tileSpanX, (real32)tileSpanY, (real32)tileSpanZ));
+    rectangle3 cameraBounds = RectCenterDim(V3(0,0,0), V3((real32)tileSpanX * world->TileSideInMeters, (real32)tileSpanY * world->TileSideInMeters, (real32)tileSpanZ * world->TileDepthInMeters));
 
     memory_arena simArena;
     InitializeArena(&simArena, memory->TransientStorageSize, memory->TransientStorage);
@@ -838,7 +840,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             switch (simEntity->Type) {
             case EntityType_Wall:
             {
-                PushPiece(&pieceGroup, &gameState->WallDemoBitmap, V2(0,0), 0, V2(64.0f * 0.5f, 64.0f * 0.5f), 1);
+                real32 wallAlpha = 1.0f;
+                if (simEntity->P.Z != 0) {
+                    wallAlpha = 0.1f;
+                }
+                
+                PushPiece(&pieceGroup, &gameState->WallDemoBitmap, V3(0,0, 0), V2(64.0f * 0.5f, 64.0f * 0.5f), wallAlpha);
             } break;
             case EntityType_Sword:
             {
@@ -851,7 +858,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     ClearCollisionRulesFor(gameState, simEntity->StorageIndex);
                 }
 
-                PushPiece(&pieceGroup, &gameState->SwordDemoBitmap, V2(0,0), 0, V2(12,60), 1);
+                PushPiece(&pieceGroup, &gameState->SwordDemoBitmap, V3(0,0,0), V2(12,60), 1);
             } break;
             case EntityType_Hero:
             {
@@ -879,13 +886,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     }
                 }
 
-                PushPiece(&pieceGroup, &heroBitmaps->Character, V2(0,0), 0, heroBitmaps->Align, 1);
+                PushPiece(&pieceGroup, &heroBitmaps->Character, V3(0,0,0), heroBitmaps->Align, 1);
 
                 DrawHitpoints(&pieceGroup, simEntity);
             } break;
             case EntityType_Monster:
             {
-                PushPiece(&pieceGroup, &gameState->EnemyDemoBitmap, V2(0, 0), 0, V2(61,197), 1);
+                PushPiece(&pieceGroup, &gameState->EnemyDemoBitmap, V3(0, 0, 0), V2(61,197), 1);
 
                 DrawHitpoints(&pieceGroup, simEntity);
             } break;
@@ -929,11 +936,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     simEntity->TBobing -= 2.0f * Pi32;
                 }
 
-                PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V2(0, 0.2f * Sin(13 * simEntity->TBobing)), 0, V2(58, 203), 1);
+                PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V3(0, 0.2f * Sin(13 * simEntity->TBobing), 0), V2(58, 203), 1);
             } break;
             case EntityType_Stairwell:
             {
-                PushPieceRect(&pieceGroup, V2(0, 0), 0, simEntity->Dim.XY, V4(1,1,0,1));
+                real32 wallAlpha = 1.0f;
+                if (simEntity->P.Z != 0) {
+                    wallAlpha = 0.1f;
+                }
+                
+                PushPieceRect(&pieceGroup, V3(-simEntity->Dim.X / 2, -simEntity->Dim.Y / 2, 0), simEntity->Dim.XY, V4(1,1,0,1));
                 // PushPiece(&pieceGroup, &gameState->StairwayBitmap, V2(0, 0), 0, V2(82, 124), 1);
             } break;
             }
@@ -943,15 +955,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 MoveEntity(gameState, simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
             }
 
-            real32 entityX = screenCenterX + simEntity->P.X * MetersToPixels;
-            real32 entityY = screenCenterY - simEntity->P.Y * MetersToPixels;
+            real32 zFugde = 1.0f + 0.1f * simEntity->P.Z;
+
+            real32 entityX = screenCenterX + simEntity->P.X * MetersToPixels * zFugde;
+            real32 entityY = screenCenterY - simEntity->P.Y * MetersToPixels * zFugde;
+            real32 entityZ = -simEntity->P.Z * MetersToPixels;
 
             for (uint32 idx =0; idx < pieceGroup.PieceCount; ++idx)
             {
                 entity_visible_piece piece = pieceGroup.Pieces[idx];
                 if (piece.Bitmap)
                 {
-                    RenderBitmap(buffer, piece.Bitmap, entityX + piece.Offset.X, entityY + piece.Offset.Y, piece.Alpha);
+                    RenderBitmap(buffer, piece.Bitmap, entityX + piece.Offset.X, entityY + piece.Offset.Y + piece.EntitiyZC*entityZ, piece.Alpha);
                 }
                 else
                 {
@@ -970,10 +985,48 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             if (false) // draw entity bounds
             {
+                /*
+                  NOTE: does NOT support any z logic
+                 */
+                
                 color c;
-                c.Red = 1;
-                c.Green = 0;
-                c.Blue = 0;
+
+                switch (simEntity->Type) {
+                case EntityType_Wall: {
+                    if (simEntity->P.Z == 0) {
+                        c.Red = 0.3f;
+                        c.Green = 0.3f;
+                        c.Blue = 0.3f;
+                    } else if (simEntity->P.Z == 1) {
+                        c.Red = 0.5f;
+                        c.Green = 0.5f;
+                        c.Blue = 0.5f;
+                    } else if (simEntity->P.Z == -1) {
+                        c.Red = 0.8f;
+                        c.Green = 0.8f;
+                        c.Blue = 0.8f;
+                    } else {
+                        c.Red = 0.1f;
+                        c.Green = 0.1f;
+                        c.Blue = 0.1f;
+                    }
+                } break;
+                case EntityType_Stairwell: {
+                    c.Red = 0.0f;
+                    c.Green = (real32)simEntity->P.Z / 5;
+                    c.Blue = 0.0f;
+                } break;
+                case EntityType_Hero: {
+                    c.Red = 0.0f;
+                    c.Green = 0.5f;
+                    c.Blue = 0.5f;
+                } break;
+                default: {
+                    c.Red = 1.0f;
+                    c.Green = 0.0f;
+                    c.Blue = 0.0f;
+                } break;
+                }
 
                 real32 halfW = simEntity->Dim.X * MetersToPixels * 0.5f;
                 real32 halfH = simEntity->Dim.Y * MetersToPixels * 0.5f;
@@ -982,6 +1035,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 real32 realMinY = entityY - halfH;
                 real32 realMaxX = entityX + halfW;
                 real32 realMaxY = entityY + halfH;
+
+                if (simEntity->Type == EntityType_Hero) {
+                    realMinX = realMinX - simEntity->P.Z * 10.0f;
+                    realMaxX = realMaxX + simEntity->P.Z * 10.0f;
+                }
+                
                 RenderRectangle(buffer, realMinX, realMinY, realMaxX, realMaxY, c);
             }
         }   

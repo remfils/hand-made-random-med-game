@@ -562,8 +562,11 @@ CanCollide(game_state * gameState, sim_entity *a, sim_entity *b)
             b = temp;
         }
 
-        if (a->Type == EntityType_Stairwell || b->Type == EntityType_Stairwell) {
-            result = false;
+        if (
+            (a->Type == EntityType_Stairwell && b->Type == EntityType_Hero)
+            || (b->Type == EntityType_Stairwell && a->Type == EntityType_Hero))
+        {
+            int32 debug = 3;
         }
 
         // TODO: beter hash function
@@ -614,6 +617,25 @@ HandleCollision(game_state *gameState, sim_entity *a, sim_entity *b)
 }
 
 internal bool32
+TestSpeculativeCollision(sim_entity *movingEntity, sim_entity *region)
+{
+    bool32 result = true;
+
+    if (region->Type == EntityType_Stairwell) {
+        rectangle3 regionRect = RectCenterDim(region->P, region->Dim);
+        v3 bary = Clamp01(GetBarycentric(regionRect, movingEntity->P));
+
+        // TODO: no SafeRatio_0
+        real32 ground = SafeRatio_0(Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z), (regionRect.Max.Z - regionRect.Min.Z));
+        real32 stepHeight = 0.1f;
+        result = (AbsoluteValue(movingEntity->P.Z - ground) > stepHeight)
+            || ((bary.Y > stepHeight) && (bary.Y < 0.0f));
+    }
+
+    return result;
+}
+
+internal bool32
 CanOverlap(game_state * gameState, sim_entity *moving, sim_entity *region)
 {
     bool32 result = false;
@@ -634,8 +656,9 @@ HandleOverlap(game_state * gameState, sim_entity *moving, sim_entity *region, re
         rectangle3 regionRect = RectCenterDim(region->P, region->Dim);
         v3 bary = Clamp01(GetBarycentric(regionRect, moving->P));
 
-        *ground = Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z);
-    }    
+        // TODO: no SafeRatio_0
+        *ground = SafeRatio_0(Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z), (regionRect.Max.Z - regionRect.Min.Z));
+    }
 }
 
 internal void
@@ -718,30 +741,40 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
 
                             v3 rel = movingEntity->P - testEntity->P;
 
+                            v3 testWallNormal = {0,0};
+                            sim_entity *testHitEntity = 0;
+                            real32 testTMin = tMin;
+                            
                             if (TestWall(minCorner.X, rel.X, rel.Y, entityPositionDelta.X, entityPositionDelta.Y,
-                                         &tMin, minCorner.Y, maxCorner.Y))
+                                         &testTMin, minCorner.Y, maxCorner.Y))
                             {
-                                wallNormal = v3{-1,0,0};
-                                hitEntity = testEntity;
+                                testWallNormal = v3{-1,0,0};
+                                testHitEntity = testEntity;
                             }
                             if (TestWall(maxCorner.X, rel.X, rel.Y, entityPositionDelta.X, entityPositionDelta.Y,
-                                         &tMin, minCorner.Y, maxCorner.Y))
+                                         &testTMin, minCorner.Y, maxCorner.Y))
                             {
-                                wallNormal = v3{1,0,0};
-                                hitEntity = testEntity;
+                                testWallNormal = v3{1,0,0};
+                                testHitEntity = testEntity;
                             }
                             if (TestWall(minCorner.Y, rel.Y, rel.X, entityPositionDelta.Y, entityPositionDelta.X,
-                                         &tMin, minCorner.Y, maxCorner.Y))
+                                         &testTMin, minCorner.Y, maxCorner.Y))
                             {
-                                wallNormal = v3{0,-1,0};
-                                hitEntity = testEntity;
+                                testWallNormal = v3{0,-1,0};
+                                testHitEntity = testEntity;
                             }
                             if (TestWall(maxCorner.Y, rel.Y, rel.X, entityPositionDelta.Y, entityPositionDelta.X,
-                                         &tMin, minCorner.Y, maxCorner.Y))
+                                         &testTMin, minCorner.Y, maxCorner.Y))
                             {
-                                wallNormal = v3{0,1,0};
-                                hitEntity = testEntity;
-                            }   
+                                testWallNormal = v3{0,1,0};
+                                testHitEntity = testEntity;
+                            }
+
+                            if (testHitEntity && TestSpeculativeCollision(movingEntity, testHitEntity)) {
+                                tMin = testTMin;
+                                wallNormal = testWallNormal;
+                                hitEntity = testHitEntity;
+                            }
                         }
                     }
                 }
@@ -806,10 +839,16 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
         }
     }
 
-    if (movingEntity->P.Z < ground) {
-        movingEntity->P.Z = ground;
-        movingEntity->dP.Z = 0;
-    }
+    movingEntity->P.Z = ground;
+
+    // if (movingEntity->P.Z < ground) {
+    //     movingEntity->P.Z = ground;
+    //     movingEntity->dP.Z = 0;
+
+    //     AddFlag(movingEntity, EntityFlag_ZSupported);
+    // } else {
+    //     ClearFlag(movingEntity, EntityFlag_ZSupported);
+    // }
 
     if (movingEntity->DistanceLimit != 0)
     {

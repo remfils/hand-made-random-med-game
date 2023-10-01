@@ -1,4 +1,4 @@
-* to be done [2/625]
+* to be done [3/625]
 ** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
@@ -26,8 +26,14 @@ https://youtu.be/e0yjNipizK0?t=2004
 - Нужно доработать логику, в которой работает спуск/подьем
 - Рендеринг ТОЛЬКО того, что на этаже
 
-** TODO Handmade Hero Day 075 - Conditional Movement Based on Step Heights
+** DONE Handmade Hero Day 075 - Conditional Movement Based on Step Heights
 - [[https://www.youtube.com/watch?v=bZxa4fdtI2Y]]
+
+получил неявное поведение из за которого либо работает столкновение с
+stairwell либо "правильно" работает проверка на этаже. Одновременно
+проверка не работает почему то...
+
+Мне кажется, логика работы с высотами немного каличная.
 
 ** TODO Handmade Hero Day 076 - Entity Heights and Collision Detection
 - [[https://www.youtube.com/watch?v=0mGWYcE6yG8]]

@@ -174,7 +174,7 @@ ChunkPositionFromTilePosition(world * world, int32 absTileX, int32 absTileY, int
 
     v3 offset = world->TileSideInMeters * V3((real32)absTileX, (real32)absTileY, (real32)absTileZ);
 
-    world_position result = MapIntoChunkSpace(world, basePosition, additionalOffset+ offset);
+    world_position result = MapIntoChunkSpace(world, basePosition, offset + additionalOffset);
 
     return result;
 }
