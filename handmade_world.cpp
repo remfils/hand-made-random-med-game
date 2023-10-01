@@ -147,14 +147,14 @@ CenteredTilePoint(uint32 absX, uint32 absY, uint32 absZ)
 
 
 internal void
-InitializeWorld(world *world, real32 tileSideInMeters)
+InitializeWorld(world *world, real32 tileSideInMeters, real32 tileDepthInMeters)
 {
     world->TileSideInMeters = tileSideInMeters;
-    world->TileDepthInMeters = tileSideInMeters;
+    world->TileDepthInMeters = tileDepthInMeters;
     world->ChunkDimInMeters = {
         (real32) TILES_PER_CHUNK * tileSideInMeters,
         (real32) TILES_PER_CHUNK * tileSideInMeters,
-        (real32) tileSideInMeters
+        tileDepthInMeters
     };
     world->FirstFree = 0;
             
@@ -172,7 +172,8 @@ ChunkPositionFromTilePosition(world * world, int32 absTileX, int32 absTileY, int
 {
     world_position basePosition = {};
 
-    v3 offset = world->TileSideInMeters * V3((real32)absTileX, (real32)absTileY, (real32)absTileZ);
+    v3 tileDim = V3(world->TileSideInMeters, world->TileSideInMeters, world->TileDepthInMeters);
+    v3 offset = Hadamard(tileDim, V3((real32)absTileX, (real32)absTileY, (real32)absTileZ));
 
     world_position result = MapIntoChunkSpace(world, basePosition, offset + additionalOffset);
 

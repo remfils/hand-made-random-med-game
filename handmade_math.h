@@ -474,14 +474,14 @@ RectanglesIntersect(rectangle3 a, rectangle3 b)
     // NOTE: this is double checked - now works
     
     bool32 result = !(
-                     (b.Max.X < a.Min.X) ||
-                     (b.Min.X > a.Max.X) ||
+                     (b.Max.X <= a.Min.X) ||
+                     (b.Min.X >= a.Max.X) ||
                      
-                     (b.Max.Y < a.Min.Y) ||
-                     (b.Min.Y > a.Max.Y) ||
+                     (b.Max.Y <= a.Min.Y) ||
+                     (b.Min.Y >= a.Max.Y) ||
                      
-                     (b.Max.Z < a.Min.Z) ||
-                     (b.Min.Z > a.Max.Z)
+                     (b.Max.Z <= a.Min.Z) ||
+                     (b.Min.Z >= a.Max.Z)
                       );
 
     return result;

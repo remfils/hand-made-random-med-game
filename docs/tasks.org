@@ -1,4 +1,4 @@
-* to be done [3/625]
+* to be done [4/625]
 ** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
@@ -35,8 +35,11 @@ stairwell либо "правильно" работает проверка на �
 
 Мне кажется, логика работы с высотами немного каличная.
 
-** TODO Handmade Hero Day 076 - Entity Heights and Collision Detection
+** DONE Handmade Hero Day 076 - Entity Heights and Collision Detection
 - [[https://www.youtube.com/watch?v=0mGWYcE6yG8]]
+
+Добавлено еще больше багов, отрисовка не работает по сути. Хождение по
+лестнице очень кривое - не работает совсем - почему вообще хз.
 
 ** TODO Handmade Hero Day 077 - Entity Ground Points
 - [[https://www.youtube.com/watch?v=9IGZGfVvc0s]]

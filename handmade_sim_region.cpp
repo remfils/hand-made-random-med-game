@@ -626,9 +626,10 @@ TestSpeculativeCollision(sim_entity *movingEntity, sim_entity *region)
         v3 bary = Clamp01(GetBarycentric(regionRect, movingEntity->P));
 
         // TODO: no SafeRatio_0
-        real32 ground = SafeRatio_0(Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z), (regionRect.Max.Z - regionRect.Min.Z));
+        //real32 ground = SafeRatio_0(Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z), (regionRect.Max.Z - regionRect.Min.Z));
+        real32 ground = Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z);
         real32 stepHeight = 0.1f;
-        result = (AbsoluteValue(movingEntity->P.Z - ground) > stepHeight)
+        result = (AbsoluteValue(movingEntity->P.Z - ground) < stepHeight)
             || ((bary.Y > stepHeight) && (bary.Y < 0.0f));
     }
 
@@ -657,7 +658,8 @@ HandleOverlap(game_state * gameState, sim_entity *moving, sim_entity *region, re
         v3 bary = Clamp01(GetBarycentric(regionRect, moving->P));
 
         // TODO: no SafeRatio_0
-        *ground = SafeRatio_0(Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z), (regionRect.Max.Z - regionRect.Min.Z));
+        //*ground = SafeRatio_0(Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z), (regionRect.Max.Z - regionRect.Min.Z));
+        *ground = Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z);
     }
 }
 
@@ -726,7 +728,7 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
                      ++testEntityIndex)
                 {
                     sim_entity *testEntity = simRegion->Entities + testEntityIndex;
-                    if (CanCollide(gameState, movingEntity, testEntity) && testEntity->P.Z == movingEntity->P.Z)
+                    if (CanCollide(gameState, movingEntity, testEntity))
                     {
                         if (IsSet(testEntity, EntityFlag_Collides) && !IsSet(testEntity, EntityFlag_Nonspacial))
                         {
@@ -741,39 +743,43 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
 
                             v3 rel = movingEntity->P - testEntity->P;
 
-                            v3 testWallNormal = {0,0};
-                            sim_entity *testHitEntity = 0;
-                            real32 testTMin = tMin;
+                            // TODO: check <= or <
+                            if ((rel.Z >= minCorner.Z) && (rel.Z < maxCorner.Z))
+                            {
+                                v3 testWallNormal = {0,0};
+                                sim_entity *testHitEntity = 0;
+                                real32 testTMin = tMin;
                             
-                            if (TestWall(minCorner.X, rel.X, rel.Y, entityPositionDelta.X, entityPositionDelta.Y,
-                                         &testTMin, minCorner.Y, maxCorner.Y))
-                            {
-                                testWallNormal = v3{-1,0,0};
-                                testHitEntity = testEntity;
-                            }
-                            if (TestWall(maxCorner.X, rel.X, rel.Y, entityPositionDelta.X, entityPositionDelta.Y,
-                                         &testTMin, minCorner.Y, maxCorner.Y))
-                            {
-                                testWallNormal = v3{1,0,0};
-                                testHitEntity = testEntity;
-                            }
-                            if (TestWall(minCorner.Y, rel.Y, rel.X, entityPositionDelta.Y, entityPositionDelta.X,
-                                         &testTMin, minCorner.Y, maxCorner.Y))
-                            {
-                                testWallNormal = v3{0,-1,0};
-                                testHitEntity = testEntity;
-                            }
-                            if (TestWall(maxCorner.Y, rel.Y, rel.X, entityPositionDelta.Y, entityPositionDelta.X,
-                                         &testTMin, minCorner.Y, maxCorner.Y))
-                            {
-                                testWallNormal = v3{0,1,0};
-                                testHitEntity = testEntity;
-                            }
+                                if (TestWall(minCorner.X, rel.X, rel.Y, entityPositionDelta.X, entityPositionDelta.Y,
+                                             &testTMin, minCorner.Y, maxCorner.Y))
+                                {
+                                    testWallNormal = v3{-1,0,0};
+                                    testHitEntity = testEntity;
+                                }
+                                if (TestWall(maxCorner.X, rel.X, rel.Y, entityPositionDelta.X, entityPositionDelta.Y,
+                                             &testTMin, minCorner.Y, maxCorner.Y))
+                                {
+                                    testWallNormal = v3{1,0,0};
+                                    testHitEntity = testEntity;
+                                }
+                                if (TestWall(minCorner.Y, rel.Y, rel.X, entityPositionDelta.Y, entityPositionDelta.X,
+                                             &testTMin, minCorner.Y, maxCorner.Y))
+                                {
+                                    testWallNormal = v3{0,-1,0};
+                                    testHitEntity = testEntity;
+                                }
+                                if (TestWall(maxCorner.Y, rel.Y, rel.X, entityPositionDelta.Y, entityPositionDelta.X,
+                                             &testTMin, minCorner.Y, maxCorner.Y))
+                                {
+                                    testWallNormal = v3{0,1,0};
+                                    testHitEntity = testEntity;
+                                }
 
-                            if (testHitEntity && TestSpeculativeCollision(movingEntity, testHitEntity)) {
-                                tMin = testTMin;
-                                wallNormal = testWallNormal;
-                                hitEntity = testHitEntity;
+                                if (testHitEntity && TestSpeculativeCollision(movingEntity, testHitEntity)) {
+                                    tMin = testTMin;
+                                    wallNormal = testWallNormal;
+                                    hitEntity = testHitEntity;
+                                }
                             }
                         }
                     }
