@@ -71,6 +71,9 @@ struct sim_entity
 
     entity_reference Sword;
     real32 DistanceLimit;
+
+    /* NOTE: for stairwells */
+    real32 WalkableHeight;
 };
 
 struct sim_entity_hash

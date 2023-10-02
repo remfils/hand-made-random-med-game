@@ -179,12 +179,14 @@ AddMonster(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 internal add_low_entity_result
 AddStairway(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 {
-    v3 dim = {gameState->World->TileSideInMeters, 2.0f * gameState->World->TileSideInMeters, gameState->World->TileDepthInMeters};
+    v3 dim = {gameState->World->TileSideInMeters, 2.0f * gameState->World->TileSideInMeters, 1.05f * gameState->World->TileDepthInMeters};
     
     world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
     add_low_entity_result lowEntityResult = AddGroundedEntity(gameState, EntityType_Stairwell, pos, dim);
 
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
+
+    lowEntityResult.Low->Sim.WalkableHeight = gameState->World->TileDepthInMeters;
     
     return lowEntityResult;
 }
@@ -847,9 +849,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             switch (simEntity->Type) {
             case EntityType_Wall:
             {
-                real32 wallAlpha = 1.0f;
-                if (simEntity->P.Z != 0) {
-                    wallAlpha = 0.1f;
+                real32 wallAlpha = 0.1f;
+                real32 halfDepth = gameState->World->TileDepthInMeters;
+                if (simEntity->P.Z < halfDepth && simEntity->P.Z > -0.5f*halfDepth) {
+                    wallAlpha = 1.0f;
                 }
                 
                 PushPiece(&pieceGroup, &gameState->WallDemoBitmap, V3(0,0, 0), V2(64.0f * 0.5f, 64.0f * 0.5f), wallAlpha);
@@ -962,11 +965,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 MoveEntity(gameState, simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
             }
 
-            real32 zFugde = 1.0f + 0.1f * simEntity->P.Z;
+            v3 entityBaseP = GetEntityGroundPoint(simEntity);
 
-            real32 entityX = screenCenterX + simEntity->P.X * MetersToPixels * zFugde;
-            real32 entityY = screenCenterY - simEntity->P.Y * MetersToPixels * zFugde;
-            real32 entityZ = -simEntity->P.Z * MetersToPixels;
+            real32 zFugde = 1.0f + 0.1f * entityBaseP.Z;
+
+            real32 entityX = screenCenterX + entityBaseP.X * MetersToPixels * zFugde;
+            real32 entityY = screenCenterY - entityBaseP.Y * MetersToPixels * zFugde;
+            real32 entityZ = -entityBaseP.Z * MetersToPixels;
 
             for (uint32 idx =0; idx < pieceGroup.PieceCount; ++idx)
             {

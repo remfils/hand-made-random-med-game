@@ -616,21 +616,40 @@ HandleCollision(game_state *gameState, sim_entity *a, sim_entity *b)
     return stopsOnCollision;
 }
 
+inline v3
+GetEntityGroundPoint(sim_entity *entity)
+{
+    v3 result = entity->P + V3(0,0, -0.5f * entity->Dim.Z);
+    return result;
+}
+
+inline real32
+GetEntityPositionOnStairs(sim_entity *stairsEntity, v3 entityGroundPosition)
+{
+    rectangle3 regionRect = RectCenterDim(stairsEntity->P, stairsEntity->Dim);
+    v3 bary = Clamp01(GetBarycentric(regionRect, entityGroundPosition));
+
+    real32 result = 0.0f;
+    result = regionRect.Min.Z + bary.Y * stairsEntity->WalkableHeight;
+
+    return result;
+}
+
 internal bool32
 TestSpeculativeCollision(sim_entity *movingEntity, sim_entity *region)
 {
     bool32 result = true;
 
     if (region->Type == EntityType_Stairwell) {
-        rectangle3 regionRect = RectCenterDim(region->P, region->Dim);
-        v3 bary = Clamp01(GetBarycentric(regionRect, movingEntity->P));
+        
 
         // TODO: no SafeRatio_0
         //real32 ground = SafeRatio_0(Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z), (regionRect.Max.Z - regionRect.Min.Z));
-        real32 ground = Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z);
+        v3 groundPoint = GetEntityGroundPoint(movingEntity);
+        real32 ground = GetEntityPositionOnStairs(region, groundPoint);
+        
         real32 stepHeight = 0.1f;
-        result = (AbsoluteValue(movingEntity->P.Z - ground) < stepHeight)
-            || ((bary.Y > stepHeight) && (bary.Y < 0.0f));
+        result = (AbsoluteValue(groundPoint.Z - ground) > stepHeight);
     }
 
     return result;
@@ -651,15 +670,11 @@ CanOverlap(game_state * gameState, sim_entity *moving, sim_entity *region)
 }
 
 internal void
-HandleOverlap(game_state * gameState, sim_entity *moving, sim_entity *region, real32 dt, real32 *ground)
+HandleOverlap(game_state * gameState, sim_entity *movingEntity, sim_entity *region, real32 dt, real32 *ground)
 {
     if (region->Type == EntityType_Stairwell) {
-        rectangle3 regionRect = RectCenterDim(region->P, region->Dim);
-        v3 bary = Clamp01(GetBarycentric(regionRect, moving->P));
-
-        // TODO: no SafeRatio_0
-        //*ground = SafeRatio_0(Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z), (regionRect.Max.Z - regionRect.Min.Z));
-        *ground = Lerp(regionRect.Min.Z, bary.Y, regionRect.Max.Z);
+        v3 groundPoint = GetEntityGroundPoint(movingEntity);
+        *ground = GetEntityPositionOnStairs(region, groundPoint);
     }
 }
 
@@ -837,15 +852,17 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
          ++testEntityIndex)
     {
         sim_entity *testEntity = simRegion->Entities + testEntityIndex;
-        if (CanOverlap(gameState, movingEntity, testEntity)) {
+        if (CanOverlap(gameState, movingEntity, testEntity))
+        {
             rectangle3 testEntityRect = RectCenterDim(testEntity->P, testEntity->Dim);
-            if (RectanglesIntersect(movingEntityRect, testEntityRect)) {
+            if (RectanglesIntersect(movingEntityRect, testEntityRect))
+            {
                 HandleOverlap(gameState, movingEntity, testEntity, dt, &ground);
             }
         }
     }
 
-    movingEntity->P.Z = ground;
+    movingEntity->P.Z = ground + (movingEntity->P.Z - GetEntityGroundPoint(movingEntity).Z);
 
     // if (movingEntity->P.Z < ground) {
     //     movingEntity->P.Z = ground;
