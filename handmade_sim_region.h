@@ -47,6 +47,21 @@ enum sim_entity_flags
     EntityFlag_ZSupported = (1 << 4),
 };
 
+struct sim_entity_collision_volume
+{
+    v3 Offset;
+    v3 Dim;
+};
+
+struct sim_entity_collision_volume_group
+{
+    sim_entity_collision_volume TotalVolume;
+
+    // TODO: has to be > 0
+    uint32 VolumeCount;
+    sim_entity_collision_volume *Volumes;
+};
+
 struct sim_entity
 {
 
@@ -60,7 +75,8 @@ struct sim_entity
 
     v3 P;
     v3 dP;
-    v3 Dim;
+    
+    sim_entity_collision_volume_group *Collision;
 
     uint32 FacingDirection;
     real32 TBobing;
@@ -74,6 +90,7 @@ struct sim_entity
 
     /* NOTE: for stairwells */
     real32 WalkableHeight;
+    v2 WalkableDim;
 };
 
 struct sim_entity_hash

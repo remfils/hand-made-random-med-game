@@ -1,4 +1,4 @@
-* to be done [5/625]
+* to be done [6/625]
 ** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
@@ -46,8 +46,10 @@ stairwell либо "правильно" работает проверка на �
 
 Большая ччасть багов. Сейчас работает +- стабильно но прилипает к стенам.
 
-** TODO Handmade Hero Day 078 - Multiple Collision Volumes Per Entity
+** DONE Handmade Hero Day 078 - Multiple Collision Volumes Per Entity
 - [[https://www.youtube.com/watch?v=o1DO5sjUhi0]]
+
+плохо рисуются прямоугольники, но столкновение до сих пор работает.
 
 ** TODO Handmade Hero Day 079 - Defining the Ground
 - [[https://www.youtube.com/watch?v=HMW1fsXzW-o]]

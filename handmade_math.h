@@ -1,19 +1,5 @@
 #if !defined(HANDMADE_MATH_H)
 
-inline real32
-Square(real32 a)
-{
-    real32 result = a * a;
-    return result;
-}
-
-inline real32
-Lerp(real32 a, real32 t, real32 b)
-{
-    real32 result = (1.0f - t) * a + t * b;
-    return result;
-}
-
 union v2
 {
     struct {
@@ -45,6 +31,40 @@ union v4
     };
     real32 E[4];
 };
+
+inline real32
+Square(real32 a)
+{
+    real32 result = a * a;
+    return result;
+}
+
+inline real32
+Lerp(real32 a, real32 t, real32 b)
+{
+    real32 result = (1.0f - t) * a + t * b;
+    return result;
+}
+
+inline real32
+Clamp(real32 min, real32 value, real32 max)
+{
+    real32 result = value;
+    if (result < min) {
+        result = min;
+    }
+    if (result > max) {
+        result = max;
+    }
+    return result;
+}
+
+inline real32
+Clamp01(real32 value)
+{
+    real32 result = Clamp(0, value, 1);
+    return result;
+}
 
 inline v2
 V2(real32 x, real32 y)
@@ -83,6 +103,32 @@ V4(real32 x, real32 y,real32 z, real32 w)
     res.Z = z;
     res.W = w;
     return res;
+}
+
+inline real32
+SafeRatio_N(real32 numerator, real32 divisor, real32 n)
+{
+    real32 result = n;
+
+    if (divisor != 0) {
+        result = numerator / divisor;
+    }
+
+    return result;
+}
+
+inline real32
+SafeRatio_0(real32 numerator, real32 divisor)
+{
+    real32 result = SafeRatio_N(numerator, divisor, 0.0f);
+    return result;
+}
+
+inline real32
+SafeRatio_1(real32 numerator, real32 divisor)
+{
+    real32 result = SafeRatio_N(numerator, divisor, 1.0f);
+    return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -371,6 +417,27 @@ IsInRectangle(rectangle2 rect, v2 test)
     return result;
 }
 
+inline v2
+GetBarycentric(rectangle2 a, v2 p)
+{
+    v2 result;
+
+    result.X = SafeRatio_0(p.X - a.Min.X, a.Max.X - a.Min.X);
+    result.Y = SafeRatio_0(p.Y - a.Min.Y, a.Max.Y - a.Min.Y);
+
+    return result;
+}
+
+inline v2
+Clamp01(v2 value)
+{
+    v2 result;
+    result.X = Clamp01(value.X);
+    result.Y = Clamp01(value.Y);
+    return result;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // rectangle3
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -488,32 +555,6 @@ RectanglesIntersect(rectangle3 a, rectangle3 b)
 
 }
 
-inline real32
-SafeRatio_N(real32 numerator, real32 divisor, real32 n)
-{
-    real32 result = n;
-
-    if (divisor != 0) {
-        result = numerator / divisor;
-    }
-
-    return result;
-}
-
-inline real32
-SafeRatio_0(real32 numerator, real32 divisor)
-{
-    real32 result = SafeRatio_N(numerator, divisor, 0.0f);
-    return result;
-}
-
-inline real32
-SafeRatio_1(real32 numerator, real32 divisor)
-{
-    real32 result = SafeRatio_N(numerator, divisor, 1.0f);
-    return result;
-}
-
 inline v3
 GetBarycentric(rectangle3 a, v3 p)
 {
@@ -523,26 +564,6 @@ GetBarycentric(rectangle3 a, v3 p)
     result.Y = SafeRatio_0(p.Y - a.Min.Y, a.Max.Y - a.Min.Y);
     result.Z = SafeRatio_0(p.Z - a.Min.Z, a.Max.Z - a.Min.Z);
 
-    return result;
-}
-
-inline real32
-Clamp(real32 min, real32 value, real32 max)
-{
-    real32 result = value;
-    if (result < min) {
-        result = min;
-    }
-    if (result > max) {
-        result = max;
-    }
-    return result;
-}
-
-inline real32
-Clamp01(real32 value)
-{
-    real32 result = Clamp(0, value, 1);
     return result;
 }
 
