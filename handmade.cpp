@@ -188,6 +188,17 @@ AddStairway(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 }
 
 internal add_low_entity_result
+AddStandartRoom(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
+{
+    world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
+    add_low_entity_result lowEntityResult = AddGroundedEntity(gameState, EntityType_Space, pos, gameState->StandardRoomCollision);
+    
+    AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Traversable);
+    
+    return lowEntityResult;
+}
+
+internal add_low_entity_result
 AddFamiliar(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 {
     world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
@@ -477,6 +488,19 @@ PushPieceRect(entity_visible_piece_group *grp, v3 offset, v2 dim, v4 color)
 }
 
 inline void
+PushPieceRectOutline(entity_visible_piece_group *grp, v3 offset, v2 dim, v4 color)
+{
+    real32 lineWidth = 0.05f;
+    // top bottom
+    PushPieceRect(grp, V3(offset.X, offset.Y-dim.Y/2, offset.Z), V2(dim.X, lineWidth), color);
+    PushPieceRect(grp, V3(offset.X, offset.Y+dim.Y/2, offset.Z), V2(dim.X, lineWidth), color);
+
+    // left/right
+    PushPieceRect(grp, V3(offset.X-dim.X/2, offset.Y, offset.Z), V2(lineWidth, dim.Y), color);
+    PushPieceRect(grp, V3(offset.X+dim.X/2, offset.Y, offset.Z), V2(lineWidth, dim.Y), color);
+}
+
+inline void
 DrawHitpoints(entity_visible_piece_group *pieceGroup, sim_entity *simEntity)
 {
     // health bars
@@ -551,6 +575,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     if (!memory->IsInitialized)
     {
+        uint32 tilesPerScreenWidth = 17;
+        uint32 tilesPerScreenHeight = 9;
+        
         // TODO: sub arena start partitioning memory space
         InitializeArena(&gameState->WorldArena, memory->PermanentStorageSize - sizeof(game_state), (uint8 *)memory->PermanentStorage + sizeof(game_state));
 
@@ -566,6 +593,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->MonsterCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.5f);
         gameState->FamiliarCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.1f);
         gameState->WallCollision = MakeSimpleGroundedCollision(gameState, gameState->World->TileSideInMeters, gameState->World->TileSideInMeters, gameState->World->TileDepthInMeters);
+        gameState->StandardRoomCollision = MakeSimpleGroundedCollision(gameState, tilesPerScreenWidth * gameState->World->TileSideInMeters, tilesPerScreenHeight * gameState->World->TileSideInMeters, 0.9f*gameState->World->TileDepthInMeters);
 
 
         gameState->LoadedBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/new-bg-code.bmp");
@@ -593,9 +621,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->YOffset = 0;
         
         // generate tiles
-        uint32 tilesPerScreenWidth = 17;
-        uint32 tilesPerScreenHeight = 9;
-        
         uint32 screenBaseX = 0;
         uint32 screenX = screenBaseX;
 
@@ -642,6 +667,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     isDoorDown = true;
                 }
             }
+
+            AddStandartRoom(gameState, screenX * tilesPerScreenWidth + tilesPerScreenWidth/2, screenY * tilesPerScreenHeight + tilesPerScreenHeight/2, absTileZ);
 
             for (uint32 tileY = 0;
                  tileY < tilesPerScreenHeight;
@@ -930,6 +957,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                 PushPiece(&pieceGroup, &heroBitmaps->Character, V3(0,0,0), heroBitmaps->Align, 1);
 
+                sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
+                PushPieceRectOutline(&pieceGroup, V3(volume->Offset.X, volume->Offset.Y, 0), volume->Dim.XY, V4(0, 0.3f, 0.3f, 0));
+
                 DrawHitpoints(&pieceGroup, simEntity);
             } break;
             case EntityType_Monster:
@@ -990,6 +1020,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 PushPieceRect(&pieceGroup, V3(0, 0, 0), simEntity->WalkableDim, V4(1,1,0,1));
                 PushPieceRect(&pieceGroup, V3(0, 0, simEntity->WalkableHeight), simEntity->WalkableDim, V4(1,1,0,1));
             } break;
+            case EntityType_Space:
+            {
+                for (uint32 volumeIndex=0; volumeIndex < simEntity->Collision->VolumeCount; volumeIndex++)
+                {
+                    sim_entity_collision_volume *volume = simEntity->Collision->Volumes + volumeIndex;
+                    PushPieceRectOutline(&pieceGroup, V3(volume->Offset.X, volume->Offset.Y, 0), volume->Dim.XY, V4(0,1,1,0));
+                }
+            } break;
             }
 
             if (!IsSet(simEntity, EntityFlag_Nonspacial) && IsSet(simEntity, EntityFlag_Movable))
@@ -1022,10 +1060,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     c.Green = piece.G;
                     c.Blue = piece.B;
 
-                    real32 realMinX = entityX + piece.Offset.X;
-                    real32 realMinY = entityY + piece.Offset.Y;
-                    real32 realMaxX = realMinX + piece.Dim.X;
-                    real32 realMaxY = realMinY + piece.Dim.Y;
+                    real32 realMinX = center.X - piece.Dim.X / 2;
+                    real32 realMinY = center.Y - piece.Dim.Y / 2;
+                    real32 realMaxX = center.X + piece.Dim.X / 2;
+                    real32 realMaxY = center.Y + piece.Dim.Y / 2;
                     RenderRectangle(buffer, realMinX, realMinY, realMaxX, realMaxY, c);
                 }
             }

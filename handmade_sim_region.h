@@ -24,6 +24,9 @@ struct hit_point
 enum entity_type
 {
     EntityType_NULL,
+    
+    EntityType_Space,
+    
     EntityType_Hero,
     EntityType_Wall,
     EntityType_Familiar,
@@ -41,10 +44,11 @@ union entity_reference
 
 enum sim_entity_flags
 {
-    EntityFlag_Collides = (1 << 1),
-    EntityFlag_Nonspacial = (1 << 2),
-    EntityFlag_Movable = (1 << 3),
-    EntityFlag_ZSupported = (1 << 4),
+    EntityFlag_Collides = (1 << 0), // TODO: can be removed
+    EntityFlag_Nonspacial = (1 << 1),
+    EntityFlag_Movable = (1 << 2),
+    EntityFlag_ZSupported = (1 << 3), // TODO: can be removed
+    EntityFlag_Traversable = (1 << 4),
 };
 
 struct sim_entity_collision_volume

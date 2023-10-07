@@ -1,4 +1,4 @@
-* to be done [6/625]
+* to be done [7/625]
 ** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
@@ -51,8 +51,13 @@ stairwell либо "правильно" работает проверка на �
 
 плохо рисуются прямоугольники, но столкновение до сих пор работает.
 
-** TODO Handmade Hero Day 079 - Defining the Ground
+** DONE Handmade Hero Day 079 - Defining the Ground
 - [[https://www.youtube.com/watch?v=HMW1fsXzW-o]]
+
+сейчас работает больше. Исправлены баги с отрисовкой
+прямоугольника. Добавлена логика комнаты - все ВСЕГДА В КОМНАТЕ. В
+комнате есть пол. Пока что добвален концепт комнаты и отрисовываются
+прямоугольники.
 
 ** TODO Handmade Hero Day 080 - Handling Traversables in the Collision Loop
 - [[https://www.youtube.com/watch?v=QxxVwnE8V1c]]
