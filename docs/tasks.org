@@ -1,4 +1,4 @@
-* to be done [7/625]
+* to be done [8/625]
 ** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
@@ -59,8 +59,11 @@ stairwell либо "правильно" работает проверка на �
 комнате есть пол. Пока что добвален концепт комнаты и отрисовываются
 прямоугольники.
 
-** TODO Handmade Hero Day 080 - Handling Traversables in the Collision Loop
+** DONE Handmade Hero Day 080 - Handling Traversables in the Collision Loop
 - [[https://www.youtube.com/watch?v=QxxVwnE8V1c]]
+
+после подключения начало сильно лагать. Мне кажется что проблема такая
+же, что и при столкновении со стенами.
 
 ** TODO Handmade Hero Day 081 - Creating Ground with Overlapping Bitmaps
 - [[https://www.youtube.com/watch?v=EGOrMZwQVEk]]

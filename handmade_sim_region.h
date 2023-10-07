@@ -126,5 +126,16 @@ struct sim_region
 };
 
 
+struct test_wall
+{
+    real32 X;
+    real32 RelX;
+    real32 RelY;
+    real32 DeltaX;
+    real32 DeltaY;
+    real32 MinY;
+    real32 MaxY;
+    v3 Normal;
+};
 
 #endif

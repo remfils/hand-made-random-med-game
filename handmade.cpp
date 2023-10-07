@@ -733,7 +733,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     
                     if (isWallTile)
                     {
-                        AddWall(gameState, absTileX, absTileY, absTileZ);
+                        if (screenIndex > 7) {
+                            AddWall(gameState, absTileX, absTileY, absTileZ);
+                        }
                     }
                 }   
             }
@@ -1018,7 +1020,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 // }
                 
                 PushPieceRect(&pieceGroup, V3(0, 0, 0), simEntity->WalkableDim, V4(1,1,0,1));
-                PushPieceRect(&pieceGroup, V3(0, 0, simEntity->WalkableHeight), simEntity->WalkableDim, V4(1,1,0,1));
+                PushPieceRect(&pieceGroup, V3(0, 0, simEntity->WalkableHeight), simEntity->WalkableDim, V4(1,1,0,0));
             } break;
             case EntityType_Space:
             {
