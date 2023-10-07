@@ -136,6 +136,20 @@ SafeRatio_1(real32 numerator, real32 divisor)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 inline v2
+V2i(int32 x, int32 y)
+{
+    v2 result = {(real32)x, (real32)y};
+    return result;
+}
+
+inline v2
+V2u(uint32 x, uint32 y)
+{
+    v2 result = {(real32)x, (real32)y};
+    return result;
+}
+
+inline v2
 operator-(v2 a)
 {
     v2 res;

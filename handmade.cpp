@@ -561,6 +561,52 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
     return group;
 }
 
+internal real32
+GetRandomNumber_FromZeroToOne(uint32 randomIndex)
+{
+    real32 result = ((real32)RandomNumberTable[randomIndex] - (real32)MIN_RANDOM_NUMBER) / (real32)MAX_RANDOM_NUMBER;
+    return result;
+}
+
+internal real32
+GetRandomNumber_FromMinusOneToOne(uint32 randomIndex)
+{
+    real32 result = ((real32)RandomNumberTable[randomIndex] - (real32)MIN_RANDOM_NUMBER) * 2 / (real32)MAX_RANDOM_NUMBER - 1.0f;
+    return result;
+}
+
+internal void
+DrawTestGround(game_offscreen_buffer *buffer, game_state *gameState)
+{
+    uint32 randomIndex = 0;
+
+    
+
+    /* uint32 maxValue = 0; */
+    /* uint32 minValue = 0xFFFFFFFF; */
+    /* for (uint32 i=0; i < ArrayCount(RandomNumberTable); i++){ */
+    /*     if (RandomNumberTable[i] > maxValue) { */
+    /*         maxValue = RandomNumberTable[i]; */
+    /*     } */
+    /*     if (RandomNumberTable[i] < minValue) { */
+    /*         minValue = RandomNumberTable[i]; */
+    /*     } */
+    /* } */
+
+    // TODO: make random number generation more systemic
+
+    v2 center = 0.5f * V2u(buffer->Width, buffer->Height);
+
+    for (uint32 grassIndex=0; grassIndex<100; grassIndex++)
+    {
+        v2 grassCenter = 0.5f * V2u(gameState->Grass[0].Width, gameState->Grass[0].Height);
+        v2 p = {
+            GetRandomNumber_FromMinusOneToOne(randomIndex++), GetRandomNumber_FromMinusOneToOne(randomIndex++)
+        };
+        RenderBitmap(buffer, &gameState->Grass[0], center.X + center.X * p.X - grassCenter.X, center.X + center.X * p.Y - grassCenter.Y);
+    }
+}
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
     Assert(sizeof(game_state) <= memory->PermanentStorageSize);
@@ -603,7 +649,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->WallDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/wall_demo.bmp");
         gameState->SwordDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/sword_demo.bmp");
         gameState->StairwayBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/Stairway2.bmp");
-        
+
+        gameState->Grass[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass001.bmp");
+        gameState->Grass[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass002.bmp");
+        gameState->Ground[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground001.bmp");
+        gameState->Ground[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground002.bmp");
         
         gameState->HeroBitmaps[0].Align = V2(60, 195);
         gameState->HeroBitmaps[0].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_right.bmp");
@@ -888,6 +938,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     real32 screenCenterY = 0.5f * (real32) buffer->Height;
     
     RenderBitmap(buffer, &gameState->LoadedBitmap, 0, 0);
+
+    DrawTestGround(buffer, gameState);
     
     sim_entity *simEntity = simRegion->Entities;
     for (uint32 entityIndex = 0;
