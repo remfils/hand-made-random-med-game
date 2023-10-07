@@ -114,11 +114,13 @@ struct memory_arena
     memory_index Used;
 };
 
+#define BITMAP_BYTES_PER_PIXEL 4
 struct loaded_bitmap
 {
     int32 Width;
     int32 Height;
-    uint32 *Pixels;
+    int32 Pitch;
+    void *Memory;
 };
 
 
@@ -224,6 +226,8 @@ struct game_state
     loaded_bitmap WallDemoBitmap;
     loaded_bitmap SwordDemoBitmap;
     loaded_bitmap StairwayBitmap;
+
+    loaded_bitmap GroundCachedBitmap;
     
     hero_bitmaps HeroBitmaps[4];
 

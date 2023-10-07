@@ -66,9 +66,9 @@ internal loaded_bitmap DEBUGLoadBMP(thread_context *thread, debug_platform_read_
         result.Width = header->Width;
         result.Height = header->Height;
         
-        uint32 *pixels = (uint32 *)((uint8 *)content + header->BitmapOffset);
+        uint8 *pixels = (uint8 *)((uint8 *)content + header->BitmapOffset);
         
-        result.Pixels = pixels;
+        result.Memory = pixels;
         
         // NOTE: why this is not needed?
         // uint32 *srcDest = pixels;
@@ -89,6 +89,9 @@ internal loaded_bitmap DEBUGLoadBMP(thread_context *thread, debug_platform_read_
     {
         // todo: error
     }
+
+    result.Pitch = -result.Width * BITMAP_BYTES_PER_PIXEL;
+    result.Memory = (uint8 *)result.Memory - result.Pitch * (result.Height - 1);
     
     return result;
 }
@@ -305,7 +308,7 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
 
 internal
 void
-RenderRectangle(game_offscreen_buffer *buffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, color color)
+RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, color color)
 {
     uint32 uColor = GetUintColor(color);
     
@@ -323,16 +326,16 @@ RenderRectangle(game_offscreen_buffer *buffer, real32 realMinX, real32 realMinY,
         minY = 0;
     }
     
-    if (maxX > buffer->Width)
+    if (maxX > drawBuffer->Width)
     {
-        maxX = buffer->Width;
+        maxX = drawBuffer->Width;
     }
-    if (maxY > buffer->Height)
+    if (maxY > drawBuffer->Height)
     {
-        maxY = buffer->Height;
+        maxY = drawBuffer->Height;
     }
     
-    uint8 *row = (uint8 *)buffer->Memory + buffer->Pitch * minY + minX * buffer->BytesPerPixel;
+    uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
     for (int y = minY; y < maxY; ++y)
     {
         uint32 *pixel = (uint32 *)row;
@@ -342,13 +345,13 @@ RenderRectangle(game_offscreen_buffer *buffer, real32 realMinX, real32 realMinY,
             *(uint32 *)pixel = uColor;
             pixel++;
         }
-        row += buffer->Pitch;
+        row += drawBuffer->Pitch;
     }
 }
 
 
 internal void
-RenderBitmap(game_offscreen_buffer *buffer, loaded_bitmap *bitmap,
+RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
     real32 realX, real32 realY,
     real32 cAlpha = 0.5f)
 {
@@ -371,21 +374,21 @@ RenderBitmap(game_offscreen_buffer *buffer, loaded_bitmap *bitmap,
         minY = 0;
     }
     
-    if (maxX > buffer->Width)
+    if (maxX > drawBuffer->Width)
     {
-        maxX = buffer->Width;
+        maxX = drawBuffer->Width;
     }
-    if (maxY > buffer->Height)
+    if (maxY > drawBuffer->Height)
     {
-        maxY = buffer->Height;
+        maxY = drawBuffer->Height;
     }
     
     // TODO: sourcerow change to adjust for cliping
-    
-    uint32 *srcrow = bitmap->Pixels + bitmap->Width * (bitmap->Height - 1);
-    srcrow += srcOffsetX - bitmap->Width * srcOffsetY;
+    // bitmap->Pitch * (bitmap->Height - 1)
 
-    uint8 *dstrow = (uint8 *)buffer->Memory + minX * buffer->BytesPerPixel + buffer->Pitch * minY;
+    uint8 *srcrow = (uint8 *)bitmap->Memory + bitmap->Pitch * srcOffsetY + BITMAP_BYTES_PER_PIXEL * srcOffsetX;
+    
+    uint8 *dstrow = (uint8 *)drawBuffer->Memory + minX * BITMAP_BYTES_PER_PIXEL + drawBuffer->Pitch * minY;
     
     for (int y = minY;
          y < maxY;
@@ -398,47 +401,51 @@ RenderBitmap(game_offscreen_buffer *buffer, loaded_bitmap *bitmap,
              x < maxX;
              ++x)
         {
-                real32 a = (real32)((*src >> 24) & 0xff) / 255.0f;
-            a *= cAlpha;
+            real32 sa = (real32)((*src >> 24) & 0xff) / 255.0f;
+            sa *= cAlpha;
 
             real32 sr = (real32)((*src >> 16) & 0xff);
             real32 sg = (real32)((*src >> 8) & 0xff);
             real32 sb = (real32)((*src >> 0) & 0xff);
-            
+
+            real32 da = (real32)((*dst >> 24) & 0xff);
             real32 dr = (real32)((*dst >> 16) & 0xff);
             real32 dg = (real32)((*dst >> 8) & 0xff);
             real32 db = (real32)((*dst >> 0) & 0xff);
+
+            // TODO: alpha
+
+            real32 a = Maximum(255.0f * sa, da);
+            real32 r = (1.0f - sa) * dr + sa * sr;
+            real32 g = (1.0f - sa) * dg + sa * sg;
+            real32 b = (1.0f - sa) * db + sa * sb;
             
-            real32 r = (1.0f - a) * dr + a * sr;
-            real32 g = (1.0f - a) * dg + a * sg;
-            real32 b = (1.0f - a) * db + a * sb;
             
-            
-            *dst = ((uint32)(r + 0.5f) << 16) | ((uint32)(g + 0.5f) << 8) | ((uint32)(b + 0.5f) << 0);
+            *dst = ((uint32)(a + 0.5f) << 24 | (uint32)(r + 0.5f) << 16) | ((uint32)(g + 0.5f) << 8) | ((uint32)(b + 0.5f) << 0);
             
             *dst++;
             *src++;
         }
         
-        dstrow += buffer->Pitch;
-        srcrow -= bitmap->Width;
+        dstrow += drawBuffer->Pitch;
+        srcrow += bitmap->Pitch;
     }
     
 }
 
 void
-ClearRenderBuffer(game_offscreen_buffer *buffer)
+ClearRenderBuffer(loaded_bitmap *drawBuffer)
 {
     color bgColor;
     bgColor.Red = (143.0f / 255.0f);
     bgColor.Green = (118.0f / 255.0f);
     bgColor.Blue = (74.0f / 255.0f);
     
-    RenderRectangle(buffer, 0, 0, (real32)buffer->Width, (real32)buffer->Height, bgColor);
+    RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
 }
 
 void
-RenderPlayer(game_offscreen_buffer *buffer, int playerX, int playerY)
+RenderPlayer(loaded_bitmap *drawBuffer, int playerX, int playerY)
 {
     real32 squareHalfWidth = 10;
     color playerColor;
@@ -446,7 +453,7 @@ RenderPlayer(game_offscreen_buffer *buffer, int playerX, int playerY)
     playerColor.Green = 0;
     playerColor.Blue = 1;
     
-    RenderRectangle(buffer, (real32)playerX - squareHalfWidth, (real32)playerY - squareHalfWidth, (real32)playerX + squareHalfWidth, (real32)playerY + squareHalfWidth, playerColor);
+    RenderRectangle(drawBuffer, (real32)playerX - squareHalfWidth, (real32)playerY - squareHalfWidth, (real32)playerX + squareHalfWidth, (real32)playerY + squareHalfWidth, playerColor);
 }
 
 internal void
@@ -561,50 +568,49 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
     return group;
 }
 
-internal real32
-GetRandomNumber_FromZeroToOne(uint32 randomIndex)
-{
-    real32 result = ((real32)RandomNumberTable[randomIndex] - (real32)MIN_RANDOM_NUMBER) / (real32)MAX_RANDOM_NUMBER;
-    return result;
-}
-
-internal real32
-GetRandomNumber_FromMinusOneToOne(uint32 randomIndex)
-{
-    real32 result = ((real32)RandomNumberTable[randomIndex] - (real32)MIN_RANDOM_NUMBER) * 2 / (real32)MAX_RANDOM_NUMBER - 1.0f;
-    return result;
-}
-
 internal void
-DrawTestGround(game_offscreen_buffer *buffer, game_state *gameState)
+DrawTestGround(game_state *gameState, loaded_bitmap *drawBuffer)
 {
+    random_series series = CreateRandomSeed(0);
+    
     uint32 randomIndex = 0;
 
-    
+    v2 center = 0.5f * V2u(drawBuffer->Width, drawBuffer->Height);
 
-    /* uint32 maxValue = 0; */
-    /* uint32 minValue = 0xFFFFFFFF; */
-    /* for (uint32 i=0; i < ArrayCount(RandomNumberTable); i++){ */
-    /*     if (RandomNumberTable[i] > maxValue) { */
-    /*         maxValue = RandomNumberTable[i]; */
-    /*     } */
-    /*     if (RandomNumberTable[i] < minValue) { */
-    /*         minValue = RandomNumberTable[i]; */
-    /*     } */
-    /* } */
-
-    // TODO: make random number generation more systemic
-
-    v2 center = 0.5f * V2u(buffer->Width, buffer->Height);
-
-    for (uint32 grassIndex=0; grassIndex<100; grassIndex++)
+    for (uint32 grassIndex=0; grassIndex < 1000; grassIndex++)
     {
-        v2 grassCenter = 0.5f * V2u(gameState->Grass[0].Width, gameState->Grass[0].Height);
         v2 p = {
-            GetRandomNumber_FromMinusOneToOne(randomIndex++), GetRandomNumber_FromMinusOneToOne(randomIndex++)
+            RandomUnilateral(&series), RandomUnilateral(&series)
         };
-        RenderBitmap(buffer, &gameState->Grass[0], center.X + center.X * p.X - grassCenter.X, center.X + center.X * p.Y - grassCenter.Y);
+
+        loaded_bitmap *bitmap;
+        if (RandomChoice(&series, 2)) {
+            bitmap = gameState->Grass + RandomChoice(&series, ArrayCount(gameState->Grass));
+        } else {
+            bitmap = gameState->Ground + RandomChoice(&series, ArrayCount(gameState->Ground));
+        }
+
+        v2 grassCenter = 0.5f * V2u(bitmap->Width, bitmap->Height);
+        
+        RenderBitmap(drawBuffer, bitmap, center.X + center.X * p.X - grassCenter.X, center.X + center.X * p.Y - grassCenter.Y);
     }
+}
+
+loaded_bitmap
+MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height)
+{
+    loaded_bitmap result;
+
+    result.Width = width;
+    result.Height = height;
+    result.Pitch = width * BITMAP_BYTES_PER_PIXEL;
+
+    int32 totalBitmapSize = result.Pitch * result.Height;
+    result.Memory = PushSize_(arena, totalBitmapSize);
+
+    ClearRenderBuffer(&result);
+
+    return result;
 }
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
@@ -691,18 +697,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         
         uint32 drawZDoorCounter = 0;
         uint32 famimiliarMaxCount = 1;
-        
+
+        random_series generatorSeries = CreateRandomSeed(0);
         
         while (screenIndex--) {
             uint32 rand;
             if (drawZDoorCounter > 0) {
-                rand = RandomNumberTable[screenIndex] % 2;
+                rand = RandomChoice(&generatorSeries, 2);
             } else {
-                rand = RandomNumberTable[screenIndex] % 3;
+                rand = RandomChoice(&generatorSeries, 3);
             }
 
             // DEBUG, no up and down movement currently
-            rand = RandomNumberTable[screenIndex] % 3;
+            rand = RandomChoice(&generatorSeries, 3);
             
             if (rand == 0) {
                 isDoorRight = true;
@@ -843,6 +850,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         world_position newCameraP = ChunkPositionFromTilePosition(gameState->World, screenBaseX*17 + 17 / 2, screenBaseY*9 + 9 / 2, screenBaseZ);
         gameState->CameraPosition = newCameraP;
 
+        gameState->GroundCachedBitmap = MakeEmptyBitmap(&gameState->WorldArena, 1024, 512);
+        DrawTestGround(gameState, &gameState->GroundCachedBitmap);
+
         
         //AddMonster(gameState, newCameraP.ChunkX+4, newCameraP.ChunkY+4, newCameraP.ChunkZ);
     }
@@ -920,8 +930,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }
         }
     }
-    
-    ClearRenderBuffer(buffer);
+
+    loaded_bitmap drawBuffer_ = {};
+    loaded_bitmap *drawBuffer = &drawBuffer_;
+    drawBuffer->Memory = buffer->Memory;
+    drawBuffer->Width = buffer->Width;
+    drawBuffer->Height = buffer->Height;
+    drawBuffer->Pitch = buffer->Pitch;
+        
+    ClearRenderBuffer(drawBuffer);
 
     // TODO: fix numbers for tiles
     uint32 tileSpanX = 17 * 3;
@@ -934,12 +951,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     sim_region *simRegion = BeginSim(&simArena, gameState, gameState->World, gameState->CameraPosition, cameraBounds, input->DtForFrame);
     
     
-    real32 screenCenterX = 0.5f * (real32) buffer->Width;
-    real32 screenCenterY = 0.5f * (real32) buffer->Height;
+    real32 screenCenterX = 0.5f * (real32) drawBuffer->Width;
+    real32 screenCenterY = 0.5f * (real32) drawBuffer->Height;
     
-    RenderBitmap(buffer, &gameState->LoadedBitmap, 0, 0);
+    RenderBitmap(drawBuffer, &gameState->LoadedBitmap, 0, 0);
 
-    DrawTestGround(buffer, gameState);
+    RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, 0, 0);
     
     sim_entity *simEntity = simRegion->Entities;
     for (uint32 entityIndex = 0;
@@ -1105,7 +1122,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 
                 if (piece.Bitmap)
                 {
-                    RenderBitmap(buffer, piece.Bitmap, entityX + piece.Offset.X, entityY + piece.Offset.Y + piece.EntitiyZC*entityZ, piece.Alpha);
+                    RenderBitmap(drawBuffer, piece.Bitmap, entityX + piece.Offset.X, entityY + piece.Offset.Y + piece.EntitiyZC*entityZ, piece.Alpha);
                 }
                 else
                 {
@@ -1118,7 +1135,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     real32 realMinY = center.Y - piece.Dim.Y / 2;
                     real32 realMaxX = center.X + piece.Dim.X / 2;
                     real32 realMaxY = center.Y + piece.Dim.Y / 2;
-                    RenderRectangle(buffer, realMinX, realMinY, realMaxX, realMaxY, c);
+                    RenderRectangle(drawBuffer, realMinX, realMinY, realMaxX, realMaxY, c);
                 }
             }
 
@@ -1184,7 +1201,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     realMaxX = realMaxX + simEntity->P.Z * 10.0f;
                 }
                 
-                RenderRectangle(buffer, realMinX, realMinY, realMaxX, realMaxY, c);
+                RenderRectangle(drawBuffer, realMinX, realMinY, realMaxX, realMaxY, c);
             }
         }   
     }
@@ -1192,25 +1209,25 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     if (input->MouseButtons[0].EndedDown)
     {
         int testSpace = 50;
-        RenderPlayer(buffer, input->MouseX + testSpace, input->MouseY + testSpace);
+        RenderPlayer(drawBuffer, input->MouseX + testSpace, input->MouseY + testSpace);
         
-        RenderPlayer(buffer, input->MouseX - testSpace, input->MouseY - testSpace);
+        RenderPlayer(drawBuffer, input->MouseX - testSpace, input->MouseY - testSpace);
         
-        RenderPlayer(buffer, input->MouseX + testSpace, input->MouseY - testSpace);
+        RenderPlayer(drawBuffer, input->MouseX + testSpace, input->MouseY - testSpace);
         
-        RenderPlayer(buffer, input->MouseX - testSpace, input->MouseY + testSpace);
+        RenderPlayer(drawBuffer, input->MouseX - testSpace, input->MouseY + testSpace);
     }
     
     if (input->MouseButtons[1].EndedDown)
     {
         int testSpace = 50;
-        RenderPlayer(buffer, input->MouseX + testSpace, input->MouseY);
+        RenderPlayer(drawBuffer, input->MouseX + testSpace, input->MouseY);
         
-        RenderPlayer(buffer, input->MouseX - testSpace, input->MouseY);
+        RenderPlayer(drawBuffer, input->MouseX - testSpace, input->MouseY);
         
-        RenderPlayer(buffer, input->MouseX, input->MouseY - testSpace);
+        RenderPlayer(drawBuffer, input->MouseX, input->MouseY - testSpace);
         
-        RenderPlayer(buffer, input->MouseX, input->MouseY + testSpace);
+        RenderPlayer(drawBuffer, input->MouseX, input->MouseY + testSpace);
     }
 
     EndSim(simRegion, gameState);

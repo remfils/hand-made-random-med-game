@@ -1,4 +1,4 @@
-* to be done [8/625]
+* to be done [10/625]
 ** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
@@ -65,11 +65,21 @@ stairwell либо "правильно" работает проверка на �
 после подключения начало сильно лагать. Мне кажется что проблема такая
 же, что и при столкновении со стенами.
 
-** TODO Handmade Hero Day 081 - Creating Ground with Overlapping Bitmaps
+** DONE Handmade Hero Day 081 - Creating Ground with Overlapping Bitmaps
 - [[https://www.youtube.com/watch?v=EGOrMZwQVEk]]
 
-** TODO Handmade Hero Day 082 - Caching Composited Bitmaps
+Простая отрисовка спрайтов на полу (даже не на полу комнаты).
+
+sparse virtual textures
+
+https://www.youtube.com/watch?v=MejJL87yNgI
+
+** DONE Handmade Hero Day 082 - Caching Composited Bitmaps
 - [[https://www.youtube.com/watch?v=09bUpNbRzzc]]
+
+улучшение работы с рандомом + 15 мин рефакторинга для битмапа -
+*game_offscreen_buffer* теперь вне игры - используется только
+*loaded_bitmap*
 
 ** TODO Handmade Hero Day 083 - Premultiplied Alpha
 - [[https://www.youtube.com/watch?v=bidrZj1YosA]]
