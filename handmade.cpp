@@ -651,9 +651,10 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
 }
 
 internal void
-DrawTestGround(game_state *gameState, loaded_bitmap *drawBuffer)
+DrawGroundChunk(game_state *gameState, loaded_bitmap *drawBuffer, world_position *chunkP)
 {
-    random_series series = CreateRandomSeed(0);
+    // TODO: look into wang hashing here
+    random_series series = CreateRandomSeed(139 * chunkP->ChunkX + 25*chunkP->ChunkY -3*chunkP->ChunkZ);
     
     uint32 randomIndex = 0;
 
@@ -671,7 +672,7 @@ DrawTestGround(game_state *gameState, loaded_bitmap *drawBuffer)
         } else {
             bitmap = gameState->Ground + RandomChoice(&series, ArrayCount(gameState->Ground));
         }
-
+        
         v2 grassCenter = 0.5f * V2u(bitmap->Width, bitmap->Height);
         
         RenderBitmap(drawBuffer, bitmap, center.X + center.X * p.X - grassCenter.X, center.X + center.X * p.Y - grassCenter.Y);
@@ -932,11 +933,21 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         world_position newCameraP = ChunkPositionFromTilePosition(gameState->World, screenBaseX*17 + 17 / 2, screenBaseY*9 + 9 / 2, screenBaseZ);
         gameState->CameraPosition = newCameraP;
 
-        gameState->GroundCachedBitmap = MakeEmptyBitmap(&gameState->WorldArena, 1024, 512);
-        DrawTestGround(gameState, &gameState->GroundCachedBitmap);
+
+        real32 screenWidth = (real32)buffer->Width;
+        real32 screenHeight = (real32)buffer->Height;
+        real32 maxZScale = 0.5f;
+        real32 groundOverscan = 1.5f;
+
+        uint32 groundBufferWidth = RoundReal32ToInt32(groundOverscan * screenWidth);
+        uint32 groundBufferHeight = RoundReal32ToInt32(groundOverscan * screenHeight);
+        
+        gameState->GroundCachedBitmap = MakeEmptyBitmap(&gameState->WorldArena, groundBufferWidth, groundBufferHeight);
+        gameState->GroundP = gameState->CameraPosition;
+        DrawGroundChunk(gameState, &gameState->GroundCachedBitmap, &gameState->GroundP);
 
         
-        //AddMonster(gameState, newCameraP.ChunkX+4, newCameraP.ChunkY+4, newCameraP.ChunkZ);
+        AddMonster(gameState, newCameraP.ChunkX+4, newCameraP.ChunkY+4, newCameraP.ChunkZ);
     }
     
     world *world = gameState->World;
@@ -1040,7 +1051,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     // RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, 0, 0);
 
-    RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, 0, 0, 1.0);
+    v2 groundP = {screenCenterX - 0.5f * (real32) gameState->GroundCachedBitmap.Width,
+                  screenCenterY - 0.5f * (real32) gameState->GroundCachedBitmap.Height};
+
+    v3 groundDelta = Subtract(gameState->World, &gameState->GroundP, &gameState->CameraPosition);
+    groundP = V2(groundP.X + groundDelta.X * gameState->MetersToPixels, groundP.Y - groundDelta.Y * gameState->MetersToPixels);
+    RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, groundP.X, groundP.Y, 1.0);
     
     sim_entity *simEntity = simRegion->Entities;
     for (uint32 entityIndex = 0;

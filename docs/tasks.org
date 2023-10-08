@@ -1,4 +1,4 @@
-* to be done [11/625]
+* to be done [12/625]
 ** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
@@ -131,8 +131,11 @@ premultiplied, hence destination is always premultiplied.)
 -- Sean Barrett, 2012/09/19
 #+end_quote
 
-** TODO Handmade Hero Day 084 - Scrolling Ground Buffer
+** DONE Handmade Hero Day 084 - Scrolling Ground Buffer
 - [[https://www.youtube.com/watch?v=U5AAAaiMlYQ]]
+
+Сделан простой буфер со сгенерированной землей. Эта земля двигается
+относительно камеры.
 
 ** TODO Handmade Hero Day 085 - Transient Ground Buffers
 - [[https://www.youtube.com/watch?v=QhjuxnQyBwk]]
