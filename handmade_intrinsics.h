@@ -74,3 +74,45 @@ SignOf(int32 value)
     int32 result = value >= 0 ? 1 : -1;
     return result;
 }
+
+struct bit_scan_result
+{
+    bool32 Found;
+    uint32 Index;
+};
+inline bit_scan_result FindLeastSignificantSetBit(uint32 Value)
+{
+    bit_scan_result result = {};
+    for (uint32 test = 0; test < 32; ++test)
+    {
+        if (Value & (1 << test))
+        {
+            result.Index = test;
+            result.Found = true;
+            break;
+        }
+    }
+    return result;
+}
+
+inline uint32 RotateLeft(uint32 Value, int32 Amount)
+{
+#if COMPILER_MSVC
+    uint32 Result = _rotl(Value, Amount);
+#else
+    Amount &= 31;
+    uint32 Result = (Value << Amount) | (Value >> (32 - Amount));
+#endif
+    return Result;
+}
+
+inline uint32 RotateRight(uint32 Value, int32 Amount)
+{
+#if COMPILER_MSVC
+    uint32 Result = _rotr(Value, Amount);
+#else
+    Amount &= 31;
+    uint32 Result = (Value << Amount) | (Value >> (32 - Amount));
+#endif
+    return Result;
+}

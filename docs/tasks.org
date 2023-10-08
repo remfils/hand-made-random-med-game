@@ -1,4 +1,4 @@
-* to be done [10/625]
+* to be done [11/625]
 ** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
 - [[https://www.youtube.com/watch?v=e0yjNipizK0]]
 
@@ -81,8 +81,55 @@ https://www.youtube.com/watch?v=MejJL87yNgI
 *game_offscreen_buffer* теперь вне игры - используется только
 *loaded_bitmap*
 
-** TODO Handmade Hero Day 083 - Premultiplied Alpha
+** DONE Handmade Hero Day 083 - Premultiplied Alpha
 - [[https://www.youtube.com/watch?v=bidrZj1YosA]]
+
+Получилось добится достаточно хорошего результата по отрисовке
+прозрачности. Но не с первого раза. Пришлось доставать код стороннего
+разраба.
+
+Получилась достаточно сложная логика с учетом alpha канала. Логика
+работы - все загружаемые картинки сразу же умножаются на alpha
+канал. (1 - alpha) потом умножается на dst цвет к этому цвету
+добавляется уже умноженный из битмапа цвет, который отрисовывается.
+
+вот что на эту тему сказал Шон Баррет
+
+#+begin_quote
+Photoshop-style blend equations with destination alpha
+
+The photoshop blend formulas are available in many places on the web, but
+they all assume an opaque output target. Sometimes the output target is not
+opaque (for example, with layer folders in Photoshop and the blend mode
+not set to "normal").
+
+The following formulas appear to be the ones used by Adobe Flash Player;
+they might differ from Photoshop blend modes, and they do not include all of
+the Photoshop blend modes (these formulas were developed for and verified in
+Iggy, software I wrote for RAD Game Tools which "plays" Adobe Flash files).
+
+                   out color                                                    out alpha
+                   --------------                                               -----------
+layer/over:    (   sc+(1-sa)*dc                                              ,  sa+da-sa*da   )
+multiply:      (   sc*dc                                                     ,  sa+da-sa*da   )
+screen:        (   sa*da - (da-dc)*(sa-sc)                                   ,  sa+da-sa*da   )
+lighten:       (   max(sa*dc,sc*da)                                          ,  sa+da-sa*da   )
+darken:        (   min(sa*dc,sc*da)                                          ,  sa+da-sa*da   )
+add:           (   min(dc+sc,1)                                              ,  min(sa+da,1)  )
+subtract:      (   max(dc-sc,0)                                              ,  min(sa+da,1)  )
+difference:    (   abs(sa*dc-sc*da)                                          ,  sa+da-sa*da   )
+invert:        (   sa*(da-dc)                                                ,  sa+da-sa*da   )
+overlay:       (   dc < da/2.0 ? (2.0*sc*dc) : (sa*da - 2.0*(da-dc)*(sa-sc)) ,  sa+da-sa*da   )
+hardlight:     (   sc < sa/2.0 ? (2.0*sc*dc) : (sa*da - 2.0*(da-dc)*(sa-sc)) ,  sa+da-sa*da   )
+
+  sc = source color, sa = source alpha, dc = dest color, da = dest alpha
+
+The inputs in the above equations must be premultiplied. If inputs are
+non-premultiplied, replace "sc" with "sc*sa". (Outputs are always
+premultiplied, hence destination is always premultiplied.)
+
+-- Sean Barrett, 2012/09/19
+#+end_quote
 
 ** TODO Handmade Hero Day 084 - Scrolling Ground Buffer
 - [[https://www.youtube.com/watch?v=U5AAAaiMlYQ]]

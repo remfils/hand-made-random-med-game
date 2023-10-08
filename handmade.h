@@ -86,6 +86,7 @@ struct color
     real32 Red;
     real32 Green;
     real32 Blue;
+    real32 Alpha;
 };
 
 

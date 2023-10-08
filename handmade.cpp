@@ -45,6 +45,16 @@ struct bitmap_header {
     int32 Height;
     uint16 Planes;
     uint16 BitsPerPixel;
+    uint32 Compression; // wtf
+    uint32 ImageSize; // wtf
+    uint32 XPixelsPerMeter; // wtf
+    uint32 YPixelsPerMeter; // wtf
+    uint32 ColorsInColorTable; // wtf
+    uint32 ImportantColorCount; // wtf
+    uint32 RedMask;
+    uint32 GreenMask;
+    uint32 BlueMask;
+    uint32 AlphaMask;
 };
 #pragma pack(pop)
 
@@ -67,23 +77,60 @@ internal loaded_bitmap DEBUGLoadBMP(thread_context *thread, debug_platform_read_
         result.Height = header->Height;
         
         uint8 *pixels = (uint8 *)((uint8 *)content + header->BitmapOffset);
-        
         result.Memory = pixels;
+
+        uint32 redMask = header->RedMask;
+        uint32 greenMask = header->GreenMask;
+        uint32 blueMask = header->BlueMask;
+        uint32 alphaMask = ~(redMask | greenMask | blueMask);
+
+        bit_scan_result redScan = FindLeastSignificantSetBit(redMask);
+        bit_scan_result greenScan = FindLeastSignificantSetBit(greenMask);
+        bit_scan_result blueScan = FindLeastSignificantSetBit(blueMask);
+        bit_scan_result alphaScan = FindLeastSignificantSetBit(alphaMask);
+
+        uint32 alphaShiftUp = 24;
+        int32 alphaShiftDown = (int32)alphaScan.Index;
         
+        uint32 redShiftUp = 16;
+        int32 redShiftDown = (int32)redScan.Index;
+
+        uint32 greenShiftUp = 8;
+        int32 greenShiftDown = (int32)greenScan.Index;
+
+        uint32 blueShiftUp = 0;
+        int32 blueShiftDown = (int32)blueScan.Index;
+
+
         // NOTE: why this is not needed?
-        // uint32 *srcDest = pixels;
-        // for (int32 y =0;
-        //      y < header->Height;
-        //      ++y)
-        // {
-        //     for (int32 x =0;
-        //          x < header->Width;
-        //          ++x)
-        //     {
-        //         *srcDest = (*srcDest >> 8) | (*srcDest << 24);
-        //         ++srcDest;
-        //     }
-        // }
+        uint32 *srcDest = (uint32 *)pixels;
+        for (int32 y =0;
+             y < header->Height;
+             ++y)
+        {
+            for (int32 x =0;
+                 x < header->Width;
+                 ++x)
+            {
+                uint32 color = *srcDest;
+
+                real32 r = (real32)((color & redMask) >> redShiftDown);
+                real32 g = (real32)((color & greenMask) >> greenShiftDown);
+                real32 b = (real32)((color & blueMask) >> blueShiftDown);
+                real32 a = (real32)((color & alphaMask) >> alphaShiftDown);
+
+                real32 ra = a / 255.0f;
+
+                r *= ra;
+                g *= ra;
+                b *= ra;
+
+                *srcDest++ = ((uint32)(a + 0.5f) << alphaShiftUp)
+                    | ((uint32)(r + 0.5f) << redShiftUp)
+                    | ((uint32)(g + 0.5f) << greenShiftUp)
+                    | ((uint32)(b + 0.5f) << blueShiftUp);
+            }
+        }
     }
     else
     {
@@ -251,10 +298,11 @@ AddWall(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 uint32 GetUintColor(color color)
 {
     uint32 uColor = (uint32)(
-        (RoundReal32ToInt32(color.Red * 255.0f) << 16) |
-        (RoundReal32ToInt32(color.Green * 255.0f) << 8) |
-        (RoundReal32ToInt32(color.Blue * 255.0f) << 0)
-        );
+                             (RoundReal32ToInt32(color.Alpha * 255.0f) << 24) |
+                             (RoundReal32ToInt32(color.Red * 255.0f) << 16) |
+                             (RoundReal32ToInt32(color.Green * 255.0f) << 8) |
+                             (RoundReal32ToInt32(color.Blue * 255.0f) << 0)
+                             );
     
     return uColor;
 }
@@ -353,7 +401,7 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
 internal void
 RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
     real32 realX, real32 realY,
-    real32 cAlpha = 0.5f)
+    real32 cAlpha = 1.0f)
 {
     int32 minX = RoundReal32ToInt32(realX);
     int32 minY = RoundReal32ToInt32(realY);
@@ -401,27 +449,48 @@ RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
              x < maxX;
              ++x)
         {
-            real32 sa = (real32)((*src >> 24) & 0xff) / 255.0f;
-            sa *= cAlpha;
+            
+            real32 sa = (real32)((*src >> 24) & 0xff) * cAlpha;
+            real32 sr = (real32)((*src >> 16) & 0xff) * cAlpha;
+            real32 sg = (real32)((*src >> 8) & 0xff) * cAlpha;
+            real32 sb = (real32)((*src >> 0) & 0xff) * cAlpha;
 
-            real32 sr = (real32)((*src >> 16) & 0xff);
-            real32 sg = (real32)((*src >> 8) & 0xff);
-            real32 sb = (real32)((*src >> 0) & 0xff);
+            // TODO: put cAlpha back
+            
 
             real32 da = (real32)((*dst >> 24) & 0xff);
             real32 dr = (real32)((*dst >> 16) & 0xff);
             real32 dg = (real32)((*dst >> 8) & 0xff);
             real32 db = (real32)((*dst >> 0) & 0xff);
 
-            // TODO: alpha
+            real32 rsa = (sa / 255.0f);
+            real32 rda = (da / 255.0f);
+            
+            real32 inv_sa = (1.0f - rsa);
 
-            real32 a = Maximum(255.0f * sa, da);
-            real32 r = (1.0f - sa) * dr + sa * sr;
-            real32 g = (1.0f - sa) * dg + sa * sg;
-            real32 b = (1.0f - sa) * db + sa * sb;
+            /*
+            real32 a = Clamp(0, inv_sa * da + sa, 255.0f); // TODO: why clamp?
+            real32 r = Clamp(0, inv_sa * dr + sr, 255.0f); // TODO: why clamp?
+            real32 g = Clamp(0, inv_sa * dg + sg, 255.0f); // TODO: why clamp?
+            real32 b = Clamp(0, inv_sa * db + sb, 255.0f); // TODO: why clamp?
+            */
+
+            real32 a = 255.0f * (rsa + rda - rsa * rda);
+            real32 r = inv_sa * dr + sr;
+            real32 g = inv_sa * dg + sg;
+            real32 b = inv_sa * db + sb;
+
+            if (cAlpha < 1.0f) {
+                int j = 0;
+            }
             
             
-            *dst = ((uint32)(a + 0.5f) << 24 | (uint32)(r + 0.5f) << 16) | ((uint32)(g + 0.5f) << 8) | ((uint32)(b + 0.5f) << 0);
+            *dst = (
+                   ((uint32)(a + 0.5f) << 24)
+                   | ((uint32)(r + 0.5f) << 16)
+                   | ((uint32)(g + 0.5f) << 8)
+                   | ((uint32)(b + 0.5f) << 0)
+                    );
             
             *dst++;
             *src++;
@@ -434,13 +503,25 @@ RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
 }
 
 void
-ClearRenderBuffer(loaded_bitmap *drawBuffer)
+DefaultColorRenderBuffer(loaded_bitmap *drawBuffer)
 {
     color bgColor;
     bgColor.Red = (143.0f / 255.0f);
     bgColor.Green = (118.0f / 255.0f);
     bgColor.Blue = (74.0f / 255.0f);
+    bgColor.Alpha = 1.0f;
     
+    RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
+}
+
+void
+ClearRenderBuffer(loaded_bitmap *drawBuffer)
+{
+    color bgColor;
+    bgColor.Red = 0.0f;
+    bgColor.Green = 0.0f;
+    bgColor.Blue = 0.0f;
+    bgColor.Alpha = 0.0f;
     RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
 }
 
@@ -452,6 +533,7 @@ RenderPlayer(loaded_bitmap *drawBuffer, int playerX, int playerY)
     playerColor.Red = 1;
     playerColor.Green = 0;
     playerColor.Blue = 1;
+    playerColor.Alpha = 1.0f;
     
     RenderRectangle(drawBuffer, (real32)playerX - squareHalfWidth, (real32)playerY - squareHalfWidth, (real32)playerX + squareHalfWidth, (real32)playerY + squareHalfWidth, playerColor);
 }
@@ -938,7 +1020,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     drawBuffer->Height = buffer->Height;
     drawBuffer->Pitch = buffer->Pitch;
         
-    ClearRenderBuffer(drawBuffer);
+    DefaultColorRenderBuffer(drawBuffer);
 
     // TODO: fix numbers for tiles
     uint32 tileSpanX = 17 * 3;
@@ -954,9 +1036,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     real32 screenCenterX = 0.5f * (real32) drawBuffer->Width;
     real32 screenCenterY = 0.5f * (real32) drawBuffer->Height;
     
-    RenderBitmap(drawBuffer, &gameState->LoadedBitmap, 0, 0);
+    ///RenderBitmap(drawBuffer, &gameState->LoadedBitmap, 0, 0);
 
-    RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, 0, 0);
+    // RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, 0, 0);
+
+    RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, 0, 0, 1.0);
     
     sim_entity *simEntity = simRegion->Entities;
     for (uint32 entityIndex = 0;
@@ -979,7 +1063,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             switch (simEntity->Type) {
             case EntityType_Wall:
             {
-                real32 wallAlpha = 0.1f;
+                real32 wallAlpha = 0.5f;
                 real32 halfDepth = gameState->World->TileDepthInMeters;
                 if (simEntity->P.Z < halfDepth && simEntity->P.Z > -0.5f*halfDepth) {
                     wallAlpha = 1.0f;
@@ -1130,6 +1214,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     c.Red = piece.R;
                     c.Green = piece.G;
                     c.Blue = piece.B;
+                    c.Alpha = 1.0f;
 
                     real32 realMinX = center.X - piece.Dim.X / 2;
                     real32 realMinY = center.Y - piece.Dim.Y / 2;
@@ -1183,6 +1268,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     c.Blue = 0.0f;
                 } break;
                 }
+
+                c.Alpha = 1.0f;
 
                 // real32 halfW = simEntity->Dim.X * MetersToPixels * 0.5f;
                 // real32 halfH = simEntity->Dim.Y * MetersToPixels * 0.5f;
