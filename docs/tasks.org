@@ -1,12 +1,16 @@
-* to be done [1/613]
+* to be done [2/613]
 
 ** DONE Handmade Hero Day 085 - Transient Ground Buffers
 - [[https://www.youtube.com/watch?v=QhjuxnQyBwk]]
 
 Добавлен transient storage
 
-** TODO Handmade Hero Day 086 - Aligning Ground Buffers to World Chunks
+** DONE Handmade Hero Day 086 - Aligning Ground Buffers to World Chunks
 - [[https://www.youtube.com/watch?v=TxowSnU2_cQ]]
+
+Убрался концепт тайлов из системы, метры в пиксели были завязаны на
+тайлы + некоторая логика. Были сделаны некоторые оптимизации, которые
+потенциально сломали этажи и подьемы.
 
 ** TODO Handmade Hero Day 087 - Seamless Ground Textures
 - [[https://www.youtube.com/watch?v=YAaqiKuSmsk]]

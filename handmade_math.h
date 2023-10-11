@@ -475,6 +475,17 @@ AddRadiusTo(rectangle3 rect, v3 dim)
 }
 
 inline rectangle3
+Offset(rectangle3 rect, v3 offset)
+{
+    rectangle3 result;
+
+    result.Min = rect.Min + offset;
+    result.Max = rect.Max + offset;
+
+    return result;
+}
+
+inline rectangle3
 RectMinMax(v3 min, v3 max)
 {
     rectangle3 rect;

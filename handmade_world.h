@@ -38,8 +38,6 @@ struct world_chunk
 struct world
 {
     uint32 TotalChunksAdded;
-    real32 TileSideInMeters;
-    real32 TileDepthInMeters;
 
     v3 ChunkDimInMeters;
     world_chunk ChunkHash[100];

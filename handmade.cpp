@@ -226,6 +226,22 @@ InitHitpoints(low_entity *lowEntity, uint32 hitpointCount, uint32 filledAmount =
     }
 }
 
+inline world_position
+ChunkPositionFromTilePosition(world * world, int32 absTileX, int32 absTileY, int32 absTileZ, v3 additionalOffset=V3(0,0,0))
+{
+    world_position basePosition = {};
+
+    real32 tileSideInMeters = 2.0f;
+    real32 tileDepthInMeters = 3.0f;
+
+    v3 tileDim = V3(tileSideInMeters, tileSideInMeters, tileDepthInMeters);
+    v3 offset = Hadamard(tileDim, V3((real32)absTileX, (real32)absTileY, (real32)absTileZ));
+
+    world_position result = MapIntoChunkSpace(world, basePosition, offset + additionalOffset);
+
+    return result;
+}
+
 internal add_low_entity_result
 AddSword(game_state *gameState)
 {
@@ -260,7 +276,7 @@ AddStairway(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
 
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
 
-    lowEntityResult.Low->Sim.WalkableHeight = gameState->World->TileDepthInMeters;
+    lowEntityResult.Low->Sim.WalkableHeight = gameState->TypicalFloorHeight;
     lowEntityResult.Low->Sim.WalkableDim = lowEntityResult.Low->Sim.Collision->TotalVolume.Dim.XY;
     
     return lowEntityResult;
@@ -383,6 +399,7 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
     }
 }
 
+// TODO: rewrite use v2!!!
 internal
 void
 RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, color color)
@@ -424,6 +441,22 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
         }
         row += drawBuffer->Pitch;
     }
+}
+
+// TODO: rewrite use v2!!!
+internal
+void
+RenderRectangleOutline(loaded_bitmap *drawBuffer, real32 minX, real32 minY, real32 maxX, real32 maxY, color color)
+{
+    real32 lineWidth = 2.0f;
+    real32 lineHalfWidth = lineWidth * 0.5f;
+    // top bottom
+    RenderRectangle(drawBuffer, minX, minY - lineHalfWidth, maxX, minY + lineHalfWidth, color);
+    RenderRectangle(drawBuffer, minX, maxY - lineHalfWidth, maxX, maxY + lineHalfWidth, color);
+
+    // left/right
+    RenderRectangle(drawBuffer, minX-lineHalfWidth, minY, minX+lineHalfWidth, maxY, color);
+    RenderRectangle(drawBuffer, maxX-lineHalfWidth, minY, maxX+lineHalfWidth, maxY, color);
 }
 
 
@@ -648,7 +681,6 @@ DrawHitpoints(entity_visible_piece_group *pieceGroup, sim_entity *simEntity)
     }
 }
 
-
 sim_entity_collision_volume_group *
 MakeNullCollision(game_state *gameState)
 {
@@ -747,34 +779,48 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     Assert(sizeof(game_state) <= memory->PermanentStorageSize);
     
     game_state *gameState = (game_state *)memory->PermanentStorage;
+
+    real32 screenWidthInMeters = buffer->Width * gameState->PixelsToMeters;
+    real32 screenHeightInMeters = buffer->Height * gameState->PixelsToMeters;
     
-    real32 TileSideInMeters = 1.4f;
-    int32 TileSideInPixels = 64;
-    
-    real32 MetersToPixels = (real32)TileSideInPixels / (real32)TileSideInMeters;
-    gameState->MetersToPixels = MetersToPixels;
+    // real32 metersToPixels = (real32)TileSideInPixels / (real32)TileSideInMeters;
     
     if (!memory->IsInitialized)
     {
+        uint32 groundBufferWidth = 256;
+        uint32 groundBufferHeight = 256;
+        
+        real32 metersToPixels = 32.0f;
+        gameState->MetersToPixels = metersToPixels;
+        gameState->PixelsToMeters = 1.0f / metersToPixels;
+        gameState->TypicalFloorHeight = 3.0f;
+
+        real32 tileSideInMeters = 2.0f;
+        real32 tileDepthInMeters = 3.0f;
+        
         uint32 tilesPerScreenWidth = 17;
         uint32 tilesPerScreenHeight = 9;
+
+        v3 chunkDimInMeters = V3(groundBufferWidth * gameState->PixelsToMeters, groundBufferHeight * gameState->PixelsToMeters, gameState->TypicalFloorHeight);
+
         
         // TODO: sub arena start partitioning memory space
         InitializeArena(&gameState->WorldArena, memory->PermanentStorageSize - sizeof(game_state), (uint8 *)memory->PermanentStorage + sizeof(game_state));
 
         AddLowEntity(gameState, EntityType_NULL, NullPosition());
 
+
         gameState->World = PushSize(&gameState->WorldArena, world);
-        InitializeWorld(gameState->World, 1.4f, 3.0f);
+        InitializeWorld(gameState->World, chunkDimInMeters);
 
         gameState->NullCollision = MakeNullCollision(gameState);
         gameState->SwordCollision = MakeSimpleGroundedCollision(gameState, 01.f, 0.1f, 0.1f);
-        gameState->StairCollision = MakeSimpleGroundedCollision(gameState, gameState->World->TileSideInMeters, 2.0f * gameState->World->TileSideInMeters, 1.05f * gameState->World->TileDepthInMeters);
+        gameState->StairCollision = MakeSimpleGroundedCollision(gameState, tileSideInMeters, 2.0f * tileSideInMeters, 1.05f * tileDepthInMeters);
         gameState->PlayerCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.5f);
         gameState->MonsterCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.5f);
         gameState->FamiliarCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.1f);
-        gameState->WallCollision = MakeSimpleGroundedCollision(gameState, gameState->World->TileSideInMeters, gameState->World->TileSideInMeters, gameState->World->TileDepthInMeters);
-        gameState->StandardRoomCollision = MakeSimpleGroundedCollision(gameState, tilesPerScreenWidth * gameState->World->TileSideInMeters, tilesPerScreenHeight * gameState->World->TileSideInMeters, 0.9f*gameState->World->TileDepthInMeters);
+        gameState->WallCollision = MakeSimpleGroundedCollision(gameState, tileSideInMeters, tileSideInMeters, tileDepthInMeters);
+        gameState->StandardRoomCollision = MakeSimpleGroundedCollision(gameState, tilesPerScreenWidth * tileSideInMeters, tilesPerScreenHeight * tileSideInMeters, 0.9f * tileDepthInMeters);
 
 
         gameState->LoadedBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/new-bg-code.bmp");
@@ -838,7 +884,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }
 
             // DEBUG, no up and down movement currently
-            rand = RandomChoice(&generatorSeries, 3);
+            // rand = RandomChoice(&generatorSeries, 3);
+            rand = RandomChoice(&generatorSeries, 2);
             
             if (rand == 0) {
                 isDoorRight = true;
@@ -919,7 +966,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     
                     if (isWallTile)
                     {
-                        if (screenIndex > 7) {
+                        if (screenIndex > 6) {
                             AddWall(gameState, absTileX, absTileY, absTileZ);
                         }
                     }
@@ -1016,7 +1063,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         tranState->IsInitialized = true;
 
         // TODO: test fill
-        FillGroundChunk(tranState, gameState, tranState->GroundBuffers, &gameState->CameraPosition);
+        // FillGroundChunk(tranState, gameState, tranState->GroundBuffers, &gameState->CameraPosition);
     }
     
     world *world = gameState->World;
@@ -1102,17 +1149,65 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         
     DefaultColorRenderBuffer(drawBuffer);
 
-    // TODO: fix numbers for tiles
-    uint32 tileSpanX = 17 * 3;
-    uint32 tileSpanY = 9 * 3;
-    uint32 tileSpanZ = 1;
-    rectangle3 cameraBounds = RectCenterDim(V3(0,0,0), world->TileSideInMeters * V3((real32)tileSpanX, (real32)tileSpanY, (real32)tileSpanZ));
+
+    v2 screenCenter = 0.5f * V2((real32) drawBuffer->Width, (real32)drawBuffer->Height);
+    rectangle3 cameraBoundsInMeters = RectCenterDim(V3(0,0,0), V3(screenWidthInMeters, screenHeightInMeters, 0));
+    
+    {
+        world_position minChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMinCorner(cameraBoundsInMeters));
+        world_position maxChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMaxCorner(cameraBoundsInMeters));
+
+        color chunkColor = {1.0f,1.0f,0.0f,0.0f};
+        v2 chunkDimPixels = 0.5f * gameState->MetersToPixels * gameState->World->ChunkDimInMeters.XY;
+
+        for (int32 chunkZ=minChunkP.ChunkZ;
+             chunkZ <= maxChunkP.ChunkZ;
+             chunkZ++)
+        {
+            for (int32 chunkY=minChunkP.ChunkY;
+                 chunkY <= maxChunkP.ChunkY;
+                 chunkY++)
+            {
+                for (int32 chunkX=minChunkP.ChunkX;
+                     chunkX <= maxChunkP.ChunkX;
+                     chunkX++)
+                {
+                    world_position chunkCenter = CenteredTilePoint(chunkX, chunkY, chunkZ);
+                    v3 relP = gameState->MetersToPixels *Subtract(gameState->World, &chunkCenter, &gameState->CameraPosition);
+
+                    v2 screenP = V2(screenCenter.X + relP.X, screenCenter.Y - relP.Y);
+
+                    bool32 found = false;
+                    ground_buffer *emptyBuffer = 0;
+                    for (uint32 groundBufferIndex=0; groundBufferIndex<tranState->GroundBufferCount; groundBufferIndex++)
+                    {
+                        ground_buffer *groundBuffer = tranState->GroundBuffers + groundBufferIndex;
+                        if (AreInSameChunk(&groundBuffer->P, &chunkCenter)) {
+                            found = true;
+                            break;
+                        } else if (!IsValid(groundBuffer->P)) {
+                            emptyBuffer = groundBuffer;
+                        }
+                    }
+
+                    if (!found && emptyBuffer) {
+                        FillGroundChunk(tranState, gameState, emptyBuffer, &chunkCenter);
+                    }
+                        
+                    RenderRectangleOutline(drawBuffer, screenP.X - chunkDimPixels.X , screenP.Y - chunkDimPixels.Y, screenP.X + chunkDimPixels.X, screenP.Y + chunkDimPixels.Y, chunkColor);
+                }
+            }
+        }
+    }
+    
+
+    // TODO: fix meters
+    v3 simBoundsExpansion = V3(15.0f, 15.0f, 15.0f);
+    rectangle3 simBounds = AddRadiusTo(cameraBoundsInMeters, simBoundsExpansion);
 
     temporary_memory simMemory = BeginTemporaryMemory(&tranState->TransientArena);
-    sim_region *simRegion = BeginSim(&tranState->TransientArena, gameState, gameState->World, gameState->CameraPosition, cameraBounds, input->DtForFrame);
+    sim_region *simRegion = BeginSim(&tranState->TransientArena, gameState, gameState->World, gameState->CameraPosition, simBounds, input->DtForFrame);
     
-    real32 screenCenterX = 0.5f * (real32) drawBuffer->Width;
-    real32 screenCenterY = 0.5f * (real32) drawBuffer->Height;
     
     ///RenderBitmap(drawBuffer, &gameState->LoadedBitmap, 0, 0);
 
@@ -1127,8 +1222,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             loaded_bitmap bmp = tranState->GroundBitmapTemplate;
             bmp.Memory = buf->Memory;
             
-            v2 groundP = {screenCenterX - 0.5f * (real32) bmp.Width,
-                          screenCenterY - 0.5f * (real32) bmp.Height};
+            v2 groundP = {screenCenter.X - 0.5f * (real32) bmp.Width,
+                          screenCenter.Y - 0.5f * (real32) bmp.Height};
 
             v3 groundDelta = gameState->MetersToPixels * Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
 
@@ -1160,7 +1255,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             case EntityType_Wall:
             {
                 real32 wallAlpha = 0.5f;
-                real32 halfDepth = gameState->World->TileDepthInMeters;
+                real32 halfDepth = simEntity->Collision->TotalVolume.Dim.Z * 0.5f;
                 if (simEntity->P.Z < halfDepth && simEntity->P.Z > -0.5f*halfDepth) {
                     wallAlpha = 1.0f;
                 }
@@ -1290,9 +1385,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             real32 zFugde = 1.0f + 0.1f * entityBaseP.Z;
 
-            real32 entityX = screenCenterX + entityBaseP.X * MetersToPixels * zFugde;
-            real32 entityY = screenCenterY - entityBaseP.Y * MetersToPixels * zFugde;
-            real32 entityZ = -entityBaseP.Z * MetersToPixels;
+            real32 entityX = screenCenter.X + entityBaseP.X * gameState->MetersToPixels * zFugde;
+            real32 entityY = screenCenter.Y - entityBaseP.Y * gameState->MetersToPixels * zFugde;
+            real32 entityZ = -entityBaseP.Z * gameState->MetersToPixels;
 
             for (uint32 idx =0; idx < pieceGroup.PieceCount; ++idx)
             {

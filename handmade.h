@@ -221,8 +221,12 @@ struct game_state
 
     real32 tSine;
 
+
+    real32 TypicalFloorHeight;
+
     world * World;
     real32 MetersToPixels;
+    real32 PixelsToMeters;
 
     // TODO: what to do with multiple players?
     uint32 CameraFollowingEntityIndex;
