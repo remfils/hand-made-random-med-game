@@ -2,6 +2,7 @@
 
 #define PushSize(arena, type) (type *)PushSize_(arena, sizeof(type))
 #define PushArray(arena, count,  type) (type *)PushSize_(arena, count * sizeof(type))
+
 inline void*
 PushSize_(memory_arena *arena, memory_index size)
 {
@@ -22,6 +23,34 @@ ZeroSize(memory_index size, void *ptr)
     {
         *byte++ = 0;
     }
+}
+
+inline temporary_memory
+BeginTemporaryMemory(memory_arena *arena)
+{
+    temporary_memory result;
+
+    result.Arena = arena;
+    result.Used = arena->Used;
+    result.Arena->TempCount++;
+
+    return result;
+}
+
+inline void
+EndTemporaryMemory(temporary_memory tempMem)
+{
+    memory_arena *arena = tempMem.Arena;
+    Assert(arena->Used >= tempMem.Used)
+    arena->Used = tempMem.Used;
+    Assert(arena->TempCount > 0);
+    arena->TempCount--;
+}
+
+inline void
+CheckArena(memory_arena *arena)
+{
+    Assert(arena->TempCount == 0);
 }
 
 #include "handmade_world.cpp"
@@ -544,6 +573,7 @@ InitializeArena(memory_arena *arena, memory_index size, void *base)
     arena->Size = size;
     arena->Base = (uint8 *)base;
     arena->Used = 0;
+    arena->TempCount = 0;
 }
 
 
@@ -651,16 +681,21 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
 }
 
 internal void
-DrawGroundChunk(game_state *gameState, loaded_bitmap *drawBuffer, world_position *chunkP)
+FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position *chunkP)
 {
+    loaded_bitmap drawBuffer = tranState->GroundBitmapTemplate;
+    drawBuffer.Memory = groundBuffer->Memory;
+
+    groundBuffer->P = *chunkP;
+    
     // TODO: look into wang hashing here
     random_series series = CreateRandomSeed(139 * chunkP->ChunkX + 25*chunkP->ChunkY -3*chunkP->ChunkZ);
     
     uint32 randomIndex = 0;
 
-    v2 center = 0.5f * V2u(drawBuffer->Width, drawBuffer->Height);
+    v2 center = 0.5f * V2u(drawBuffer.Width, drawBuffer.Height);
 
-    for (uint32 grassIndex=0; grassIndex < 1000; grassIndex++)
+    for (uint32 grassIndex=0; grassIndex < 100; grassIndex++)
     {
         v2 p = {
             RandomUnilateral(&series), RandomUnilateral(&series)
@@ -675,12 +710,21 @@ DrawGroundChunk(game_state *gameState, loaded_bitmap *drawBuffer, world_position
         
         v2 grassCenter = 0.5f * V2u(bitmap->Width, bitmap->Height);
         
-        RenderBitmap(drawBuffer, bitmap, center.X + center.X * p.X - grassCenter.X, center.X + center.X * p.Y - grassCenter.Y);
+        RenderBitmap(&drawBuffer, bitmap, center.X + center.X * p.X - grassCenter.X, center.X + center.X * p.Y - grassCenter.Y);
     }
 }
 
-loaded_bitmap
-MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height)
+internal void
+ClearBitmap(loaded_bitmap *bmp)
+{
+    if (bmp->Memory) {
+        int32 totalBitmapSize = bmp->Pitch * bmp->Height;
+        ZeroSize(totalBitmapSize, bmp->Memory);
+    }
+}
+
+internal loaded_bitmap
+MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, bool32 clearToZero=true)
 {
     loaded_bitmap result;
 
@@ -691,7 +735,9 @@ MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height)
     int32 totalBitmapSize = result.Pitch * result.Height;
     result.Memory = PushSize_(arena, totalBitmapSize);
 
-    ClearRenderBuffer(&result);
+    if (clearToZero) {
+        ClearBitmap(&result);
+    }
 
     return result;
 }
@@ -927,8 +973,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             memory->DEBUG_PlatformFreeFileMemory(thread, fileResult.Content);
         }
 #endif
-        
-        memory->IsInitialized = 1;
 
         world_position newCameraP = ChunkPositionFromTilePosition(gameState->World, screenBaseX*17 + 17 / 2, screenBaseY*9 + 9 / 2, screenBaseZ);
         gameState->CameraPosition = newCameraP;
@@ -939,15 +983,40 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         real32 maxZScale = 0.5f;
         real32 groundOverscan = 1.5f;
 
-        uint32 groundBufferWidth = RoundReal32ToInt32(groundOverscan * screenWidth);
-        uint32 groundBufferHeight = RoundReal32ToInt32(groundOverscan * screenHeight);
+        // uint32 groundBufferWidth = RoundReal32ToInt32(groundOverscan * screenWidth);
+        // uint32 groundBufferHeight = RoundReal32ToInt32(groundOverscan * screenHeight);
         
-        gameState->GroundCachedBitmap = MakeEmptyBitmap(&gameState->WorldArena, groundBufferWidth, groundBufferHeight);
         gameState->GroundP = gameState->CameraPosition;
-        DrawGroundChunk(gameState, &gameState->GroundCachedBitmap, &gameState->GroundP);
-
         
         AddMonster(gameState, newCameraP.ChunkX+4, newCameraP.ChunkY+4, newCameraP.ChunkZ);
+
+        memory->IsInitialized = true;
+    }
+
+    Assert(sizeof(transient_state) <= memory->TransientStorageSize);
+    transient_state *tranState = (transient_state *)memory->TransientStorage;
+    if (!tranState->IsInitialized) {
+        InitializeArena(&tranState->TransientArena, memory->TransientStorageSize-sizeof(transient_state), (uint8 *)memory->TransientStorage + sizeof(transient_state));
+
+        uint32 groundBufferWidth = 256;
+        uint32 groundBufferHeight = 256;
+        tranState->GroundBufferCount = 128;
+        tranState->GroundBuffers = PushArray(&tranState->TransientArena, tranState->GroundBufferCount, ground_buffer);
+        
+        for (uint32 groundBufferIndex=0;
+             groundBufferIndex < tranState->GroundBufferCount;
+             groundBufferIndex++)
+        {
+            ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
+            tranState->GroundBitmapTemplate = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight);
+            buf->Memory = tranState->GroundBitmapTemplate.Memory;
+            buf->P = NullPosition();
+        }
+        
+        tranState->IsInitialized = true;
+
+        // TODO: test fill
+        FillGroundChunk(tranState, gameState, tranState->GroundBuffers, &gameState->CameraPosition);
     }
     
     world *world = gameState->World;
@@ -1039,10 +1108,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     uint32 tileSpanZ = 1;
     rectangle3 cameraBounds = RectCenterDim(V3(0,0,0), world->TileSideInMeters * V3((real32)tileSpanX, (real32)tileSpanY, (real32)tileSpanZ));
 
-    memory_arena simArena;
-    InitializeArena(&simArena, memory->TransientStorageSize, memory->TransientStorage);
-    sim_region *simRegion = BeginSim(&simArena, gameState, gameState->World, gameState->CameraPosition, cameraBounds, input->DtForFrame);
-    
+    temporary_memory simMemory = BeginTemporaryMemory(&tranState->TransientArena);
+    sim_region *simRegion = BeginSim(&tranState->TransientArena, gameState, gameState->World, gameState->CameraPosition, cameraBounds, input->DtForFrame);
     
     real32 screenCenterX = 0.5f * (real32) drawBuffer->Width;
     real32 screenCenterY = 0.5f * (real32) drawBuffer->Height;
@@ -1051,12 +1118,25 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     // RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, 0, 0);
 
-    v2 groundP = {screenCenterX - 0.5f * (real32) gameState->GroundCachedBitmap.Width,
-                  screenCenterY - 0.5f * (real32) gameState->GroundCachedBitmap.Height};
+    for (uint32 groundBufferIndex=0;
+         groundBufferIndex < tranState->GroundBufferCount;
+         groundBufferIndex++)
+    {
+        ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
+        if (IsValid(buf->P)) {
+            loaded_bitmap bmp = tranState->GroundBitmapTemplate;
+            bmp.Memory = buf->Memory;
+            
+            v2 groundP = {screenCenterX - 0.5f * (real32) bmp.Width,
+                          screenCenterY - 0.5f * (real32) bmp.Height};
 
-    v3 groundDelta = Subtract(gameState->World, &gameState->GroundP, &gameState->CameraPosition);
-    groundP = V2(groundP.X + groundDelta.X * gameState->MetersToPixels, groundP.Y - groundDelta.Y * gameState->MetersToPixels);
-    RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, groundP.X, groundP.Y, 1.0);
+            v3 groundDelta = gameState->MetersToPixels * Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
+
+            groundP = V2(groundP.X + groundDelta.X , groundP.Y - groundDelta.Y);
+
+            RenderBitmap(drawBuffer, &bmp, groundP.X, groundP.Y, 1.0);
+        }
+    }
     
     sim_entity *simEntity = simRegion->Entities;
     for (uint32 entityIndex = 0;
@@ -1334,6 +1414,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
 
     EndSim(simRegion, gameState);
+
+    EndTemporaryMemory(simMemory);
+    CheckArena(&gameState->WorldArena);
+    CheckArena(&tranState->TransientArena);
 }
 
 

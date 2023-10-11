@@ -113,6 +113,14 @@ struct memory_arena
     memory_index Size;
     uint8 *Base;
     memory_index Used;
+
+    int32 TempCount;
+};
+
+struct temporary_memory
+{
+    memory_arena *Arena;
+    memory_index Used;
 };
 
 #define BITMAP_BYTES_PER_PIXEL 4
@@ -197,12 +205,19 @@ struct pairwise_collision_rule
     pairwise_collision_rule * NextInHash;
 };
 
+struct ground_buffer
+{
+    world_position P; // NOTE: this is center of bitmap
+    void *Memory;
+};
+
 struct game_state
 {
     int XOffset;
     int YOffset;
 
     memory_arena WorldArena;
+    memory_arena TransientArena;
 
     real32 tSine;
 
@@ -228,8 +243,7 @@ struct game_state
     loaded_bitmap SwordDemoBitmap;
     loaded_bitmap StairwayBitmap;
 
-    world_position GroundP;
-    loaded_bitmap GroundCachedBitmap;
+    world_position GroundP;    
     
     hero_bitmaps HeroBitmaps[4];
 
@@ -247,6 +261,14 @@ struct game_state
     sim_entity_collision_volume_group *StandardRoomCollision;
 };
 
+struct transient_state
+{
+    bool32 IsInitialized;
+    memory_arena TransientArena;
+    uint32 GroundBufferCount;
+    loaded_bitmap GroundBitmapTemplate;
+    ground_buffer *GroundBuffers;
+};
 
 struct entity_visible_piece
 {

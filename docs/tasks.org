@@ -1,144 +1,9 @@
-* to be done [12/625]
-** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
-- [[https://www.youtube.com/watch?v=e0yjNipizK0]]
+* to be done [1/613]
 
-https://youtu.be/e0yjNipizK0?t=2004
-
-тяжко очень закончить видео, продолжу завтра (нихрена не продолжил, в
-итоге продолжил через месяц, а то и больше)
-
-- пересечение прямоугольников сделано не через алгоритм Минковского
-- для произвольных форм можно будет использовать GDK (чтобы это не значило)
-
-выводы
-- игра пока что тормозит, вроде у Кейси тоже на стриме. НО он не жалуется не разу (это странно)
-- давно не работал с кодом, пок
-
-** DONE Handmade Hero Day 074 - Moving Entities Up and Down Stairwells
-- [[https://www.youtube.com/watch?v=Hm_CTQwV13U]]
-
-Получилось добится логики пересечения. Но подьем/спуск по лестнице
-работает дотсаточно коряво.
-
-На скорую руку добавляется логика для работы с Z координатой, логика
-по которой игнорировалась.
-
-- Нужно доработать логику, в которой работает спуск/подьем
-- Рендеринг ТОЛЬКО того, что на этаже
-
-** DONE Handmade Hero Day 075 - Conditional Movement Based on Step Heights
-- [[https://www.youtube.com/watch?v=bZxa4fdtI2Y]]
-
-получил неявное поведение из за которого либо работает столкновение с
-stairwell либо "правильно" работает проверка на этаже. Одновременно
-проверка не работает почему то...
-
-Мне кажется, логика работы с высотами немного каличная.
-
-** DONE Handmade Hero Day 076 - Entity Heights and Collision Detection
-- [[https://www.youtube.com/watch?v=0mGWYcE6yG8]]
-
-Добавлено еще больше багов, отрисовка не работает по сути. Хождение по
-лестнице очень кривое - не работает совсем - почему вообще хз.
-
-** DONE Handmade Hero Day 077 - Entity Ground Points
-- [[https://www.youtube.com/watch?v=9IGZGfVvc0s]]
-
-Большая ччасть багов. Сейчас работает +- стабильно но прилипает к стенам.
-
-** DONE Handmade Hero Day 078 - Multiple Collision Volumes Per Entity
-- [[https://www.youtube.com/watch?v=o1DO5sjUhi0]]
-
-плохо рисуются прямоугольники, но столкновение до сих пор работает.
-
-** DONE Handmade Hero Day 079 - Defining the Ground
-- [[https://www.youtube.com/watch?v=HMW1fsXzW-o]]
-
-сейчас работает больше. Исправлены баги с отрисовкой
-прямоугольника. Добавлена логика комнаты - все ВСЕГДА В КОМНАТЕ. В
-комнате есть пол. Пока что добвален концепт комнаты и отрисовываются
-прямоугольники.
-
-** DONE Handmade Hero Day 080 - Handling Traversables in the Collision Loop
-- [[https://www.youtube.com/watch?v=QxxVwnE8V1c]]
-
-после подключения начало сильно лагать. Мне кажется что проблема такая
-же, что и при столкновении со стенами.
-
-** DONE Handmade Hero Day 081 - Creating Ground with Overlapping Bitmaps
-- [[https://www.youtube.com/watch?v=EGOrMZwQVEk]]
-
-Простая отрисовка спрайтов на полу (даже не на полу комнаты).
-
-sparse virtual textures
-
-https://www.youtube.com/watch?v=MejJL87yNgI
-
-** DONE Handmade Hero Day 082 - Caching Composited Bitmaps
-- [[https://www.youtube.com/watch?v=09bUpNbRzzc]]
-
-улучшение работы с рандомом + 15 мин рефакторинга для битмапа -
-*game_offscreen_buffer* теперь вне игры - используется только
-*loaded_bitmap*
-
-** DONE Handmade Hero Day 083 - Premultiplied Alpha
-- [[https://www.youtube.com/watch?v=bidrZj1YosA]]
-
-Получилось добится достаточно хорошего результата по отрисовке
-прозрачности. Но не с первого раза. Пришлось доставать код стороннего
-разраба.
-
-Получилась достаточно сложная логика с учетом alpha канала. Логика
-работы - все загружаемые картинки сразу же умножаются на alpha
-канал. (1 - alpha) потом умножается на dst цвет к этому цвету
-добавляется уже умноженный из битмапа цвет, который отрисовывается.
-
-вот что на эту тему сказал Шон Баррет
-
-#+begin_quote
-Photoshop-style blend equations with destination alpha
-
-The photoshop blend formulas are available in many places on the web, but
-they all assume an opaque output target. Sometimes the output target is not
-opaque (for example, with layer folders in Photoshop and the blend mode
-not set to "normal").
-
-The following formulas appear to be the ones used by Adobe Flash Player;
-they might differ from Photoshop blend modes, and they do not include all of
-the Photoshop blend modes (these formulas were developed for and verified in
-Iggy, software I wrote for RAD Game Tools which "plays" Adobe Flash files).
-
-                   out color                                                    out alpha
-                   --------------                                               -----------
-layer/over:    (   sc+(1-sa)*dc                                              ,  sa+da-sa*da   )
-multiply:      (   sc*dc                                                     ,  sa+da-sa*da   )
-screen:        (   sa*da - (da-dc)*(sa-sc)                                   ,  sa+da-sa*da   )
-lighten:       (   max(sa*dc,sc*da)                                          ,  sa+da-sa*da   )
-darken:        (   min(sa*dc,sc*da)                                          ,  sa+da-sa*da   )
-add:           (   min(dc+sc,1)                                              ,  min(sa+da,1)  )
-subtract:      (   max(dc-sc,0)                                              ,  min(sa+da,1)  )
-difference:    (   abs(sa*dc-sc*da)                                          ,  sa+da-sa*da   )
-invert:        (   sa*(da-dc)                                                ,  sa+da-sa*da   )
-overlay:       (   dc < da/2.0 ? (2.0*sc*dc) : (sa*da - 2.0*(da-dc)*(sa-sc)) ,  sa+da-sa*da   )
-hardlight:     (   sc < sa/2.0 ? (2.0*sc*dc) : (sa*da - 2.0*(da-dc)*(sa-sc)) ,  sa+da-sa*da   )
-
-  sc = source color, sa = source alpha, dc = dest color, da = dest alpha
-
-The inputs in the above equations must be premultiplied. If inputs are
-non-premultiplied, replace "sc" with "sc*sa". (Outputs are always
-premultiplied, hence destination is always premultiplied.)
-
--- Sean Barrett, 2012/09/19
-#+end_quote
-
-** DONE Handmade Hero Day 084 - Scrolling Ground Buffer
-- [[https://www.youtube.com/watch?v=U5AAAaiMlYQ]]
-
-Сделан простой буфер со сгенерированной землей. Эта земля двигается
-относительно камеры.
-
-** TODO Handmade Hero Day 085 - Transient Ground Buffers
+** DONE Handmade Hero Day 085 - Transient Ground Buffers
 - [[https://www.youtube.com/watch?v=QhjuxnQyBwk]]
+
+Добавлен transient storage
 
 ** TODO Handmade Hero Day 086 - Aligning Ground Buffers to World Chunks
 - [[https://www.youtube.com/watch?v=TxowSnU2_cQ]]
@@ -2371,3 +2236,140 @@ https://youtu.be/XfBTNH0nL4I?t=1814
 ** DONE Handmade Hero Day 072 - Proper 3D Inclusion Tests
 - [[https://www.youtube.com/watch?v=tcirDivLd8A]]
 
+** DONE Handmade Hero Day 073 - Temporarily Overlapping Entities
+- [[https://www.youtube.com/watch?v=e0yjNipizK0]]
+
+https://youtu.be/e0yjNipizK0?t=2004
+
+тяжко очень закончить видео, продолжу завтра (нихрена не продолжил, в
+итоге продолжил через месяц, а то и больше)
+
+- пересечение прямоугольников сделано не через алгоритм Минковского
+- для произвольных форм можно будет использовать GDK (чтобы это не значило)
+
+выводы
+- игра пока что тормозит, вроде у Кейси тоже на стриме. НО он не жалуется не разу (это странно)
+- давно не работал с кодом, пок
+
+** DONE Handmade Hero Day 074 - Moving Entities Up and Down Stairwells
+- [[https://www.youtube.com/watch?v=Hm_CTQwV13U]]
+
+Получилось добится логики пересечения. Но подьем/спуск по лестнице
+работает дотсаточно коряво.
+
+На скорую руку добавляется логика для работы с Z координатой, логика
+по которой игнорировалась.
+
+- Нужно доработать логику, в которой работает спуск/подьем
+- Рендеринг ТОЛЬКО того, что на этаже
+
+** DONE Handmade Hero Day 075 - Conditional Movement Based on Step Heights
+- [[https://www.youtube.com/watch?v=bZxa4fdtI2Y]]
+
+получил неявное поведение из за которого либо работает столкновение с
+stairwell либо "правильно" работает проверка на этаже. Одновременно
+проверка не работает почему то...
+
+Мне кажется, логика работы с высотами немного каличная.
+
+** DONE Handmade Hero Day 076 - Entity Heights and Collision Detection
+- [[https://www.youtube.com/watch?v=0mGWYcE6yG8]]
+
+Добавлено еще больше багов, отрисовка не работает по сути. Хождение по
+лестнице очень кривое - не работает совсем - почему вообще хз.
+
+** DONE Handmade Hero Day 077 - Entity Ground Points
+- [[https://www.youtube.com/watch?v=9IGZGfVvc0s]]
+
+Большая ччасть багов. Сейчас работает +- стабильно но прилипает к стенам.
+
+** DONE Handmade Hero Day 078 - Multiple Collision Volumes Per Entity
+- [[https://www.youtube.com/watch?v=o1DO5sjUhi0]]
+
+плохо рисуются прямоугольники, но столкновение до сих пор работает.
+
+** DONE Handmade Hero Day 079 - Defining the Ground
+- [[https://www.youtube.com/watch?v=HMW1fsXzW-o]]
+
+сейчас работает больше. Исправлены баги с отрисовкой
+прямоугольника. Добавлена логика комнаты - все ВСЕГДА В КОМНАТЕ. В
+комнате есть пол. Пока что добвален концепт комнаты и отрисовываются
+прямоугольники.
+
+** DONE Handmade Hero Day 080 - Handling Traversables in the Collision Loop
+- [[https://www.youtube.com/watch?v=QxxVwnE8V1c]]
+
+после подключения начало сильно лагать. Мне кажется что проблема такая
+же, что и при столкновении со стенами.
+
+** DONE Handmade Hero Day 081 - Creating Ground with Overlapping Bitmaps
+- [[https://www.youtube.com/watch?v=EGOrMZwQVEk]]
+
+Простая отрисовка спрайтов на полу (даже не на полу комнаты).
+
+sparse virtual textures
+
+https://www.youtube.com/watch?v=MejJL87yNgI
+
+** DONE Handmade Hero Day 082 - Caching Composited Bitmaps
+- [[https://www.youtube.com/watch?v=09bUpNbRzzc]]
+
+улучшение работы с рандомом + 15 мин рефакторинга для битмапа -
+*game_offscreen_buffer* теперь вне игры - используется только
+*loaded_bitmap*
+
+** DONE Handmade Hero Day 083 - Premultiplied Alpha
+- [[https://www.youtube.com/watch?v=bidrZj1YosA]]
+
+Получилось добится достаточно хорошего результата по отрисовке
+прозрачности. Но не с первого раза. Пришлось доставать код стороннего
+разраба.
+
+Получилась достаточно сложная логика с учетом alpha канала. Логика
+работы - все загружаемые картинки сразу же умножаются на alpha
+канал. (1 - alpha) потом умножается на dst цвет к этому цвету
+добавляется уже умноженный из битмапа цвет, который отрисовывается.
+
+вот что на эту тему сказал Шон Баррет
+
+#+begin_quote
+Photoshop-style blend equations with destination alpha
+
+The photoshop blend formulas are available in many places on the web, but
+they all assume an opaque output target. Sometimes the output target is not
+opaque (for example, with layer folders in Photoshop and the blend mode
+not set to "normal").
+
+The following formulas appear to be the ones used by Adobe Flash Player;
+they might differ from Photoshop blend modes, and they do not include all of
+the Photoshop blend modes (these formulas were developed for and verified in
+Iggy, software I wrote for RAD Game Tools which "plays" Adobe Flash files).
+
+                   out color                                                    out alpha
+                   --------------                                               -----------
+layer/over:    (   sc+(1-sa)*dc                                              ,  sa+da-sa*da   )
+multiply:      (   sc*dc                                                     ,  sa+da-sa*da   )
+screen:        (   sa*da - (da-dc)*(sa-sc)                                   ,  sa+da-sa*da   )
+lighten:       (   max(sa*dc,sc*da)                                          ,  sa+da-sa*da   )
+darken:        (   min(sa*dc,sc*da)                                          ,  sa+da-sa*da   )
+add:           (   min(dc+sc,1)                                              ,  min(sa+da,1)  )
+subtract:      (   max(dc-sc,0)                                              ,  min(sa+da,1)  )
+difference:    (   abs(sa*dc-sc*da)                                          ,  sa+da-sa*da   )
+invert:        (   sa*(da-dc)                                                ,  sa+da-sa*da   )
+overlay:       (   dc < da/2.0 ? (2.0*sc*dc) : (sa*da - 2.0*(da-dc)*(sa-sc)) ,  sa+da-sa*da   )
+hardlight:     (   sc < sa/2.0 ? (2.0*sc*dc) : (sa*da - 2.0*(da-dc)*(sa-sc)) ,  sa+da-sa*da   )
+
+  sc = source color, sa = source alpha, dc = dest color, da = dest alpha
+
+The inputs in the above equations must be premultiplied. If inputs are
+non-premultiplied, replace "sc" with "sc*sa". (Outputs are always
+premultiplied, hence destination is always premultiplied.)
+
+-- Sean Barrett, 2012/09/19
+#+end_quote
+
+** DONE Handmade Hero Day 084 - Scrolling Ground Buffer
+- [[https://www.youtube.com/watch?v=U5AAAaiMlYQ]]
+
+Сделан простой буфер со сгенерированной землей. Эта земля двигается
+относительно камеры.
