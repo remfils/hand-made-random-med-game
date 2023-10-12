@@ -1185,6 +1185,8 @@ int CALLBACK WinMain(
                       }
                   }
 
+                  newInput->ExecutableReloaded = true;
+
                   reload_dlls = false;
                 }
 

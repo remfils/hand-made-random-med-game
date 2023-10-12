@@ -1,3 +1,7 @@
+#include <stdint.h>
+#include <limits.h>
+#include <float.h>
+
 #define internal static
 #define local_persist static
 #define global_variable static
@@ -19,6 +23,7 @@ typedef float real32;
 typedef double real64;
 
 #define Pi32 3.1415926535f
+#define Real32Maximum FLT_MAX
 
 #define Kilobytes(val) ((val)*1024LL)
 #define Megabytes(val) (Kilobytes((val)*1024LL))
@@ -116,6 +121,7 @@ struct game_input
     int32 MouseY;
     int32 MouseZ;
 
+    bool32 ExecutableReloaded;
     real32 DtForFrame;
     
     game_controller_input Controllers[5];

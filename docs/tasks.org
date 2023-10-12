@@ -1,4 +1,4 @@
-* to be done [2/613]
+* to be done [3/613]
 
 ** DONE Handmade Hero Day 085 - Transient Ground Buffers
 - [[https://www.youtube.com/watch?v=QhjuxnQyBwk]]
@@ -12,8 +12,18 @@
 тайлы + некоторая логика. Были сделаны некоторые оптимизации, которые
 потенциально сломали этажи и подьемы.
 
-** TODO Handmade Hero Day 087 - Seamless Ground Textures
+** DONE Handmade Hero Day 087 - Seamless Ground Textures
 - [[https://www.youtube.com/watch?v=YAaqiKuSmsk]]
+
+Сделана идея отрисовки безшовных текстур. Это сделано путем
+отрисовывания всего окружения квадрата, который рисуется сейчас.
+
+Так же добавлена история переиспользования буферов
+
+Я исправил некоторый баг который у себя нашел, который скорее всего
+есть у Кейси (есть он у него или нет мне заметить сложно). Лично я
+смог разобраться а есть ли баг вообще только после того, как нарисовал
+свою текстуру - она обязательно должна быть не симметричная (хоть как либо).
 
 ** TODO Handmade Hero Day 088 - Push Buffer Rendering
 - [[https://www.youtube.com/watch?v=zbufcZ_JBbU]]

@@ -719,30 +719,75 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
     drawBuffer.Memory = groundBuffer->Memory;
 
     groundBuffer->P = *chunkP;
-    
-    // TODO: look into wang hashing here
-    random_series series = CreateRandomSeed(139 * chunkP->ChunkX + 25*chunkP->ChunkY -3*chunkP->ChunkZ);
-    
-    uint32 randomIndex = 0;
+    real32 width = (real32)drawBuffer.Width;
+    real32 height = (real32)drawBuffer.Height;
 
-    v2 center = 0.5f * V2u(drawBuffer.Width, drawBuffer.Height);
-
-    for (uint32 grassIndex=0; grassIndex < 100; grassIndex++)
+    for (int32 chunkOffsetX =  - 1;
+         chunkOffsetX <= 1;
+         ++chunkOffsetX)
     {
-        v2 p = {
-            RandomUnilateral(&series), RandomUnilateral(&series)
-        };
+        for (int32 chunkOffsetY = -1;
+             chunkOffsetY <= 1;
+             ++chunkOffsetY)
+        {
+        
+            int32 chunkX = chunkP->ChunkX + chunkOffsetX;
+            int32 chunkY = chunkP->ChunkY + chunkOffsetY;
+            int32 chunkZ = chunkP->ChunkZ;
+            
+            // TODO: look into wang hashing here
+            random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
+    
+            v2 center = V2((real32)chunkOffsetX * drawBuffer.Width, -(real32)chunkOffsetY * drawBuffer.Height);
 
-        loaded_bitmap *bitmap;
-        if (RandomChoice(&series, 2)) {
-            bitmap = gameState->Grass + RandomChoice(&series, ArrayCount(gameState->Grass));
-        } else {
-            bitmap = gameState->Ground + RandomChoice(&series, ArrayCount(gameState->Ground));
+            for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
+            {
+                loaded_bitmap *bitmap;
+                
+                bitmap = gameState->GroundBitmaps + RandomChoice(&series, ArrayCount(gameState->GroundBitmaps));
+
+                v2 offset = {
+                    width * RandomUnilateral(&series), height * RandomUnilateral(&series)
+                };
+                v2 grassCenter = center + offset;
+        
+                RenderBitmap(&drawBuffer, bitmap, grassCenter.X, grassCenter.Y);
+            }
         }
+    }
+
+    for (int32 chunkOffsetX =  - 1;
+         chunkOffsetX <= 1;
+         ++chunkOffsetX)
+    {
+        for (int32 chunkOffsetY = -1;
+             chunkOffsetY <= 1;
+             ++chunkOffsetY)
+        {
         
-        v2 grassCenter = 0.5f * V2u(bitmap->Width, bitmap->Height);
+            int32 chunkX = chunkP->ChunkX + chunkOffsetX;
+            int32 chunkY = chunkP->ChunkY + chunkOffsetY;
+            int32 chunkZ = chunkP->ChunkZ;
+            
+            // TODO: look into wang hashing here
+            random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
+    
+            v2 center = V2((real32)chunkOffsetX * drawBuffer.Width, -(real32)chunkOffsetY * drawBuffer.Height);
+
+            for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
+            {
+                loaded_bitmap *bitmap;
+                
+                bitmap = gameState->GrassBitmaps + RandomChoice(&series, ArrayCount(gameState->GrassBitmaps));
+
+                v2 offset = {
+                    width * RandomUnilateral(&series), height * RandomUnilateral(&series)
+                };
+                v2 grassCenter = center + offset;
         
-        RenderBitmap(&drawBuffer, bitmap, center.X + center.X * p.X - grassCenter.X, center.X + center.X * p.Y - grassCenter.Y);
+                RenderBitmap(&drawBuffer, bitmap, grassCenter.X, grassCenter.Y);
+            }
+        }
     }
 }
 
@@ -831,10 +876,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->SwordDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/sword_demo.bmp");
         gameState->StairwayBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/Stairway2.bmp");
 
-        gameState->Grass[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass001.bmp");
-        gameState->Grass[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass002.bmp");
-        gameState->Ground[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground001.bmp");
-        gameState->Ground[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground002.bmp");
+        gameState->GrassBitmaps[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass001.bmp");
+        gameState->GrassBitmaps[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass002.bmp");
+        gameState->GroundBitmaps[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground001.bmp");
+        gameState->GroundBitmaps[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground002.bmp");
         
         gameState->HeroBitmaps[0].Align = V2(60, 195);
         gameState->HeroBitmaps[0].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_right.bmp");
@@ -966,9 +1011,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     
                     if (isWallTile)
                     {
-                        if (screenIndex > 6) {
-                            AddWall(gameState, absTileX, absTileY, absTileZ);
-                        }
+                        AddWall(gameState, absTileX, absTileY, absTileZ);
                     }
                 }   
             }
@@ -1047,7 +1090,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         uint32 groundBufferWidth = 256;
         uint32 groundBufferHeight = 256;
-        tranState->GroundBufferCount = 128;
+        // tranState->GroundBufferCount = 128;
+        tranState->GroundBufferCount = 32;
         tranState->GroundBuffers = PushArray(&tranState->TransientArena, tranState->GroundBufferCount, ground_buffer);
         
         for (uint32 groundBufferIndex=0;
@@ -1064,6 +1108,23 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         // TODO: test fill
         // FillGroundChunk(tranState, gameState, tranState->GroundBuffers, &gameState->CameraPosition);
+    }
+
+    if (input->ExecutableReloaded)
+    {
+        uint32 groundBufferWidth = 256;
+        uint32 groundBufferHeight = 256;
+        for (uint32 groundBufferIndex=0;
+             groundBufferIndex < tranState->GroundBufferCount;
+             groundBufferIndex++)
+        {
+            ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
+            tranState->GroundBitmapTemplate = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight);
+            buf->Memory = tranState->GroundBitmapTemplate.Memory;
+            buf->P = NullPosition();
+        }
+        
+        input->ExecutableReloaded = false;
     }
     
     world *world = gameState->World;
@@ -1177,21 +1238,33 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                     v2 screenP = V2(screenCenter.X + relP.X, screenCenter.Y - relP.Y);
 
-                    bool32 found = false;
-                    ground_buffer *emptyBuffer = 0;
+                    real32 furthestBufferLengthSq = 0.0f;
+
+                    ground_buffer *furtherstBuffer = 0;
                     for (uint32 groundBufferIndex=0; groundBufferIndex<tranState->GroundBufferCount; groundBufferIndex++)
                     {
+                        
                         ground_buffer *groundBuffer = tranState->GroundBuffers + groundBufferIndex;
                         if (AreInSameChunk(&groundBuffer->P, &chunkCenter)) {
-                            found = true;
+                            furtherstBuffer = 0;
                             break;
-                        } else if (!IsValid(groundBuffer->P)) {
-                            emptyBuffer = groundBuffer;
+                        } else if (IsValid(groundBuffer->P)) {
+                            v3 bufferP = gameState->MetersToPixels *Subtract(gameState->World, &groundBuffer->P, &gameState->CameraPosition);
+                            real32 distanceToCamera = LengthSq(bufferP.XY);
+
+                            if (furthestBufferLengthSq < distanceToCamera) {
+                                furthestBufferLengthSq = distanceToCamera;
+                                furtherstBuffer = groundBuffer;
+                            }
+                        } else {
+                            furthestBufferLengthSq = Real32Maximum;
+                            furtherstBuffer = groundBuffer;
+                            
                         }
                     }
 
-                    if (!found && emptyBuffer) {
-                        FillGroundChunk(tranState, gameState, emptyBuffer, &chunkCenter);
+                    if (furtherstBuffer) {
+                        FillGroundChunk(tranState, gameState, furtherstBuffer, &chunkCenter);
                     }
                         
                     RenderRectangleOutline(drawBuffer, screenP.X - chunkDimPixels.X , screenP.Y - chunkDimPixels.Y, screenP.X + chunkDimPixels.X, screenP.Y + chunkDimPixels.Y, chunkColor);
