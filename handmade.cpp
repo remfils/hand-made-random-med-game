@@ -1123,10 +1123,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     {
                         
                         ground_buffer *groundBuffer = tranState->GroundBuffers + groundBufferIndex;
-                        if (AreInSameChunk(&groundBuffer->P, &chunkCenter)) {
+                        if (AreInSameChunk(&groundBuffer->P, &chunkCenter))
+                        {
                             furtherstBuffer = 0;
                             break;
-                        } else if (IsValid(groundBuffer->P)) {
+                        }
+                        else if (IsValid(groundBuffer->P))
+                        {
                             v3 bufferP = gameState->MetersToPixels *Subtract(gameState->World, &groundBuffer->P, &gameState->CameraPosition);
                             real32 distanceToCamera = LengthSq(bufferP.XY);
 
@@ -1134,14 +1137,17 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                                 furthestBufferLengthSq = distanceToCamera;
                                 furtherstBuffer = groundBuffer;
                             }
-                        } else {
+                        }
+                        else
+                        {
                             furthestBufferLengthSq = Real32Maximum;
                             furtherstBuffer = groundBuffer;
                             
                         }
                     }
 
-                    if (furtherstBuffer) {
+                    if (furtherstBuffer)
+                    {
                         FillGroundChunk(tranState, gameState, furtherstBuffer, &chunkCenter);
                     }
                         
