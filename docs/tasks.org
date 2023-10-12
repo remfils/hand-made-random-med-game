@@ -1,4 +1,4 @@
-* to be done [4/613]
+* to be done [5/613]
 
 ** DONE Handmade Hero Day 085 - Transient Ground Buffers
 - [[https://www.youtube.com/watch?v=QhjuxnQyBwk]]
@@ -32,8 +32,12 @@
 кладутся на стек как есть (в мировых координатах) а потом
 преобразоываются в мониторные координаты
 
-** TODO Handmade Hero Day 089 - Renderer Push Buffer Entry Types
+** DONE Handmade Hero Day 089 - Renderer Push Buffer Entry Types
 - [[https://www.youtube.com/watch?v=lllby5vrEes]]
+
+Код продолжает разбиватся на выделенную обработку для отрисовки
+элементов. Добавлена фича для списка элеметов с динамической
+типизацией.
 
 ** TODO Handmade Hero Day 090 - Bases Part I
 - [[https://www.youtube.com/watch?v=lcmjmOfWPNU]]

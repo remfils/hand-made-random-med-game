@@ -40,6 +40,7 @@ typedef double real64;
 
 #if HANDMADE_SLOW
 #define InvalidCodePath Assert(!"Invalid code path");
+#define InvalidDefaultCase default: { InvalidCodePath; } break;
 #else
 #define Assert(expression)
 #endif
