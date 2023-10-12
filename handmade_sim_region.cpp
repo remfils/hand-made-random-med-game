@@ -197,7 +197,7 @@ AddEntity(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, low
 internal sim_region*
 BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_position regionCenter, rectangle3 regionBounds, real32 dt)
 {
-    sim_region *simRegion = PushSize(simArena, sim_region);
+    sim_region *simRegion = PushStruct(simArena, sim_region);
     ZeroStruct(simRegion->Hash);
 
     // TODO: figure out what this is = max(speed + width) on all entities
@@ -331,7 +331,7 @@ ChangeEntityLocationRaw(memory_arena *arena, world *world, uint32 lowEntityIndex
                 }
                 else
                 {
-                    oldBlock = PushSize(arena, world_entity_block);
+                    oldBlock = PushStruct(arena, world_entity_block);
                 }
 
                 *oldBlock = *block;
@@ -529,7 +529,7 @@ AddCollisionRule(game_state * gameState, uint32 storageIndexA, uint32 storageInd
         }
         else
         {
-            foundRule = PushSize(&gameState->WorldArena, pairwise_collision_rule);
+            foundRule = PushStruct(&gameState->WorldArena, pairwise_collision_rule);
         }
         foundRule->NextInHash = gameState->CollisionRuleHash[hashBucket];
         gameState->CollisionRuleHash[hashBucket] = foundRule;
@@ -619,9 +619,16 @@ HandleCollision(game_state *gameState, sim_entity *a, sim_entity *b)
 }
 
 inline v3
+GetEntityGroundPoint(sim_entity *entity, v3 forEnityP)
+{
+    v3 result = forEnityP;
+    return result;
+}
+
+inline v3
 GetEntityGroundPoint(sim_entity *entity)
 {
-    v3 result = entity->P;
+    v3 result = GetEntityGroundPoint(entity, entity->P);
     return result;
 }
 
@@ -638,7 +645,7 @@ GetEntityPositionOnStairs(sim_entity *stairsEntity, v3 entityGroundPosition)
 }
 
 internal bool32
-TestSpeculativeCollision(sim_entity *movingEntity, sim_entity *region)
+TestSpeculativeCollision(sim_entity *movingEntity, sim_entity *region, v3 testPoint)
 {
     bool32 result = true;
 
@@ -873,10 +880,15 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
                                             }
                                         }
 
-                                        if (testHitEntity && TestSpeculativeCollision(movingEntity, testHitEntity)) {
-                                            tMin = testTMin;
-                                            wallNormalMin = testWallNormalMin;
-                                            hitEntityMin = testHitEntity;
+                                        if (testHitEntity)
+                                        {
+                                            v3 testP = movingEntity->P + testTMin * entityPositionDelta;
+                                            if (TestSpeculativeCollision(movingEntity, testHitEntity, testP))
+                                            {
+                                                tMin = testTMin;
+                                                wallNormalMin = testWallNormalMin;
+                                                hitEntityMin = testHitEntity;
+                                            }
                                         }
                                     }
                                 }

@@ -1,58 +1,6 @@
 #include "handmade.h"
-
-#define PushSize(arena, type) (type *)PushSize_(arena, sizeof(type))
-#define PushArray(arena, count,  type) (type *)PushSize_(arena, count * sizeof(type))
-
-inline void*
-PushSize_(memory_arena *arena, memory_index size)
-{
-    Assert((arena->Used + size) <= arena->Size);
-
-    void *result = arena->Base + arena->Used;
-    arena->Used += size;
-    return result;
-}
-
-#define ZeroStruct(instance) ZeroSize(sizeof(instance), &(instance))
-inline void
-ZeroSize(memory_index size, void *ptr)
-{
-    // TODO(casey): performance
-    uint8 *byte = (uint8*)ptr;
-    while (size--)
-    {
-        *byte++ = 0;
-    }
-}
-
-inline temporary_memory
-BeginTemporaryMemory(memory_arena *arena)
-{
-    temporary_memory result;
-
-    result.Arena = arena;
-    result.Used = arena->Used;
-    result.Arena->TempCount++;
-
-    return result;
-}
-
-inline void
-EndTemporaryMemory(temporary_memory tempMem)
-{
-    memory_arena *arena = tempMem.Arena;
-    Assert(arena->Used >= tempMem.Used)
-    arena->Used = tempMem.Used;
-    Assert(arena->TempCount > 0);
-    arena->TempCount--;
-}
-
-inline void
-CheckArena(memory_arena *arena)
-{
-    Assert(arena->TempCount == 0);
-}
-
+#include "handmade_render_group.h"
+#include "handmade_render_group.cpp"
 #include "handmade_world.cpp"
 #include "random.h"
 #include "handmade_sim_region.cpp"
@@ -610,84 +558,13 @@ InitializeArena(memory_arena *arena, memory_index size, void *base)
 }
 
 
-inline void
-PushPiece(entity_visible_piece_group *grp, loaded_bitmap *bmp, v3 offset, v2 align, real32 alpha = 1.0f, real32 EntitiyZC=1.0f)
-{
-    Assert(grp->PieceCount < ArrayCount(grp->Pieces));
-    entity_visible_piece *renderPice = grp->Pieces + grp->PieceCount;
-
-    renderPice->Bitmap = bmp;
-    renderPice->Offset = grp->GameState->MetersToPixels * offset - V3(align.X, align.Y, 0);
-    renderPice->Alpha = alpha;
-    renderPice->EntitiyZC = EntitiyZC;
-        
-    grp->PieceCount++;
-}
-
-inline void
-PushPieceRect(entity_visible_piece_group *grp, v3 offset, v2 dim, v4 color)
-{
-    Assert(grp->PieceCount < ArrayCount(grp->Pieces));
-    entity_visible_piece *renderPice = grp->Pieces + grp->PieceCount;
-
-    renderPice->Offset = grp->GameState->MetersToPixels * offset;
-    renderPice->Dim = grp->GameState->MetersToPixels * dim;
-    renderPice->R = color.R;
-    renderPice->G = color.G;
-    renderPice->B = color.B;
-        
-    grp->PieceCount++;
-}
-
-inline void
-PushPieceRectOutline(entity_visible_piece_group *grp, v3 offset, v2 dim, v4 color)
-{
-    real32 lineWidth = 0.05f;
-    // top bottom
-    PushPieceRect(grp, V3(offset.X, offset.Y-dim.Y/2, offset.Z), V2(dim.X, lineWidth), color);
-    PushPieceRect(grp, V3(offset.X, offset.Y+dim.Y/2, offset.Z), V2(dim.X, lineWidth), color);
-
-    // left/right
-    PushPieceRect(grp, V3(offset.X-dim.X/2, offset.Y, offset.Z), V2(lineWidth, dim.Y), color);
-    PushPieceRect(grp, V3(offset.X+dim.X/2, offset.Y, offset.Z), V2(lineWidth, dim.Y), color);
-}
-
-inline void
-DrawHitpoints(entity_visible_piece_group *pieceGroup, sim_entity *simEntity)
-{
-    // health bars
-    if (simEntity->HitPointMax >= 1) {
-        v2 healthDim = V2(0.2f, 0.2f);
-        real32 spacingX = healthDim.X;
-        real32 firstY = 0.3f;
-        real32 firstX = -1 * (real32)(simEntity->HitPointMax - 1) * spacingX;
-        for (uint32 idx=0;
-             idx < simEntity->HitPointMax;
-             idx++)
-        {
-            hit_point *hp = simEntity->HitPoints + idx;
-            v4 color = V4(1.0f, 0.0f, 0.0f, 1);
-
-            if (hp->FilledAmount == 0)
-            {
-                color.R = 0.2f;
-                color.G = 0.2f;
-                color.B = 0.2f;
-            }
-                    
-            PushPieceRect(pieceGroup, V3(firstX, firstY, 0), healthDim, color);
-            firstX += spacingX + healthDim.X;
-        }
-    }
-}
-
 sim_entity_collision_volume_group *
 MakeNullCollision(game_state *gameState)
 {
     // TODO: fundamental types arena
     // gameState->WorldArena;
 
-    sim_entity_collision_volume_group *group = PushSize(&gameState->WorldArena, sim_entity_collision_volume_group);
+    sim_entity_collision_volume_group *group = PushStruct(&gameState->WorldArena, sim_entity_collision_volume_group);
     group->VolumeCount = 0;
     group->Volumes = 0;
     group->TotalVolume.Offset = V3(0,0, 0);
@@ -702,7 +579,7 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
     // TODO: fundamental types arena
     // gameState->WorldArena;
 
-    sim_entity_collision_volume_group *group = PushSize(&gameState->WorldArena, sim_entity_collision_volume_group);
+    sim_entity_collision_volume_group *group = PushStruct(&gameState->WorldArena, sim_entity_collision_volume_group);
     group->VolumeCount = 1;
     group->Volumes = PushArray(&gameState->WorldArena, group->VolumeCount, sim_entity_collision_volume);
     group->TotalVolume.Offset = V3(0,0, 0.5f * z);
@@ -715,12 +592,11 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
 internal void
 FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position *chunkP)
 {
-    loaded_bitmap drawBuffer = tranState->GroundBitmapTemplate;
-    drawBuffer.Memory = groundBuffer->Memory;
+    loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
 
     groundBuffer->P = *chunkP;
-    real32 width = (real32)drawBuffer.Width;
-    real32 height = (real32)drawBuffer.Height;
+    real32 width = (real32)drawBuffer->Width;
+    real32 height = (real32)drawBuffer->Height;
 
     for (int32 chunkOffsetX =  - 1;
          chunkOffsetX <= 1;
@@ -738,7 +614,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             // TODO: look into wang hashing here
             random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
-            v2 center = V2((real32)chunkOffsetX * drawBuffer.Width, -(real32)chunkOffsetY * drawBuffer.Height);
+            v2 center = V2((real32)chunkOffsetX * drawBuffer->Width, -(real32)chunkOffsetY * drawBuffer->Height);
 
             for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
             {
@@ -751,7 +627,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                RenderBitmap(&drawBuffer, bitmap, grassCenter.X, grassCenter.Y);
+                RenderBitmap(drawBuffer, bitmap, grassCenter.X, grassCenter.Y);
             }
         }
     }
@@ -772,7 +648,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             // TODO: look into wang hashing here
             random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
-            v2 center = V2((real32)chunkOffsetX * drawBuffer.Width, -(real32)chunkOffsetY * drawBuffer.Height);
+            v2 center = V2((real32)chunkOffsetX * drawBuffer->Width, -(real32)chunkOffsetY * drawBuffer->Height);
 
             for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
             {
@@ -785,7 +661,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                RenderBitmap(&drawBuffer, bitmap, grassCenter.X, grassCenter.Y);
+                RenderBitmap(drawBuffer, bitmap, grassCenter.X, grassCenter.Y);
             }
         }
     }
@@ -810,7 +686,7 @@ MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, bool32 clearToZe
     result.Pitch = width * BITMAP_BYTES_PER_PIXEL;
 
     int32 totalBitmapSize = result.Pitch * result.Height;
-    result.Memory = PushSize_(arena, totalBitmapSize);
+    result.Memory = PushSize(arena, totalBitmapSize);
 
     if (clearToZero) {
         ClearBitmap(&result);
@@ -855,7 +731,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         AddLowEntity(gameState, EntityType_NULL, NullPosition());
 
 
-        gameState->World = PushSize(&gameState->WorldArena, world);
+        gameState->World = PushStruct(&gameState->WorldArena, world);
         InitializeWorld(gameState->World, chunkDimInMeters);
 
         gameState->NullCollision = MakeNullCollision(gameState);
@@ -1091,7 +967,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         uint32 groundBufferWidth = 256;
         uint32 groundBufferHeight = 256;
         // tranState->GroundBufferCount = 128;
-        tranState->GroundBufferCount = 32;
+        tranState->GroundBufferCount = 64;
         tranState->GroundBuffers = PushArray(&tranState->TransientArena, tranState->GroundBufferCount, ground_buffer);
         
         for (uint32 groundBufferIndex=0;
@@ -1099,8 +975,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
              groundBufferIndex++)
         {
             ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
-            tranState->GroundBitmapTemplate = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight);
-            buf->Memory = tranState->GroundBitmapTemplate.Memory;
+            buf->Bitmap = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight);
             buf->P = NullPosition();
         }
         
@@ -1119,8 +994,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
              groundBufferIndex++)
         {
             ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
-            tranState->GroundBitmapTemplate = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight);
-            buf->Memory = tranState->GroundBitmapTemplate.Memory;
+            buf->Bitmap = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight);
             buf->P = NullPosition();
         }
         
@@ -1201,6 +1075,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         }
     }
 
+    temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
+    // TODO: how much push buffer should be
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, gameState->MetersToPixels, Megabytes(4));
+
     loaded_bitmap drawBuffer_ = {};
     loaded_bitmap *drawBuffer = &drawBuffer_;
     drawBuffer->Memory = buffer->Memory;
@@ -1272,7 +1150,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }
         }
     }
-    
+
+    for (uint32 groundBufferIndex=0;
+         groundBufferIndex < tranState->GroundBufferCount;
+         groundBufferIndex++)
+    {
+        ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
+        if (IsValid(buf->P)) {
+            loaded_bitmap *bmp = &buf->Bitmap;
+            v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
+            PushPiece(renderGroup, bmp, groundDelta.XY, groundDelta.Z, 0.5f * V2i(bmp->Width, bmp->Height), 1);
+        }
+    }
 
     // TODO: fix meters
     v3 simBoundsExpansion = V3(15.0f, 15.0f, 15.0f);
@@ -1285,26 +1174,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     ///RenderBitmap(drawBuffer, &gameState->LoadedBitmap, 0, 0);
 
     // RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, 0, 0);
-
-    for (uint32 groundBufferIndex=0;
-         groundBufferIndex < tranState->GroundBufferCount;
-         groundBufferIndex++)
-    {
-        ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
-        if (IsValid(buf->P)) {
-            loaded_bitmap bmp = tranState->GroundBitmapTemplate;
-            bmp.Memory = buf->Memory;
-            
-            v2 groundP = {screenCenter.X - 0.5f * (real32) bmp.Width,
-                          screenCenter.Y - 0.5f * (real32) bmp.Height};
-
-            v3 groundDelta = gameState->MetersToPixels * Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
-
-            groundP = V2(groundP.X + groundDelta.X , groundP.Y - groundDelta.Y);
-
-            RenderBitmap(drawBuffer, &bmp, groundP.X, groundP.Y, 1.0);
-        }
-    }
     
     sim_entity *simEntity = simRegion->Entities;
     for (uint32 entityIndex = 0;
@@ -1313,7 +1182,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     {
         if (simEntity->Updatable)
         {
-            entity_visible_piece_group pieceGroup = {};
             low_entity *lowEntity = gameState->LowEntities + simEntity->StorageIndex;
 
             // TODO: draw entities on one Z-plane
@@ -1323,7 +1191,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             move_spec moveSpec = DefaultMoveSpec();
             v3 ddp = {};
 
-            pieceGroup.GameState = gameState;
+            render_basis *basis = PushStruct(&tranState->TransientArena, render_basis);
+            renderGroup->DefaultBasis = basis;
+            
             switch (simEntity->Type) {
             case EntityType_Wall:
             {
@@ -1333,7 +1203,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     wallAlpha = 1.0f;
                 }
                 
-                PushPiece(&pieceGroup, &gameState->WallDemoBitmap, V3(0,0, 0), V2(64.0f * 0.5f, 64.0f * 0.5f), wallAlpha);
+                PushPiece(renderGroup, &gameState->WallDemoBitmap, V2(0,0), 0, V2(64.0f * 0.5f, 64.0f * 0.5f), wallAlpha);
             } break;
             case EntityType_Sword:
             {
@@ -1346,7 +1216,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     ClearCollisionRulesFor(gameState, simEntity->StorageIndex);
                 }
 
-                PushPiece(&pieceGroup, &gameState->SwordDemoBitmap, V3(0,0,0), V2(12,60), 1);
+                PushPiece(renderGroup, &gameState->SwordDemoBitmap, V2(0,0),0, V2(12,60), 1);
             } break;
             case EntityType_Hero:
             {
@@ -1374,18 +1244,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     }
                 }
 
-                PushPiece(&pieceGroup, &heroBitmaps->Character, V3(0,0,0), heroBitmaps->Align, 1);
+                PushPiece(renderGroup, &heroBitmaps->Character, V2(0, 0), 0, heroBitmaps->Align, 1);
 
                 sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
-                PushPieceRectOutline(&pieceGroup, V3(volume->Offset.X, volume->Offset.Y, 0), volume->Dim.XY, V4(0, 0.3f, 0.3f, 0));
+                PushPieceRectOutline(renderGroup, V3(volume->Offset.X, volume->Offset.Y, 0), volume->Dim.XY, V4(0, 0.3f, 0.3f, 0));
 
-                DrawHitpoints(&pieceGroup, simEntity);
+                DrawHitpoints(renderGroup, simEntity);
             } break;
             case EntityType_Monster:
             {
-                PushPiece(&pieceGroup, &gameState->EnemyDemoBitmap, V3(0, 0, 0), V2(61,197), 1);
+                PushPiece(renderGroup, &gameState->EnemyDemoBitmap, V2(0, 0), 0, V2(61,197), 1);
 
-                DrawHitpoints(&pieceGroup, simEntity);
+                DrawHitpoints(renderGroup, simEntity);
             } break;
             case EntityType_Familiar:
             {
@@ -1427,7 +1297,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     simEntity->TBobing -= 2.0f * Pi32;
                 }
 
-                PushPiece(&pieceGroup, &gameState->FamiliarDemoBitmap, V3(0, 0.2f * Sin(13 * simEntity->TBobing), 0), V2(58, 203), 1);
+                PushPiece(renderGroup, &gameState->FamiliarDemoBitmap, V2(0, 0.2f * Sin(13 * simEntity->TBobing)), 0, V2(58, 203), 1);
             } break;
             case EntityType_Stairwell:
             {
@@ -1436,15 +1306,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 //     wallAlpha = 0.1f;
                 // }
                 
-                PushPieceRect(&pieceGroup, V3(0, 0, 0), simEntity->WalkableDim, V4(1,1,0,1));
-                PushPieceRect(&pieceGroup, V3(0, 0, simEntity->WalkableHeight), simEntity->WalkableDim, V4(1,1,0,0));
+                PushPieceRect(renderGroup, V2(0, 0), 0, simEntity->WalkableDim, V4(1,1,0,1));
+                PushPieceRect(renderGroup, V2(0, 0), simEntity->WalkableHeight, simEntity->WalkableDim, V4(1,1,0,0));
             } break;
             case EntityType_Space:
             {
                 for (uint32 volumeIndex=0; volumeIndex < simEntity->Collision->VolumeCount; volumeIndex++)
                 {
                     sim_entity_collision_volume *volume = simEntity->Collision->Volumes + volumeIndex;
-                    PushPieceRectOutline(&pieceGroup, V3(volume->Offset.X, volume->Offset.Y, 0), volume->Dim.XY, V4(0,1,1,0));
+                    PushPieceRectOutline(renderGroup, V3(volume->Offset.X, volume->Offset.Y, 0), volume->Dim.XY, V4(0,1,1,0));
                 }
             } break;
             }
@@ -1454,39 +1324,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 MoveEntity(gameState, simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
             }
 
-            v3 entityBaseP = GetEntityGroundPoint(simEntity);
+            /**
+             * TODO: figure out why meters to pixesl here....
 
             real32 zFugde = 1.0f + 0.1f * entityBaseP.Z;
 
             real32 entityX = screenCenter.X + entityBaseP.X * gameState->MetersToPixels * zFugde;
             real32 entityY = screenCenter.Y - entityBaseP.Y * gameState->MetersToPixels * zFugde;
             real32 entityZ = -entityBaseP.Z * gameState->MetersToPixels;
+            */
 
-            for (uint32 idx =0; idx < pieceGroup.PieceCount; ++idx)
-            {
-                entity_visible_piece piece = pieceGroup.Pieces[idx];
-
-                v2 center = {entityX + piece.Offset.X, entityY + piece.Offset.Y};
-                
-                if (piece.Bitmap)
-                {
-                    RenderBitmap(drawBuffer, piece.Bitmap, entityX + piece.Offset.X, entityY + piece.Offset.Y + piece.EntitiyZC*entityZ, piece.Alpha);
-                }
-                else
-                {
-                    color c;
-                    c.Red = piece.R;
-                    c.Green = piece.G;
-                    c.Blue = piece.B;
-                    c.Alpha = 1.0f;
-
-                    real32 realMinX = center.X - piece.Dim.X / 2;
-                    real32 realMinY = center.Y - piece.Dim.Y / 2;
-                    real32 realMaxX = center.X + piece.Dim.X / 2;
-                    real32 realMaxY = center.Y + piece.Dim.Y / 2;
-                    RenderRectangle(drawBuffer, realMinX, realMinY, realMaxX, realMaxY, c);
-                }
-            }
+            basis->P = GetEntityGroundPoint(simEntity);
+            
 
             if (false) // draw entity bounds
             {
@@ -1538,6 +1387,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 // real32 halfW = simEntity->Dim.X * MetersToPixels * 0.5f;
                 // real32 halfH = simEntity->Dim.Y * MetersToPixels * 0.5f;
 
+
+                /*
+
                 // NOTE: wtf rects?
                 real32 halfW = 1;
                 real32 halfH = 2;
@@ -1553,8 +1405,45 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 }
                 
                 RenderRectangle(drawBuffer, realMinX, realMinY, realMaxX, realMaxY, c);
+                */
             }
         }   
+    }
+
+    for (uint32 baseAddress=0;
+         baseAddress < renderGroup->PushBufferSize;
+         )
+    {
+        entity_visible_piece *piece = (entity_visible_piece *)(renderGroup->PushBufferBase + baseAddress);
+        baseAddress += sizeof(entity_visible_piece);
+
+        v3 entityBaseP = piece->Basis->P;
+        real32 zFugde = 1.0f + 0.1f * entityBaseP.Z;
+
+        real32 entityX = screenCenter.X + entityBaseP.X * gameState->MetersToPixels * zFugde;
+        real32 entityY = screenCenter.Y - entityBaseP.Y * gameState->MetersToPixels * zFugde;
+        real32 entityZ = -entityBaseP.Z * gameState->MetersToPixels;
+
+        v2 center = {entityX + piece->Offset.X, entityY + piece->Offset.Y};
+                
+        if (piece->Bitmap)
+        {
+            RenderBitmap(drawBuffer, piece->Bitmap, entityX + piece->Offset.X, entityY + piece->Offset.Y + piece->EntitiyZC*entityZ, piece->Alpha);
+        }
+        else
+        {
+            color c;
+            c.Red = piece->Color.R;
+            c.Green = piece->Color.G;
+            c.Blue = piece->Color.B;
+            c.Alpha = 1.0f;
+
+            real32 realMinX = center.X - piece->Dim.X / 2;
+            real32 realMinY = center.Y - piece->Dim.Y / 2;
+            real32 realMaxX = center.X + piece->Dim.X / 2;
+            real32 realMaxY = center.Y + piece->Dim.Y / 2;
+            RenderRectangle(drawBuffer, realMinX, realMinY, realMaxX, realMaxY, c);
+        }
     }
     
     if (input->MouseButtons[0].EndedDown)
@@ -1584,6 +1473,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     EndSim(simRegion, gameState);
 
     EndTemporaryMemory(simMemory);
+    EndTemporaryMemory(renderMemory);
     CheckArena(&gameState->WorldArena);
     CheckArena(&tranState->TransientArena);
 }

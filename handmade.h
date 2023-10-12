@@ -78,6 +78,9 @@
 #define Minimum(A, B) ((A < B) ? (A) : (B))
 #define Maximum(A, B) ((A > B) ? (A) : (B))
 
+#define PushStruct(arena, type) (type *)PushSize_(arena, sizeof(type))
+#define PushArray(arena, count,  type) (type *)PushSize_(arena, count * sizeof(type))
+#define PushSize(arena, size) PushSize_(arena, size)
 
 struct color
 {
@@ -206,7 +209,7 @@ struct pairwise_collision_rule
 struct ground_buffer
 {
     world_position P; // NOTE: this is center of bitmap
-    void *Memory;
+    loaded_bitmap Bitmap;
 };
 
 struct game_state
@@ -268,27 +271,59 @@ struct transient_state
     bool32 IsInitialized;
     memory_arena TransientArena;
     uint32 GroundBufferCount;
-    loaded_bitmap GroundBitmapTemplate;
     ground_buffer *GroundBuffers;
 };
 
-struct entity_visible_piece
-{
-    loaded_bitmap *Bitmap;
-    v3 Offset;
-    real32 EntitiyZC;
-    real32 Alpha;
 
-    v2 Dim;
-    real32 R, G, B;
-};
-
-struct entity_visible_piece_group
+inline void*
+PushSize_(memory_arena *arena, memory_index size)
 {
-    game_state *GameState;
-    uint32 PieceCount;
-    entity_visible_piece Pieces[32];
-};
+    Assert((arena->Used + size) <= arena->Size);
+
+    void *result = arena->Base + arena->Used;
+    arena->Used += size;
+    return result;
+}
+
+#define ZeroStruct(instance) ZeroSize(sizeof(instance), &(instance))
+inline void
+ZeroSize(memory_index size, void *ptr)
+{
+    // TODO(casey): performance
+    uint8 *byte = (uint8*)ptr;
+    while (size--)
+    {
+        *byte++ = 0;
+    }
+}
+
+inline temporary_memory
+BeginTemporaryMemory(memory_arena *arena)
+{
+    temporary_memory result;
+
+    result.Arena = arena;
+    result.Used = arena->Used;
+    result.Arena->TempCount++;
+
+    return result;
+}
+
+inline void
+EndTemporaryMemory(temporary_memory tempMem)
+{
+    memory_arena *arena = tempMem.Arena;
+    Assert(arena->Used >= tempMem.Used)
+    arena->Used = tempMem.Used;
+    Assert(arena->TempCount > 0);
+    arena->TempCount--;
+}
+
+inline void
+CheckArena(memory_arena *arena)
+{
+    Assert(arena->TempCount == 0);
+}
 
 /* void GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_input *input); */
 

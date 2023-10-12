@@ -62,7 +62,7 @@ GetWorldChunk(world *world, int32 tileX, int32 tileY, int32 tileZ, memory_arena 
 
         if (memoryArena && (tileChunk->ChunkX != TILE_UNINISIALIZED_COORD) && (!tileChunk->NextInHash))
         {
-            tileChunk->NextInHash = PushSize(memoryArena, world_chunk);
+            tileChunk->NextInHash = PushStruct(memoryArena, world_chunk);
             tileChunk->NextInHash->ChunkX = TILE_UNINISIALIZED_COORD;
         }
 
