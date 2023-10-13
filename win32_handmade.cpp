@@ -267,8 +267,8 @@ Win32DisplayBufferInWindow(HDC deviceContext, int windowWidth, int windowHeight,
     int offsetX = 10;
     int offsetY = 10;
 
-    if ((windowWidth > buffer->Width * 2) &&
-        (windowHeight > buffer->Height * 2))
+    if ((windowWidth > buffer->Width * 1.2) &&
+        (windowHeight > buffer->Height * 1.2))
     {
         StretchDIBits(
             deviceContext,

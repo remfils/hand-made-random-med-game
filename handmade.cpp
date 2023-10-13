@@ -1212,11 +1212,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     real32 disp = 20.0f * Cos(10 * angle);
     
     v2 origin = screenCenter;
-    v2 xAxis = 200.0f * V2(Cos(0.5f * angle), Sin(0.5f * angle));
+    v2 xAxis = (230.0f + 30 * Cos(10.0f * angle)) * V2(Cos(10.0f * angle), Sin(10.0f * angle));
     v2 yAxis = Perp(xAxis);
     // v2 xAxis = V2(200.0f, 0);
     // v2 yAxis = V2(0, 120.0f);
-    v4 color = {1.0f, 1, 1, 1};
+    v4 color = { (Sin(4.0f * angle) + 1.0f) / 2.0f, 0.0f, 1, (Cos(4.0f * angle) + 1.0f) / 2.0f};
     PushCoordinateSystem(renderGroup, origin - 0.5 * xAxis - 0.5 * yAxis + V2(disp, 0), xAxis, yAxis, color, &(gameState->HeroBitmaps[3].Character));
 
     RenderGroup(drawBuffer, renderGroup);
