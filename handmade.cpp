@@ -225,7 +225,7 @@ AddStairway(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
 
     lowEntityResult.Low->Sim.WalkableHeight = gameState->TypicalFloorHeight;
-    lowEntityResult.Low->Sim.WalkableDim = lowEntityResult.Low->Sim.Collision->TotalVolume.Dim.XY;
+    lowEntityResult.Low->Sim.WalkableDim = lowEntityResult.Low->Sim.Collision->TotalVolume.Dim.xy;
     
     return lowEntityResult;
 }
@@ -247,7 +247,7 @@ AddFamiliar(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
     world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
     add_low_entity_result lowEntityResult = AddGroundedEntity(gameState, EntityType_Familiar, pos, gameState->FamiliarCollision);
 
-    lowEntityResult.Low->WorldP._Offset.X += 8;
+    lowEntityResult.Low->WorldP._Offset.x += 8;
    
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Collides);
     AddFlag(&lowEntityResult.Low->Sim, EntityFlag_Movable);
@@ -358,6 +358,9 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
 internal void
 FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position *chunkP)
 {
+    temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, 1, Megabytes(4));
+    
     loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
 
     groundBuffer->P = *chunkP;
@@ -393,7 +396,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                RenderBitmap(drawBuffer, bitmap, grassCenter.X, grassCenter.Y);
+                PushPiece(renderGroup, bitmap, grassCenter, 0, V2(0,0));
             }
         }
     }
@@ -427,10 +430,14 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                RenderBitmap(drawBuffer, bitmap, grassCenter.X, grassCenter.Y);
+                PushPiece(renderGroup, bitmap, grassCenter, 0, V2(0,0));
             }
         }
     }
+
+    RenderGroup(drawBuffer, renderGroup);
+
+    EndTemporaryMemory(renderMemory);
 }
 
 internal void
@@ -806,37 +813,37 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             {
                 if (inputController->MoveUp.EndedDown)
                 {
-                    controlledHero->ddPRequest.Y = 1.0f;
+                    controlledHero->ddPRequest.y = 1.0f;
                 }
                 if (inputController->MoveDown.EndedDown)
                 {
-                    controlledHero->ddPRequest.Y = -1.0f;
+                    controlledHero->ddPRequest.y = -1.0f;
                 }
                 if (inputController->MoveLeft.EndedDown)
                 {
-                    controlledHero->ddPRequest.X = -1.0f;
+                    controlledHero->ddPRequest.x = -1.0f;
                 }
                 if (inputController->MoveRight.EndedDown)
                 {
-                    controlledHero->ddPRequest.X = 1.0f;
+                    controlledHero->ddPRequest.x = 1.0f;
                 }
             }
 
             if (inputController->ActionUp.EndedDown)
             {
-                controlledHero->dSwordRequest.Y = 1;
+                controlledHero->dSwordRequest.y = 1;
             }
             if (inputController->ActionDown.EndedDown)
             {
-                controlledHero->dSwordRequest.Y = -1;
+                controlledHero->dSwordRequest.y = -1;
             }
             if (inputController->ActionLeft.EndedDown)
             {
-                controlledHero->dSwordRequest.X = -1;
+                controlledHero->dSwordRequest.x = -1;
             }
             if (inputController->ActionRight.EndedDown)
             {
-                controlledHero->dSwordRequest.X = 1;
+                controlledHero->dSwordRequest.x = 1;
             }
         }
     }
@@ -851,8 +858,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     drawBuffer->Width = buffer->Width;
     drawBuffer->Height = buffer->Height;
     drawBuffer->Pitch = buffer->Pitch;
-        
-    DefaultColorRenderBuffer(drawBuffer);
+
+    
+    PushDefaultRenderClear(renderGroup);
 
 
     v2 screenCenter = 0.5f * V2((real32) drawBuffer->Width, (real32)drawBuffer->Height);
@@ -862,8 +870,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         world_position minChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMinCorner(cameraBoundsInMeters));
         world_position maxChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMaxCorner(cameraBoundsInMeters));
 
-        color chunkColor = {1.0f,1.0f,0.0f,0.0f};
-        v2 chunkDimPixels = 0.5f * gameState->MetersToPixels * gameState->World->ChunkDimInMeters.XY;
+        v4 chunkColor = {1.0f,1.0f,0.0f,0.0f};
+        v2 chunkDimPixels = 0.5f * gameState->MetersToPixels * gameState->World->ChunkDimInMeters.xy;
 
         for (int32 chunkZ=minChunkP.ChunkZ;
              chunkZ <= maxChunkP.ChunkZ;
@@ -878,9 +886,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                      chunkX++)
                 {
                     world_position chunkCenter = CenteredTilePoint(chunkX, chunkY, chunkZ);
-                    v3 relP = gameState->MetersToPixels *Subtract(gameState->World, &chunkCenter, &gameState->CameraPosition);
-
-                    v2 screenP = V2(screenCenter.X + relP.X, screenCenter.Y - relP.Y);
+                    v3 relP = Subtract(gameState->World, &chunkCenter, &gameState->CameraPosition);
 
                     real32 furthestBufferLengthSq = 0.0f;
 
@@ -897,7 +903,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         else if (IsValid(groundBuffer->P))
                         {
                             v3 bufferP = gameState->MetersToPixels *Subtract(gameState->World, &groundBuffer->P, &gameState->CameraPosition);
-                            real32 distanceToCamera = LengthSq(bufferP.XY);
+                            real32 distanceToCamera = LengthSq(bufferP.xy);
 
                             if (furthestBufferLengthSq < distanceToCamera) {
                                 furthestBufferLengthSq = distanceToCamera;
@@ -916,8 +922,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     {
                         FillGroundChunk(tranState, gameState, furtherstBuffer, &chunkCenter);
                     }
-                        
-                    RenderRectangleOutline(drawBuffer, screenP.X - chunkDimPixels.X , screenP.Y - chunkDimPixels.Y, screenP.X + chunkDimPixels.X, screenP.Y + chunkDimPixels.Y, chunkColor);
+
+                    PushPieceRectOutline(renderGroup, relP.xy, 0, gameState->World->ChunkDimInMeters.xy, chunkColor);
                 }
             }
         }
@@ -931,7 +937,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         if (IsValid(buf->P)) {
             loaded_bitmap *bmp = &buf->Bitmap;
             v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
-            PushPiece(renderGroup, bmp, groundDelta.XY, groundDelta.Z, 0.5f * V2i(bmp->Width, bmp->Height), 1);
+            PushPiece(renderGroup, bmp, groundDelta.xy, groundDelta.z, 0.5f * V2i(bmp->Width, bmp->Height), 1);
         }
     }
 
@@ -942,10 +948,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     temporary_memory simMemory = BeginTemporaryMemory(&tranState->TransientArena);
     sim_region *simRegion = BeginSim(&tranState->TransientArena, gameState, gameState->World, gameState->CameraPosition, simBounds, input->DtForFrame);
     
-    
-    ///RenderBitmap(drawBuffer, &gameState->LoadedBitmap, 0, 0);
-
-    // RenderBitmap(drawBuffer, &gameState->GroundCachedBitmap, 0, 0);
     
     sim_entity *simEntity = simRegion->Entities;
     for (uint32 entityIndex = 0;
@@ -970,8 +972,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             case EntityType_Wall:
             {
                 real32 wallAlpha = 0.5f;
-                real32 halfDepth = simEntity->Collision->TotalVolume.Dim.Z * 0.5f;
-                if (simEntity->P.Z < halfDepth && simEntity->P.Z > -0.5f*halfDepth) {
+                real32 halfDepth = simEntity->Collision->TotalVolume.Dim.z * 0.5f;
+                if (simEntity->P.z < halfDepth && simEntity->P.z > -0.5f*halfDepth) {
                     wallAlpha = 1.0f;
                 }
                 
@@ -1003,7 +1005,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                         ddp = V3(conHero->ddPRequest, 0.0f);
 
-                        if (conHero->dSwordRequest.X != 0 || conHero->dSwordRequest.Y != 0)
+                        if (conHero->dSwordRequest.x != 0 || conHero->dSwordRequest.y != 0)
                         {
                             sim_entity *swordEntity = simEntity->Sword.Ptr;
                             if (swordEntity && IsSet(swordEntity, EntityFlag_Nonspacial))
@@ -1019,7 +1021,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 PushPiece(renderGroup, &heroBitmaps->Character, V2(0, 0), 0, heroBitmaps->Align, 1);
 
                 sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
-                PushPieceRectOutline(renderGroup, V3(volume->Offset.X, volume->Offset.Y, 0), volume->Dim.XY, V4(0, 0.3f, 0.3f, 0));
+                PushPieceRectOutline(renderGroup, volume->Offset.xy, 0, volume->Dim.xy, V4(0, 0.3f, 0.3f, 0));
 
                 DrawHitpoints(renderGroup, simEntity);
             } break;
@@ -1074,7 +1076,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             case EntityType_Stairwell:
             {
                 real32 wallAlpha = 1.0f;
-                // if (simEntity->P.Z != 0) {
+                // if (simEntity->P.z != 0) {
                 //     wallAlpha = 0.1f;
                 // }
                 
@@ -1086,7 +1088,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 for (uint32 volumeIndex=0; volumeIndex < simEntity->Collision->VolumeCount; volumeIndex++)
                 {
                     sim_entity_collision_volume *volume = simEntity->Collision->Volumes + volumeIndex;
-                    PushPieceRectOutline(renderGroup, V3(volume->Offset.X, volume->Offset.Y, 0), volume->Dim.XY, V4(0,1,1,0));
+                    PushPieceRectOutline(renderGroup, volume->Offset.xy, 0, volume->Dim.xy, V4(0,1,1,0));
                 }
             } break;
             }
@@ -1099,11 +1101,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             /**
              * TODO: figure out why meters to pixesl here....
 
-            real32 zFugde = 1.0f + 0.1f * entityBaseP.Z;
+            real32 zFugde = 1.0f + 0.1f * entityBaseP.z;
 
-            real32 entityX = screenCenter.X + entityBaseP.X * gameState->MetersToPixels * zFugde;
-            real32 entityY = screenCenter.Y - entityBaseP.Y * gameState->MetersToPixels * zFugde;
-            real32 entityZ = -entityBaseP.Z * gameState->MetersToPixels;
+            real32 entityX = screenCenter.x + entityBaseP.x * gameState->MetersToPixels * zFugde;
+            real32 entityY = screenCenter.y - entityBaseP.y * gameState->MetersToPixels * zFugde;
+            real32 entityZ = -entityBaseP.z * gameState->MetersToPixels;
             */
 
             basis->P = GetEntityGroundPoint(simEntity);
@@ -1113,21 +1115,21 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             {
                 /*
                   NOTE: does NOT support any z logic
-                 */
+
                 
                 color c;
 
                 switch (simEntity->Type) {
                 case EntityType_Wall: {
-                    if (simEntity->P.Z == 0) {
+                    if (simEntity->P.z == 0) {
                         c.Red = 0.3f;
                         c.Green = 0.3f;
                         c.Blue = 0.3f;
-                    } else if (simEntity->P.Z == 1) {
+                    } else if (simEntity->P.z == 1) {
                         c.Red = 0.5f;
                         c.Green = 0.5f;
                         c.Blue = 0.5f;
-                    } else if (simEntity->P.Z == -1) {
+                    } else if (simEntity->P.z == -1) {
                         c.Red = 0.8f;
                         c.Green = 0.8f;
                         c.Blue = 0.8f;
@@ -1139,7 +1141,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 } break;
                 case EntityType_Stairwell: {
                     c.Red = 0.0f;
-                    c.Green = (real32)simEntity->P.Z / 5;
+                    c.Green = (real32)simEntity->P.z / 5;
                     c.Blue = 0.0f;
                 } break;
                 case EntityType_Hero: {
@@ -1156,11 +1158,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                 c.Alpha = 1.0f;
 
-                // real32 halfW = simEntity->Dim.X * MetersToPixels * 0.5f;
-                // real32 halfH = simEntity->Dim.Y * MetersToPixels * 0.5f;
+                // real32 halfW = simEntity->Dim.x * MetersToPixels * 0.5f;
+                // real32 halfH = simEntity->Dim.y * MetersToPixels * 0.5f;
 
-
-                /*
 
                 // NOTE: wtf rects?
                 real32 halfW = 1;
@@ -1172,8 +1172,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 real32 realMaxY = entityY + halfH;
 
                 if (simEntity->Type == EntityType_Hero) {
-                    realMinX = realMinX - simEntity->P.Z * 10.0f;
-                    realMaxX = realMaxX + simEntity->P.Z * 10.0f;
+                    realMinX = realMinX - simEntity->P.z * 10.0f;
+                    realMaxX = realMaxX + simEntity->P.z * 10.0f;
                 }
                 
                 RenderRectangle(drawBuffer, realMinX, realMinY, realMaxX, realMaxY, c);
@@ -1182,31 +1182,41 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         }   
     }
 
-    RenderGroup(drawBuffer, renderGroup);
-    
     if (input->MouseButtons[0].EndedDown)
     {
+        real32 width = 10;
         int testSpace = 50;
-        RenderSquareDot(drawBuffer, input->MouseX + testSpace, input->MouseY + testSpace);
+        v4 color = {1.0f, 0.0f, 1.0f, 1.0f};
         
-        RenderSquareDot(drawBuffer, input->MouseX - testSpace, input->MouseY - testSpace);
-        
-        RenderSquareDot(drawBuffer, input->MouseX + testSpace, input->MouseY - testSpace);
-        
-        RenderSquareDot(drawBuffer, input->MouseX - testSpace, input->MouseY + testSpace);
+        PushScreenSquareDot(renderGroup, V2i(input->MouseX + testSpace, input->MouseY + testSpace), width, color);
+        PushScreenSquareDot(renderGroup, V2i(input->MouseX - testSpace, input->MouseY - testSpace), width, color);
+        PushScreenSquareDot(renderGroup, V2i(input->MouseX + testSpace, input->MouseY - testSpace), width, color);
+        PushScreenSquareDot(renderGroup, V2i(input->MouseX - testSpace, input->MouseY + testSpace), width, color);
     }
     
     if (input->MouseButtons[1].EndedDown)
     {
+        real32 width = 10;
         int testSpace = 50;
-        RenderSquareDot(drawBuffer, input->MouseX + testSpace, input->MouseY);
+        v4 color = {1.0f, 0.0f, 1.0f, 1.0f};
         
-        RenderSquareDot(drawBuffer, input->MouseX - testSpace, input->MouseY);
-        
-        RenderSquareDot(drawBuffer, input->MouseX, input->MouseY - testSpace);
-        
-        RenderSquareDot(drawBuffer, input->MouseX, input->MouseY + testSpace);
+        PushScreenSquareDot(renderGroup, V2i(input->MouseX + testSpace, input->MouseY), width, color);
+        PushScreenSquareDot(renderGroup, V2i(input->MouseX - testSpace, input->MouseY), width, color);
+        PushScreenSquareDot(renderGroup, V2i(input->MouseX, input->MouseY - testSpace), width, color);
+        PushScreenSquareDot(renderGroup, V2i(input->MouseX, input->MouseY + testSpace), width, color);
     }
+
+    gameState->CurrentTime += input->DtForFrame;
+
+    real32 angle = gameState->CurrentTime;
+    
+    v2 origin = screenCenter;
+    v2 xAxis = 50 * Cos(0.8f* angle) * V2(Cos(angle), Sin(angle));
+    v2 yAxis = Perp(xAxis);
+    v4 color = {1.0f, 1, 1, 1};
+    PushCoordinateSystem(renderGroup, origin, xAxis, yAxis, color);
+
+    RenderGroup(drawBuffer, renderGroup);
 
     EndSim(simRegion, gameState);
 

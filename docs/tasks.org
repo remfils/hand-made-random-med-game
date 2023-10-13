@@ -1,4 +1,4 @@
-* to be done [5/613]
+* to be done [8/613]
 
 ** DONE Handmade Hero Day 085 - Transient Ground Buffers
 - [[https://www.youtube.com/watch?v=QhjuxnQyBwk]]
@@ -39,14 +39,20 @@
 элементов. Добавлена фича для списка элеметов с динамической
 типизацией.
 
-** TODO Handmade Hero Day 090 - Bases Part I
+** DONE Handmade Hero Day 090 - Bases Part I
 - [[https://www.youtube.com/watch?v=lcmjmOfWPNU]]
 
-** TODO Handmade Hero Day 091 - Bases Part II
+** DONE Handmade Hero Day 091 - Bases Part II
 - [[https://www.youtube.com/watch?v=2yKKcjBIaL0]]
 
-** TODO Handmade Hero Day 092 - Filling Rotated and Scaled Rectangles
+Добавлена элемент отрисовки системы координат. Саму систему координат
+можно вращать относительно системы координат монитора.
+
+** DONE Handmade Hero Day 092 - Filling Rotated and Scaled Rectangles
 - [[https://www.youtube.com/watch?v=kVU_QIxm3AA]]
+
+Добавилось вращение прямоугольника. Это было сделано путем замены
+условий x >= minX && x < maxX на проверку с наклоненными ребрами.
 
 ** TODO Handmade Hero Day 093 - Textured Quadrilaterals
 - [[https://www.youtube.com/watch?v=k5wzQeWRokA]]

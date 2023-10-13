@@ -7,7 +7,9 @@ enum render_entry_type
 {
     RenderEntryType_render_entry_clear,
     RenderEntryType_render_entry_bitmap,
-    RenderEntryType_render_entry_rectangle
+    RenderEntryType_render_entry_rectangle,
+    RenderEntryType_render_entry_screen_dot,
+    RenderEntryType_render_entry_coordinate_system
 };
 
 // NOTE: render group entry is a efficient "discriminated union"
@@ -24,10 +26,29 @@ struct render_entity_basis
     real32 EntitiyZC;
 };
 
+struct render_entry_screen_dot
+{
+    render_entry_header Header;
+    v2 P;
+    real32 Width;
+    v4 Color;
+};
+
 struct render_entry_clear
 {
     render_entry_header Header;
     v4 Color;
+};
+
+struct render_entry_coordinate_system
+{
+    render_entry_header Header;
+    v2 Origin;
+    v2 XAxis;
+    v2 YAxis;
+    v4 Color;
+
+    v2 Points[10];
 };
 
 struct render_entry_rectangle

@@ -1,10 +1,10 @@
-uint32 GetUintColor(color color)
+uint32 GetUintColor(v4 color)
 {
     uint32 uColor = (uint32)(
-                             (RoundReal32ToInt32(color.Alpha * 255.0f) << 24) |
-                             (RoundReal32ToInt32(color.Red * 255.0f) << 16) |
-                             (RoundReal32ToInt32(color.Green * 255.0f) << 8) |
-                             (RoundReal32ToInt32(color.Blue * 255.0f) << 0)
+                             (RoundReal32ToInt32(color.a * 255.0f) << 24) |
+                             (RoundReal32ToInt32(color.r * 255.0f) << 16) |
+                             (RoundReal32ToInt32(color.g * 255.0f) << 8) |
+                             (RoundReal32ToInt32(color.b * 255.0f) << 0)
                              );
     
     return uColor;
@@ -12,7 +12,7 @@ uint32 GetUintColor(color color)
 
 internal
 void
-RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, color color)
+RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color)
 {
     uint32 uColor = GetUintColor(color);
     
@@ -53,10 +53,77 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     }
 }
 
+internal
+void
+RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, v4 color)
+{
+    uint32 uColor = GetUintColor(color);
+
+    int32 widthMax = drawBuffer->Width - 1;
+    int32 heightMax = drawBuffer->Height - 1;
+
+    int32 minX = widthMax;
+    int32 maxX = 0;
+    int32 minY = heightMax;
+    int32 maxY = 0;
+
+    v2 p[4] = {origin, origin + xAxis, origin + xAxis + yAxis, origin + yAxis};
+    for (int pIndex=0; pIndex < ArrayCount(p); pIndex++)
+    {
+        v2 testP = p[pIndex];
+        int32 floorX = FloorReal32ToInt32(testP.x);
+        int32 ceilX = CeilReal32ToInt32(testP.x);
+        int32 floorY = FloorReal32ToInt32(testP.y);
+        int32 ceilY = CeilReal32ToInt32(testP.y);
+
+        if (minY > floorY) { minY = floorY; }
+        if (minX > floorX) { minX = floorX; }
+        if (maxX < ceilX) { maxX = ceilX; }
+        if (maxY < ceilY) { maxY = ceilY; }
+    }
+
+    if (minX < 0) minX = 0;
+    if (minY < 0) minY = 0;
+    if (maxX > widthMax) maxX = widthMax;
+    if (maxY > heightMax) maxY = heightMax;
+
+    uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
+    
+    for (int32 y = minY; y <= maxY; ++y)
+    {
+        uint32 *pixel = (uint32 *)row;
+        
+        for (int32 x = minX; x <= maxX; ++x)
+        {
+
+            v2 pixelP = V2i(x, y);
+
+            // TODO: perpinner
+            // TODO: simpler origin calcs
+            real32 edge0 = Inner((pixelP - origin), -Perp(xAxis));
+            real32 edge1 = Inner(pixelP - (origin + xAxis), -Perp(yAxis));
+            real32 edge2 = Inner(pixelP - (origin + xAxis + yAxis), Perp(xAxis));
+            real32 edge3 = Inner(pixelP - (origin + yAxis), Perp(yAxis));
+            
+            if (
+                edge0 < 0
+                && edge1 < 0
+                && edge2 < 0
+                && edge3 < 0
+                )
+            {
+                *(uint32 *)pixel = uColor;
+            }
+            pixel++;
+        }
+        row += drawBuffer->Pitch;
+    }
+}
+
 // TODO: rewrite use v2!!!
 internal
 void
-RenderRectangleOutline(loaded_bitmap *drawBuffer, real32 minX, real32 minY, real32 maxX, real32 maxY, color color)
+RenderRectangleOutline(loaded_bitmap *drawBuffer, real32 minX, real32 minY, real32 maxX, real32 maxY, v4 color)
 {
     real32 lineWidth = 2.0f;
     real32 lineHalfWidth = lineWidth * 0.5f;
@@ -194,34 +261,15 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
 }
 
 internal void
-RenderSquareDot(loaded_bitmap *drawBuffer, int32 dotPositionX, int32 dotPositionY)
+RenderSquareDot(loaded_bitmap *drawBuffer, real32 dotPositionX, real32 dotPositionY, real32 squareHalfWidth, v4 color)
 {
-    real32 squareHalfWidth = 10;
-    color playerColor = {1.0f, 0.0f, 1.0f, 1.0f};
-    
-    RenderRectangle(drawBuffer, (real32)dotPositionX - squareHalfWidth, (real32)dotPositionY - squareHalfWidth, (real32)dotPositionX + squareHalfWidth, (real32)dotPositionY + squareHalfWidth, playerColor);
-}
-
-void
-DefaultColorRenderBuffer(loaded_bitmap *drawBuffer)
-{
-    color bgColor;
-    bgColor.Red = (143.0f / 255.0f);
-    bgColor.Green = (118.0f / 255.0f);
-    bgColor.Blue = (74.0f / 255.0f);
-    bgColor.Alpha = 1.0f;
-    
-    RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
+    RenderRectangle(drawBuffer, dotPositionX - squareHalfWidth, dotPositionY - squareHalfWidth, dotPositionX + squareHalfWidth, dotPositionY + squareHalfWidth, color);
 }
 
 void
 ClearRenderBuffer(loaded_bitmap *drawBuffer)
 {
-    color bgColor;
-    bgColor.Red = 0.0f;
-    bgColor.Green = 0.0f;
-    bgColor.Blue = 0.0f;
-    bgColor.Alpha = 0.0f;
+    v4 bgColor = {0.0f, 0.0f, 0.0f, 0.0f};
     RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
 }
 
@@ -264,15 +312,15 @@ PushRenderElement_(render_group *grp, uint32 size, render_entry_type type)
 inline void
 PushPiece(render_group *grp, loaded_bitmap *bmp, v2 offset, real32 offsetZ, v2 align, real32 alpha = 1.0f, real32 EntitiyZC=1.0f)
 {
-    render_entry_bitmap *renderPice = PushRenderElement(grp, render_entry_bitmap);
+    render_entry_bitmap *renderEntry = PushRenderElement(grp, render_entry_bitmap);
 
-    if (renderPice) {
-        renderPice->EntityBasis.Basis = grp->DefaultBasis;
-        renderPice->EntityBasis.Offset = grp->MetersToPixels * V2(offset.X, -offset.Y) - align;
-        renderPice->EntityBasis.OffsetZ = offsetZ * grp->MetersToPixels;
-        renderPice->EntityBasis.EntitiyZC = EntitiyZC;
-        renderPice->Bitmap = bmp;
-        renderPice->Alpha = alpha;
+    if (renderEntry) {
+        renderEntry->EntityBasis.Basis = grp->DefaultBasis;
+        renderEntry->EntityBasis.Offset = grp->MetersToPixels * V2(offset.x, -offset.y) - align;
+        renderEntry->EntityBasis.OffsetZ = offsetZ * grp->MetersToPixels;
+        renderEntry->EntityBasis.EntitiyZC = EntitiyZC;
+        renderEntry->Bitmap = bmp;
+        renderEntry->Alpha = alpha;
     }
 }
 
@@ -288,23 +336,72 @@ PushPieceRect(render_group *grp, v2 offset, real32 offsetZ, v2 dim, v4 color)
         v2 halfDim = 0.5f * renderEntry->Dim;
         
         renderEntry->EntityBasis.Basis = grp->DefaultBasis;
-        renderEntry->EntityBasis.Offset = V2(grp->MetersToPixels * offset.X - halfDim.X, grp->MetersToPixels * offset.Y - halfDim.Y);
+        renderEntry->EntityBasis.Offset = V2(grp->MetersToPixels * offset.x - halfDim.x, grp->MetersToPixels * offset.y - halfDim.y);
         renderEntry->EntityBasis.OffsetZ = offsetZ * grp->MetersToPixels;
         renderEntry->Color = color;
     }
 }
 
 inline void
-PushPieceRectOutline(render_group *grp, v3 offset, v2 dim, v4 color)
+PushPieceRectOutline(render_group *grp, v2 offset, real32 offsetZ, v2 dim, v4 color)
 {
     real32 lineWidth = 0.05f;
     // top bottom
-    PushPieceRect(grp, V2(offset.X, offset.Y-dim.Y/2), offset.Z, V2(dim.X, lineWidth), color);
-    PushPieceRect(grp, V2(offset.X, offset.Y+dim.Y/2), offset.Z, V2(dim.X, lineWidth), color);
+    PushPieceRect(grp, V2(offset.x, -offset.y-dim.y/2), offsetZ, V2(dim.x, lineWidth), color);
+    PushPieceRect(grp, V2(offset.x, -offset.y+dim.y/2), offsetZ, V2(dim.x, lineWidth), color);
 
     // left/right
-    PushPieceRect(grp, V2(offset.X-dim.X/2, offset.Y), offset.Z, V2(lineWidth, dim.Y), color);
-    PushPieceRect(grp, V2(offset.X+dim.X/2, offset.Y), offset.Z, V2(lineWidth, dim.Y), color);
+    PushPieceRect(grp, V2(offset.x-dim.x/2, -offset.y), offsetZ, V2(lineWidth, dim.y), color);
+    PushPieceRect(grp, V2(offset.x+dim.x/2, -offset.y), offsetZ, V2(lineWidth, dim.y), color);
+}
+
+inline void
+PushDefaultRenderClear(render_group *grp)
+{
+    render_entry_clear *renderEntry = PushRenderElement(grp, render_entry_clear);
+
+    if (renderEntry) {
+        renderEntry->Color.r = (143.0f / 255.0f);
+        renderEntry->Color.g = (118.0f / 255.0f);
+        renderEntry->Color.b = (74.0f / 255.0f);
+        renderEntry->Color.a = 1.0f;
+    }
+}
+
+inline void
+PushScreenSquareDot(render_group *grp, v2 screenPosition, real32 width, v4 color)
+{
+    render_entry_screen_dot *renderEntry = PushRenderElement(grp, render_entry_screen_dot);
+    if (renderEntry)
+    {
+        renderEntry->P = screenPosition;
+        renderEntry->Width = width;
+        renderEntry->Color = color;
+    }
+}
+
+inline void
+PushCoordinateSystem(render_group *grp, v2 origin, v2 x, v2 y, v4 color)
+{
+    render_entry_coordinate_system *renderEntry = PushRenderElement(grp, render_entry_coordinate_system);
+    if (renderEntry)
+    {
+        renderEntry->Origin = origin;
+        renderEntry->XAxis = x;
+        renderEntry->YAxis = y;
+        renderEntry->Color = color;
+
+        uint32 pIndex = 0;
+        for (real32 pX=0; pX <= 1; pX += 0.25f)
+        {
+            for (real32 pY=0; pY <= 1; pY += 0.25f)
+            {
+
+                renderEntry->Points[pIndex] = V2(pX, pY);
+                pIndex++;
+            }
+        }
+    }
 }
 
 inline void
@@ -313,7 +410,7 @@ DrawHitpoints(render_group *renderGroup, sim_entity *simEntity)
     // health bars
     if (simEntity->HitPointMax >= 1) {
         v2 healthDim = V2(0.2f, 0.2f);
-        real32 spacingX = healthDim.X;
+        real32 spacingX = healthDim.x;
         real32 firstY = 0.3f;
         real32 firstX = -1 * (real32)(simEntity->HitPointMax - 1) * spacingX;
         for (uint32 idx=0;
@@ -325,13 +422,13 @@ DrawHitpoints(render_group *renderGroup, sim_entity *simEntity)
 
             if (hp->FilledAmount == 0)
             {
-                color.R = 0.2f;
-                color.G = 0.2f;
-                color.B = 0.2f;
+                color.r = 0.2f;
+                color.g = 0.2f;
+                color.b = 0.2f;
             }
                     
             PushPieceRect(renderGroup, V2(firstX, firstY), 0, healthDim, color);
-            firstX += spacingX + healthDim.X;
+            firstX += spacingX + healthDim.x;
         }
     }
 }
@@ -340,13 +437,13 @@ inline v2
 GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenCenter, render_entity_basis *entityBasis)
 {
     v3 entityBaseP = entityBasis->Basis->P;
-    real32 zFugde = 1.0f + 0.1f * entityBaseP.Z;
+    real32 zFugde = 1.0f + 0.1f * entityBaseP.z;
 
-    real32 entityX = screenCenter.X + entityBaseP.X * renderGroup->MetersToPixels * zFugde;
-    real32 entityY = screenCenter.Y - entityBaseP.Y * renderGroup->MetersToPixels * zFugde;
-    real32 entityZ = -entityBaseP.Z * renderGroup->MetersToPixels - entityBasis->OffsetZ;
+    real32 entityX = screenCenter.x + entityBaseP.x * renderGroup->MetersToPixels * zFugde;
+    real32 entityY = screenCenter.y - entityBaseP.y * renderGroup->MetersToPixels * zFugde;
+    real32 entityZ = -entityBaseP.z * renderGroup->MetersToPixels - entityBasis->OffsetZ;
 
-    v2 result = {entityX + entityBasis->Offset.X, entityY + entityBasis->Offset.Y + entityZ};
+    v2 result = {entityX + entityBasis->Offset.x, entityY + entityBasis->Offset.y + entityZ};
 
     return result;
 }
@@ -366,7 +463,8 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
         {
         case RenderEntryType_render_entry_clear: {
             render_entry_clear *entry = (render_entry_clear *) entryHeader;
-            
+
+            RenderRectangle(outputTarget, 0, 0, (real32)outputTarget->Width, (real32)outputTarget->Height, entry->Color);
             
             baseAddress += sizeof(*entry);
         } break;
@@ -376,29 +474,58 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
             v2 center = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
 
             Assert(entry->Bitmap);
-            RenderBitmap(outputTarget, entry->Bitmap, center.X, center.Y + entry->EntityBasis.EntitiyZC, entry->Alpha);
+            RenderBitmap(outputTarget, entry->Bitmap, center.x, center.y + entry->EntityBasis.EntitiyZC, entry->Alpha);
                 
             baseAddress += sizeof(*entry);
         } break;
         case RenderEntryType_render_entry_rectangle: {
             render_entry_rectangle *entry = (render_entry_rectangle *) entryHeader;
 
-            // TODO: color
-            color c;
-            c.Red = entry->Color.R;
-            c.Green = entry->Color.G;
-            c.Blue = entry->Color.B;
-            c.Alpha = 1.0f;
-
             v2 center = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
-            RenderRectangle(outputTarget, center.X, center.Y, center.X + entry->Dim.X, center.Y + entry->Dim.Y, c);
+            RenderRectangle(outputTarget, center.x, center.y, center.x + entry->Dim.x, center.y + entry->Dim.y, entry->Color);
             
             baseAddress += sizeof(*entry);
         } break;
-        // case RenderGroupType_Clear: {
+        case RenderEntryType_render_entry_screen_dot: {
+            render_entry_screen_dot *entry = (render_entry_screen_dot *) entryHeader;
+
+            RenderSquareDot(outputTarget, entry->P.x, entry->P.y, 0.5f * entry->Width, entry->Color);
+
+            baseAddress += sizeof(*entry);
+        } break;
+        case RenderEntryType_render_entry_coordinate_system: {
+            render_entry_coordinate_system *entry = (render_entry_coordinate_system *) entryHeader;
+
+            v2 p = entry->Origin;
+            v2 dim = {5, 5};
+            RenderRectangleSlowly(outputTarget, entry->Origin, entry->XAxis, entry->YAxis, entry->Color);
+
+
+            /*
+
+            p = entry->Origin + entry->XAxis;
+            RenderRectangle(outputTarget, p.x - dim.x, p.y - dim.y, p.x + dim.x, p.y + dim.y, entry->Color);
+
+            p = entry->Origin + entry->YAxis;
+            RenderRectangle(outputTarget, p.x - dim.x, p.y - dim.y, p.x + dim.x, p.y + dim.y, entry->Color);
+
+            for (uint32 pointIndex=0;
+                 pointIndex < ArrayCount(entry->Points);
+                 ++pointIndex)
+            {
+                v2 newP = entry->Points[pointIndex];
+
+                p = entry->Origin + newP.y * entry->YAxis + newP.x * entry->XAxis;
+                
+                RenderRectangle(outputTarget, p.x - dim.x, p.y - dim.y, p.x + dim.x, p.y + dim.y, entry->Color);
+            }
+            */
+
+            baseAddress += sizeof(*entry);
+        } break;
             
-        // } break;
-            InvalidDefaultCase
+        InvalidDefaultCase
+
         }
     }
 }

@@ -82,15 +82,6 @@
 #define PushArray(arena, count,  type) (type *)PushSize_(arena, count * sizeof(type))
 #define PushSize(arena, size) PushSize_(arena, size)
 
-struct color
-{
-    real32 Red;
-    real32 Green;
-    real32 Blue;
-    real32 Alpha;
-};
-
-
 /* void Debug_PlatformFreeFileMemory(void *memory); */
 /* debug_read_file_result Debug_PlatformReadEntireFile(char *filename); */
 /* bool32 Debug_PlatformWriteEntireFile(char *filename, uint32 memorySize, void *memory);  */
@@ -221,6 +212,8 @@ struct game_state
     memory_arena TransientArena;
 
     real32 tSine;
+
+    real32 CurrentTime;
 
 
     real32 TypicalFloorHeight;

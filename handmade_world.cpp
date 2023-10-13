@@ -25,9 +25,9 @@ IsCanonical(real32 chunkDim, real32 tileRel)
 inline bool32
 IsCanonical(world *world, v3 offset)
 {
-    bool32 result = IsCanonical(world->ChunkDimInMeters.X, offset.X)
-        && IsCanonical(world->ChunkDimInMeters.Y, offset.Y)
-        && IsCanonical(world->ChunkDimInMeters.Z, offset.Z);
+    bool32 result = IsCanonical(world->ChunkDimInMeters.x, offset.x)
+        && IsCanonical(world->ChunkDimInMeters.y, offset.y)
+        && IsCanonical(world->ChunkDimInMeters.z, offset.z);
     return result;
 }
 
@@ -99,9 +99,9 @@ MapIntoChunkSpace(world *world, world_position basePosition, v3 offset)
     world_position res = basePosition;
 
     res._Offset += offset;
-    RecanonicalizeCoord(world->ChunkDimInMeters.X, &res.ChunkX, &res._Offset.X);
-    RecanonicalizeCoord(world->ChunkDimInMeters.Y, &res.ChunkY, &res._Offset.Y);
-    RecanonicalizeCoord(world->ChunkDimInMeters.Z, &res.ChunkZ, &res._Offset.Z);
+    RecanonicalizeCoord(world->ChunkDimInMeters.x, &res.ChunkX, &res._Offset.x);
+    RecanonicalizeCoord(world->ChunkDimInMeters.y, &res.ChunkY, &res._Offset.y);
+    RecanonicalizeCoord(world->ChunkDimInMeters.z, &res.ChunkZ, &res._Offset.z);
 
     return res;
 }
@@ -120,9 +120,9 @@ internal v3
 Subtract(world *world, world_position *a, world_position *b)
 {
     v3 dTilePos = {};
-    dTilePos.X = (real32)a->ChunkX - (real32)b->ChunkX;
-    dTilePos.Y = (real32)a->ChunkY - (real32)b->ChunkY;
-    dTilePos.Z = (real32)a->ChunkZ - (real32)b->ChunkZ;
+    dTilePos.x = (real32)a->ChunkX - (real32)b->ChunkX;
+    dTilePos.y = (real32)a->ChunkY - (real32)b->ChunkY;
+    dTilePos.z = (real32)a->ChunkZ - (real32)b->ChunkZ;
 
     v3 result = Hadamard(world->ChunkDimInMeters, dTilePos) + (a->_Offset - b->_Offset);
 
