@@ -48,6 +48,8 @@ struct render_entry_coordinate_system
     v2 YAxis;
     v4 Color;
 
+    loaded_bitmap *Texture;
+
     v2 Points[10];
 };
 

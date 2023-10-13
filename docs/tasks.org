@@ -1,4 +1,4 @@
-* to be done [8/613]
+* to be done [9/613]
 
 ** DONE Handmade Hero Day 085 - Transient Ground Buffers
 - [[https://www.youtube.com/watch?v=QhjuxnQyBwk]]
@@ -54,8 +54,11 @@
 Добавилось вращение прямоугольника. Это было сделано путем замены
 условий x >= minX && x < maxX на проверку с наклоненными ребрами.
 
-** TODO Handmade Hero Day 093 - Textured Quadrilaterals
+** DONE Handmade Hero Day 093 - Textured Quadrilaterals
 - [[https://www.youtube.com/watch?v=k5wzQeWRokA]]
+
+Добавлена возможность наложения текстуры на вращающийся
+прямоугольник. Возможно маштабирование. Но не очень оптимально.
 
 ** TODO Handmade Hero Day 094 - Converting sRGB to Light-linear Space
 - [[https://www.youtube.com/watch?v=GKVMOmEGVoQ]]

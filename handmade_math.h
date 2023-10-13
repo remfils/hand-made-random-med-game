@@ -611,5 +611,45 @@ Clamp01(v3 value)
 }
 
 
+inline v4
+operator+(v4 a, v4 b)
+{
+    v4 res;
+    res.x = a.x + b.x;
+    res.y = a.y + b.y;
+    res.z = a.z + b.z;
+    res.w = a.w + b.w;
+    return res;
+}
+
+inline v4
+operator*(v4 b, real32 a)
+{
+    v4 res;
+    res.x = b.x * a;
+    res.y = b.y * a;
+    res.z = b.z * a;
+    res.w = b.w * a;
+    return res;
+}
+
+inline v4
+operator*(real32 a, v4 b)
+{
+    v4 res;
+    res.x = b.x * a;
+    res.y = b.y * a;
+    res.z = b.z * a;
+    res.w = b.w * a;
+    return res;
+}
+
+inline v4
+Lerp(v4 a, real32 t, v4 b)
+{
+    v4 result = (1.0f - t) * a + t * b;
+    return result;
+}
+
 #define HANDMADE_MATH_H
 #endif

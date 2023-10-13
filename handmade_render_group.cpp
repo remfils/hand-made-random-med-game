@@ -55,7 +55,7 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
 
 internal
 void
-RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, v4 color)
+RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture)
 {
     uint32 uColor = GetUintColor(color);
 
@@ -88,6 +88,9 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
     if (maxY > heightMax) maxY = heightMax;
 
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
+
+    real32 invXLengthSq = 1.0f / LengthSq(xAxis);
+    real32 invYLengthSq = 1.0f / LengthSq(yAxis);;
     
     for (int32 y = minY; y <= maxY; ++y)
     {
@@ -95,15 +98,14 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
         
         for (int32 x = minX; x <= maxX; ++x)
         {
-
-            v2 pixelP = V2i(x, y);
+            v2 pixelP = V2i(x, y) - origin;
 
             // TODO: perpinner
             // TODO: simpler origin calcs
-            real32 edge0 = Inner((pixelP - origin), -Perp(xAxis));
-            real32 edge1 = Inner(pixelP - (origin + xAxis), -Perp(yAxis));
-            real32 edge2 = Inner(pixelP - (origin + xAxis + yAxis), Perp(xAxis));
-            real32 edge3 = Inner(pixelP - (origin + yAxis), Perp(yAxis));
+            real32 edge0 = Inner(pixelP, -Perp(xAxis));
+            real32 edge1 = Inner(pixelP - xAxis, -Perp(yAxis));
+            real32 edge2 = Inner(pixelP - xAxis - yAxis, Perp(xAxis));
+            real32 edge3 = Inner(pixelP -  yAxis, Perp(yAxis));
             
             if (
                 edge0 < 0
@@ -112,7 +114,82 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
                 && edge3 < 0
                 )
             {
-                *(uint32 *)pixel = uColor;
+                
+                real32 u = invXLengthSq * Inner(pixelP, xAxis);
+                real32 v = invYLengthSq * Inner(pixelP, yAxis);
+
+                real32 tX = 1.0f + (u * ((real32)(texture->Width - 3)));
+                real32 tY = 1.0f + (v * ((real32)(texture->Height - 3)));
+
+                int32 imgX = (int32)tX;
+                int32 imgY = (int32)tY;
+
+                real32 fX = tX - (real32)imgX;
+                real32 fY = tY - (real32)imgY;
+
+                uint8 *texelPtr = (uint8 *)texture->Memory + imgY * texture->Pitch + imgX * sizeof(uint32);
+                uint32 texelPtrA = *(uint32 *)texelPtr;
+                uint32 texelPtrB = *(uint32 *)(texelPtr + sizeof(uint32));
+                uint32 texelPtrC = *(uint32 *)(texelPtr + texture->Pitch);
+                uint32 texelPtrD = *(uint32 *)(texelPtr + texture->Pitch + sizeof(uint32));
+
+                v4 texelA = {
+                    (real32)((texelPtrA >> 16) & 0xff),
+                    (real32)((texelPtrA >> 8) & 0xff),
+                    (real32)((texelPtrA >> 0) & 0xff),
+                    (real32)((texelPtrA >> 24) & 0xff),
+                };
+                v4 texelB = {
+                    (real32)((texelPtrB >> 16) & 0xff),
+                    (real32)((texelPtrB >> 8) & 0xff),
+                    (real32)((texelPtrB >> 0) & 0xff),
+                    (real32)((texelPtrB >> 24) & 0xff),
+                };
+                v4 texelC = {
+                    (real32)((texelPtrC >> 16) & 0xff),
+                    (real32)((texelPtrC >> 8) & 0xff),
+                    (real32)((texelPtrC >> 0) & 0xff),
+                    (real32)((texelPtrC >> 24) & 0xff),
+                };
+                v4 texelD = {
+                    (real32)((texelPtrD >> 16) & 0xff),
+                    (real32)((texelPtrD >> 8) & 0xff),
+                    (real32)((texelPtrD >> 0) & 0xff),
+                    (real32)((texelPtrD >> 24) & 0xff),
+                };
+
+                #if 1
+                v4 texel = Lerp(Lerp(texelA, fX, texelB), fY, Lerp(texelC, fX, texelD));
+                #else
+                v4 texel = texelA;
+                #endif
+
+                real32 sa = texel.a * color.a;
+                real32 sr = texel.r * color.a;
+                real32 sg = texel.g * color.a;
+                real32 sb = texel.b * color.a;
+
+                real32 da = (real32)((*pixel >> 24) & 0xff);
+                real32 dr = (real32)((*pixel >> 16) & 0xff);
+                real32 dg = (real32)((*pixel >> 8) & 0xff);
+                real32 db = (real32)((*pixel >> 0) & 0xff);
+
+                real32 rsa = (sa / 255.0f);
+                real32 rda = (da / 255.0f);
+            
+                real32 inv_sa = (1.0f - rsa);
+
+                real32 a = 255.0f * (rsa + rda - rsa * rda);
+                real32 r = inv_sa * dr + sr;
+                real32 g = inv_sa * dg + sg;
+                real32 b = inv_sa * db + sb;
+
+                *pixel = (
+                        ((uint32)(a + 0.5f) << 24)
+                        | ((uint32)(r + 0.5f) << 16)
+                        | ((uint32)(g + 0.5f) << 8)
+                        | ((uint32)(b + 0.5f) << 0)
+                        );
             }
             pixel++;
         }
@@ -193,9 +270,6 @@ RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
             real32 sg = (real32)((*src >> 8) & 0xff) * cAlpha;
             real32 sb = (real32)((*src >> 0) & 0xff) * cAlpha;
 
-            // TODO: put cAlpha back
-            
-
             real32 da = (real32)((*dst >> 24) & 0xff);
             real32 dr = (real32)((*dst >> 16) & 0xff);
             real32 dg = (real32)((*dst >> 8) & 0xff);
@@ -205,13 +279,6 @@ RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
             real32 rda = (da / 255.0f);
             
             real32 inv_sa = (1.0f - rsa);
-
-            /*
-            real32 a = Clamp(0, inv_sa * da + sa, 255.0f); // TODO: why clamp?
-            real32 r = Clamp(0, inv_sa * dr + sr, 255.0f); // TODO: why clamp?
-            real32 g = Clamp(0, inv_sa * dg + sg, 255.0f); // TODO: why clamp?
-            real32 b = Clamp(0, inv_sa * db + sb, 255.0f); // TODO: why clamp?
-            */
 
             real32 a = 255.0f * (rsa + rda - rsa * rda);
             real32 r = inv_sa * dr + sr;
@@ -381,7 +448,7 @@ PushScreenSquareDot(render_group *grp, v2 screenPosition, real32 width, v4 color
 }
 
 inline void
-PushCoordinateSystem(render_group *grp, v2 origin, v2 x, v2 y, v4 color)
+PushCoordinateSystem(render_group *grp, v2 origin, v2 x, v2 y, v4 color, loaded_bitmap *bitmap)
 {
     render_entry_coordinate_system *renderEntry = PushRenderElement(grp, render_entry_coordinate_system);
     if (renderEntry)
@@ -390,13 +457,13 @@ PushCoordinateSystem(render_group *grp, v2 origin, v2 x, v2 y, v4 color)
         renderEntry->XAxis = x;
         renderEntry->YAxis = y;
         renderEntry->Color = color;
+        renderEntry->Texture = bitmap;
 
         uint32 pIndex = 0;
         for (real32 pX=0; pX <= 1; pX += 0.25f)
         {
             for (real32 pY=0; pY <= 1; pY += 0.25f)
             {
-
                 renderEntry->Points[pIndex] = V2(pX, pY);
                 pIndex++;
             }
@@ -498,7 +565,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 
             v2 p = entry->Origin;
             v2 dim = {5, 5};
-            RenderRectangleSlowly(outputTarget, entry->Origin, entry->XAxis, entry->YAxis, entry->Color);
+            RenderRectangleSlowly(outputTarget, entry->Origin, entry->XAxis, entry->YAxis, entry->Color, entry->Texture);
 
 
             /*
