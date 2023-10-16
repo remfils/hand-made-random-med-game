@@ -1,3 +1,11 @@
+struct render_environment_map
+{
+    // NOTE: LevelOfDetails[0] - 2 ^ WidthPow2 and 2 ^ HeightPow2
+    uint32 WidthPow2;
+    uint32 HeightPow2;
+    loaded_bitmap *LevelOfDetails[4];
+};
+
 struct render_basis
 {
     v3 P;
@@ -46,8 +54,11 @@ struct render_entry_coordinate_system
     v4 Color;
 
     loaded_bitmap *Texture;
+    loaded_bitmap *NormalMap;
 
-    v2 Points[10];
+    render_environment_map *Top;
+    render_environment_map *Middle;
+    render_environment_map *Bottom;
 };
 
 struct render_entry_rectangle

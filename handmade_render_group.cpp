@@ -83,13 +83,37 @@ Linear_1_ToSRGB255(v4 color)
     return result;
 }
 
+inline v4
+Unpack4x8(uint32 packed)
+{
+    v4 result = {
+        (real32)((packed >> 16) & 0xff),
+        (real32)((packed >> 8) & 0xff),
+        (real32)((packed >> 0) & 0xff),
+        (real32)((packed >> 24) & 0xff)
+    };
+    return result;
+}
+
+internal v4
+SampleEnvironmentMap(v2 screenSpaceUV, v3 normal, real32 roughness, render_environment_map *map)
+{
+    return V4(normal.x, normal.y, normal.z, 1.0f);
+}
+
 internal void
-RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture)
+RenderRectangleSlowly(loaded_bitmap *drawBuffer,
+                      v2 origin, v2 xAxis, v2 yAxis, v4 color,
+                      loaded_bitmap *texture, loaded_bitmap *normalMap,
+                      render_environment_map *top, render_environment_map *middle, render_environment_map *bottom)
 {
     color.rgb *= color.a;
 
     int32 widthMax = drawBuffer->Width - 1;
     int32 heightMax = drawBuffer->Height - 1;
+
+    real32 invWidthMax = 1.0f / (real32)widthMax;
+    real32 invHeightMax = 1.0f / (real32)heightMax;
 
     int32 minX = widthMax;
     int32 maxX = 0;
@@ -127,14 +151,15 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
         
         for (int32 x = minX; x <= maxX; ++x)
         {
-            v2 pixelP = V2i(x, y) - origin;
+            v2 pixelP = V2i(x, y);
+            v2 d = pixelP - origin;
 
             // TODO: perpinner
             // TODO: simpler origin calcs
-            real32 edge0 = Inner(pixelP, -Perp(xAxis));
-            real32 edge1 = Inner(pixelP - xAxis, -Perp(yAxis));
-            real32 edge2 = Inner(pixelP - xAxis - yAxis, Perp(xAxis));
-            real32 edge3 = Inner(pixelP -  yAxis, Perp(yAxis));
+            real32 edge0 = Inner(d, -Perp(xAxis));
+            real32 edge1 = Inner(d - xAxis, -Perp(yAxis));
+            real32 edge2 = Inner(d - xAxis - yAxis, Perp(xAxis));
+            real32 edge3 = Inner(d -  yAxis, Perp(yAxis));
             
             if (
                 edge0 < 0
@@ -143,9 +168,13 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
                 && edge3 < 0
                 )
             {
+                v2 screenSpaceUV = {
+                    (real32)x * invWidthMax, (real32)y * invHeightMax
+                };
                 
-                real32 u = invXLengthSq * Inner(pixelP, xAxis);
-                real32 v = invYLengthSq * Inner(pixelP, yAxis);
+                
+                real32 u = invXLengthSq * Inner(d, xAxis);
+                real32 v = invYLengthSq * Inner(d, yAxis);
 
                 real32 tX = 1.0f + (u * ((real32)(texture->Width - 3)));
                 real32 tY = 1.0f + (v * ((real32)(texture->Height - 3)));
@@ -164,60 +193,64 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
 
                 
 
-                v4 texelA = {
-                    (real32)((texelPtrA >> 16) & 0xff),
-                    (real32)((texelPtrA >> 8) & 0xff),
-                    (real32)((texelPtrA >> 0) & 0xff),
-                    (real32)((texelPtrA >> 24) & 0xff),
-                };
-                v4 texelB = {
-                    (real32)((texelPtrB >> 16) & 0xff),
-                    (real32)((texelPtrB >> 8) & 0xff),
-                    (real32)((texelPtrB >> 0) & 0xff),
-                    (real32)((texelPtrB >> 24) & 0xff),
-                };
-                v4 texelC = {
-                    (real32)((texelPtrC >> 16) & 0xff),
-                    (real32)((texelPtrC >> 8) & 0xff),
-                    (real32)((texelPtrC >> 0) & 0xff),
-                    (real32)((texelPtrC >> 24) & 0xff),
-                };
-                v4 texelD = {
-                    (real32)((texelPtrD >> 16) & 0xff),
-                    (real32)((texelPtrD >> 8) & 0xff),
-                    (real32)((texelPtrD >> 0) & 0xff),
-                    (real32)((texelPtrD >> 24) & 0xff),
-                };
+                v4 texelA = Unpack4x8(texelPtrA);
+                v4 texelB = Unpack4x8(texelPtrB);
+                v4 texelC = Unpack4x8(texelPtrC);
+                v4 texelD = Unpack4x8(texelPtrD);
 
                 texelA = SRGB255_ToLinear1(texelA);
                 texelB = SRGB255_ToLinear1(texelB);
                 texelC = SRGB255_ToLinear1(texelC);
                 texelD = SRGB255_ToLinear1(texelD);
 
-                /*
-                texelA.rgb *= texelA.a;
-                texelB.rgb *= texelB.a;
-                texelC.rgb *= texelC.a;
-                texelD.rgb *= texelD.a;
-                */
-
-                #if 1
                 v4 texel = Lerp(Lerp(texelA, fX, texelB), fY, Lerp(texelC, fX, texelD));
-                #else
-                v4 texel = texelA;
-                #endif
 
-                texel.r *= color.r;
-                texel.g *= color.g;
-                texel.b *= color.b;
-                texel.a *= color.a;
+                if (normalMap)
+                {
+                    uint8 *normalPtr = (uint8 *)normalMap->Memory + imgY * normalMap->Pitch + imgX * sizeof(uint32);
+                    uint32 normalPtrA = *(uint32 *)normalPtr;
+                    uint32 normalPtrB = *(uint32 *)(normalPtr + sizeof(uint32));
+                    uint32 normalPtrC = *(uint32 *)(normalPtr + texture->Pitch);
+                    uint32 normalPtrD = *(uint32 *)(normalPtr + texture->Pitch + sizeof(uint32));
 
-                v4 destPixel = {
-                    (real32)((*pixel >> 16) & 0xff),
-                    (real32)((*pixel >> 8) & 0xff),
-                    (real32)((*pixel >> 0) & 0xff),
-                    (real32)((*pixel >> 24) & 0xff),
-                };
+                    v4 normalA = Unpack4x8(normalPtrA);
+                    v4 normalB = Unpack4x8(normalPtrB);
+                    v4 normalC = Unpack4x8(normalPtrC);
+                    v4 normalD = Unpack4x8(normalPtrD);
+                
+                    normalA = SRGB255_ToLinear1(normalA);
+                    normalB = SRGB255_ToLinear1(normalB);
+                    normalC = SRGB255_ToLinear1(normalC);
+                    normalD = SRGB255_ToLinear1(normalD);
+
+                    v4 normal = Lerp(Lerp(normalA, fX, normalB), fY, Lerp(normalC, fX, normalD));
+
+                    real32 tEnvMap = normal.z;
+                    real32 tFarMap = 0.0f;
+                    render_environment_map *farMap = 0;
+                    if (tEnvMap < 0.25f)
+                    {
+                        farMap = bottom;
+                        tFarMap = 1.0f - (tEnvMap  / 0.25f);
+                    }
+                    else if (tEnvMap > 0.75f)
+                    {
+                        farMap = top;
+                        tFarMap = (1.0f - tEnvMap) / 0.25f;
+                    }
+
+                    v4 lightColor = SampleEnvironmentMap(screenSpaceUV, normal.xyz, normal.w, middle);
+                    if (tFarMap > 0.0f) {
+                        v4 farMapColor = SampleEnvironmentMap(screenSpaceUV, normal.xyz, normal.w, farMap);
+                        lightColor = Lerp(lightColor, tFarMap, farMapColor);
+                    }
+
+                    texel = Hadamard(texel, lightColor);
+                }
+
+                texel = Hadamard(texel, color);
+
+                v4 destPixel = Unpack4x8(*pixel);
                 destPixel = SRGB255_ToLinear1(destPixel);
 
                 real32 inv_sa = (1.0f - texel.a);
@@ -505,7 +538,8 @@ PushScreenSquareDot(render_group *grp, v2 screenPosition, real32 width, v4 color
 }
 
 inline void
-PushCoordinateSystem(render_group *grp, v2 origin, v2 x, v2 y, v4 color, loaded_bitmap *bitmap)
+PushCoordinateSystem(render_group *grp, v2 origin, v2 x, v2 y, v4 color, loaded_bitmap *texture, loaded_bitmap *normalMap,
+                     render_environment_map *top, render_environment_map *middle, render_environment_map *bottom)
 {
     render_entry_coordinate_system *renderEntry = PushRenderElement(grp, render_entry_coordinate_system);
     if (renderEntry)
@@ -514,14 +548,18 @@ PushCoordinateSystem(render_group *grp, v2 origin, v2 x, v2 y, v4 color, loaded_
         renderEntry->XAxis = x;
         renderEntry->YAxis = y;
         renderEntry->Color = color;
-        renderEntry->Texture = bitmap;
+        renderEntry->Texture = texture;
+        renderEntry->NormalMap = normalMap;
+        renderEntry->Top = top;
+        renderEntry->Middle = middle;
+        renderEntry->Bottom = bottom;
 
         uint32 pIndex = 0;
         for (real32 pX=0; pX <= 1; pX += 0.25f)
         {
             for (real32 pY=0; pY <= 1; pY += 0.25f)
             {
-                renderEntry->Points[pIndex] = V2(pX, pY);
+                // renderEntry->Points[pIndex] = V2(pX, pY);
                 pIndex++;
             }
         }
@@ -626,7 +664,11 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 
             v2 p = entry->Origin;
             v2 dim = {5, 5};
-            RenderRectangleSlowly(outputTarget, entry->Origin, entry->XAxis, entry->YAxis, entry->Color, entry->Texture);
+            RenderRectangleSlowly(outputTarget,
+                                  entry->Origin, entry->XAxis, entry->YAxis, entry->Color,
+                                  entry->Texture, entry->NormalMap,
+                                  entry->Top, entry->Middle, entry->Bottom
+                                  );
 
             baseAddress += sizeof(*entry);
         } break;

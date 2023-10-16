@@ -30,6 +30,10 @@ union v4
         real32 r, g, b, a;
     };
     struct {
+        v3 xyz;
+        real32 w;
+    };
+    struct {
         v3 rgb;
         real32 a;
     };
@@ -336,6 +340,13 @@ inline real32
 Length(v3 a)
 {
     real32 result = SquareRoot(LengthSq(a));
+    return result;
+}
+
+inline v3
+Normalize(v3 a)
+{
+    v3 result = a * (1.0f / Length(a));
     return result;
 }
 
@@ -652,6 +663,17 @@ inline v4
 Lerp(v4 a, real32 t, v4 b)
 {
     v4 result = (1.0f - t) * a + t * b;
+    return result;
+}
+
+inline v4
+Hadamard(v4 a, v4 b)
+{
+    v4 result;
+    result.x = a.x * b.x;
+    result.y = a.y * b.y;
+    result.z = a.z * b.z;
+    result.w = a.w * b.w;
     return result;
 }
 

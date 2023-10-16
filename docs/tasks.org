@@ -1,4 +1,4 @@
-* to be done [1/602]
+* to be done [2/602]
 
 ** DONE Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -6,8 +6,10 @@
 Лекция про то, как будет моделироваться свет. Освещаются основные
 проблемы при работе со светом + возможная реализация в 2д.
 
-** TODO Handmade Hero Day 097 - Adding Normal Maps to the Pipeline
+** DONE Handmade Hero Day 097 - Adding Normal Maps to the Pipeline
 - [[https://www.youtube.com/watch?v=oww19zUryVg]]
+
+добавлено куча кода для семплинга из render_environment_map
 
 ** TODO Handmade Hero Day 098 - Normal Map Code Cleanup
 - [[https://www.youtube.com/watch?v=xWQfjqAHvxs]]

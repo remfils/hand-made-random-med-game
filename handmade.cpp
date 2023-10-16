@@ -469,6 +469,50 @@ MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, bool32 clearToZe
     return result;
 }
 
+internal void
+MakeSphereNormalMap(loaded_bitmap *bitmap, real32 roughness)
+{
+    real32 invWidth = 1.0f / (1.0f - bitmap->Width);
+    real32 invHeight = 1.0f / (1.0f - bitmap->Height);
+
+    uint8 *row = (uint8 *)bitmap->Memory;
+    
+    for(int32 y =0;
+        y < bitmap->Height;
+        y++)
+    {
+
+        uint32 *pixel = (uint32 *)row;
+        
+        for(int32 x =0;
+            x < bitmap->Width;
+            x++)
+        {
+            v2 bitmapUV = {
+                invWidth * (real32)x, invHeight * (real32)y
+            };
+            v3 normal = {2.0f * bitmapUV.x - 1.0f, 2.0f * bitmapUV.y - 1.0f, 0.0f};
+            normal.z = SquareRoot(1.0f - Minimum(1.0f, Square(normal.x) + Square(normal.y)));
+            normal = Normalize(normal);
+            v4 color = {
+                255.0f * 0.5f * (normal.x + 1.0f),
+                255.0f * 0.5f * (normal.y + 1.0f),
+                normal.z,
+                255.0f * roughness
+            };
+
+            *pixel = (
+                      ((uint32)(color.a + 0.5f) << 24)
+                      | ((uint32)(color.r + 0.5f) << 16)
+                      | ((uint32)(color.g + 0.5f) << 8)
+                      | ((uint32)(color.b + 0.5f) << 0)
+                      );
+        }
+
+        row += bitmap->Pitch;
+    }
+}
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
     Assert(sizeof(game_state) <= memory->PermanentStorageSize);
@@ -1219,7 +1263,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // v2 yAxis = V2(0, 120.0f);
     // v4 color = { (Sin(4.0f * angle) + 1.0f) / 2.0f, 0.0f, 1, (Cos(4.0f * angle) + 1.0f) / 2.0f};
     v4 color = {1.0f, 1.0f, 1.0f, 1.0f };
-    PushCoordinateSystem(renderGroup, origin - 0.5 * xAxis - 0.5 * yAxis, xAxis, yAxis, color, &(gameState->HeroBitmaps[3].Character));
+    PushCoordinateSystem(renderGroup, origin - 0.5 * xAxis - 0.5 * yAxis, xAxis, yAxis, color,
+                         &(gameState->HeroBitmaps[3].Character), 0, 0, 0, 0);
 
     RenderGroup(drawBuffer, renderGroup);
 
