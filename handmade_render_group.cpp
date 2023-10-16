@@ -332,6 +332,46 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 }
 
 internal void
+ApplySaturation(loaded_bitmap *outputTarget, real32 level)
+{
+    uint8 *dstrow = (uint8 *)outputTarget->Memory;
+    
+    for (int y = 0;
+         y < outputTarget->Height;
+         ++y)
+    {
+        uint32 *dst = (uint32 *)dstrow;
+        
+        for (int x = 0;
+             x < outputTarget->Width;
+             ++x)
+        {
+            v4 destTexel = {
+                (real32)((*dst >> 16) & 0xff),
+                (real32)((*dst >> 8) & 0xff),
+                (real32)((*dst >> 0) & 0xff),
+                (real32)((*dst >> 24) & 0xff)
+            };
+
+            real32 avg = (destTexel.r + destTexel.g + destTexel.b) / 3.0f;
+            v4 delta = {destTexel.r - avg, destTexel.g - avg, destTexel.b - avg, 0};
+            v4 result = V4(avg, avg, avg, destTexel.a) + level * delta;
+
+            *dst = (
+                   ((uint32)(result.a + 0.5f) << 24)
+                   | ((uint32)(result.r + 0.5f) << 16)
+                   | ((uint32)(result.g + 0.5f) << 8)
+                   | ((uint32)(result.b + 0.5f) << 0)
+                    );
+            
+            *dst++;
+        }
+        
+        dstrow += outputTarget->Pitch;
+    }
+}
+
+internal void
 RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
     real32 realX, real32 realY,
     real32 cAlpha = 1.0f)
@@ -429,7 +469,6 @@ RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
         dstrow += drawBuffer->Pitch;
         srcrow += bitmap->Pitch;
     }
-    
 }
 
 // TODO: rewrite use v2!!!
@@ -518,6 +557,16 @@ PushRenderElement_(render_group *grp, uint32 size, render_entry_type type)
         InvalidCodePath;
     }
     return result;
+}
+
+inline void
+PushSaturationFilter(render_group *grp, real32 level)
+{
+    render_entry_saturation *renderEntry = PushRenderElement(grp, render_entry_saturation);
+
+    if (renderEntry) {
+        renderEntry->Level = level;
+    }
 }
 
 inline void
@@ -710,6 +759,13 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
             render_entry_screen_dot *entry = (render_entry_screen_dot *) voidEntry;
 
             RenderSquareDot(outputTarget, entry->P.x, entry->P.y, 0.5f * entry->Width, entry->Color);
+
+            baseAddress += sizeof(*entry);
+        } break;
+        case RenderEntryType_render_entry_saturation: {
+            render_entry_saturation *entry = (render_entry_saturation *) voidEntry;
+
+            ApplySaturation(outputTarget, entry->Level);
 
             baseAddress += sizeof(*entry);
         } break;

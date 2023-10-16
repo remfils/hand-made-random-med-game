@@ -23,7 +23,8 @@ enum render_entry_type
     RenderEntryType_render_entry_bitmap,
     RenderEntryType_render_entry_rectangle,
     RenderEntryType_render_entry_screen_dot,
-    RenderEntryType_render_entry_coordinate_system
+    RenderEntryType_render_entry_coordinate_system,
+    RenderEntryType_render_entry_saturation
 };
 
 // NOTE: render group entry is a efficient "discriminated union"
@@ -65,6 +66,11 @@ struct render_entry_coordinate_system
     render_environment_map *Top;
     render_environment_map *Middle;
     render_environment_map *Bottom;
+};
+
+struct render_entry_saturation
+{
+    real32 Level;
 };
 
 struct render_entry_rectangle

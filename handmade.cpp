@@ -1362,6 +1362,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         mapP += yAxis + V2(0.0f, 6.0f);
     }
 
+    // PushSaturationFilter(renderGroup, (1.0f + Cos(4.0f * angle) * 0.5f));
+    PushSaturationFilter(renderGroup, 0.5f + Cos(2.0f * angle) * 0.5f);
+
     RenderGroup(drawBuffer, renderGroup);
 
     EndSim(simRegion, gameState);
