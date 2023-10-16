@@ -28,7 +28,6 @@ struct render_entity_basis
 
 struct render_entry_screen_dot
 {
-    render_entry_header Header;
     v2 P;
     real32 Width;
     v4 Color;
@@ -36,13 +35,11 @@ struct render_entry_screen_dot
 
 struct render_entry_clear
 {
-    render_entry_header Header;
     v4 Color;
 };
 
 struct render_entry_coordinate_system
 {
-    render_entry_header Header;
     v2 Origin;
     v2 XAxis;
     v2 YAxis;
@@ -55,7 +52,6 @@ struct render_entry_coordinate_system
 
 struct render_entry_rectangle
 {
-    render_entry_header Header;
     v2 Dim;
     v4 Color;
     render_entity_basis EntityBasis;
@@ -63,7 +59,6 @@ struct render_entry_rectangle
 
 struct render_entry_bitmap
 {
-    render_entry_header Header;
     loaded_bitmap *Bitmap;
     real32 Alpha;
     render_entity_basis EntityBasis;

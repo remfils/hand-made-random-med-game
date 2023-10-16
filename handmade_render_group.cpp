@@ -86,7 +86,7 @@ Linear_1_ToSRGB255(v4 color)
 internal void
 RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture)
 {
-    uint32 uColor = GetUintColor(color);
+    color.rgb *= color.a;
 
     int32 widthMax = drawBuffer->Width - 1;
     int32 heightMax = drawBuffer->Height - 1;
@@ -162,6 +162,8 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
                 uint32 texelPtrC = *(uint32 *)(texelPtr + texture->Pitch);
                 uint32 texelPtrD = *(uint32 *)(texelPtr + texture->Pitch + sizeof(uint32));
 
+                
+
                 v4 texelA = {
                     (real32)((texelPtrA >> 16) & 0xff),
                     (real32)((texelPtrA >> 8) & 0xff),
@@ -192,13 +194,23 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
                 texelC = SRGB255_ToLinear1(texelC);
                 texelD = SRGB255_ToLinear1(texelD);
 
+                /*
+                texelA.rgb *= texelA.a;
+                texelB.rgb *= texelB.a;
+                texelC.rgb *= texelC.a;
+                texelD.rgb *= texelD.a;
+                */
+
                 #if 1
                 v4 texel = Lerp(Lerp(texelA, fX, texelB), fY, Lerp(texelC, fX, texelD));
                 #else
                 v4 texel = texelA;
                 #endif
 
-                texel = texel * color.a;
+                texel.r *= color.r;
+                texel.g *= color.g;
+                texel.b *= color.b;
+                texel.a *= color.a;
 
                 v4 destPixel = {
                     (real32)((*pixel >> 16) & 0xff),
@@ -211,9 +223,9 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
                 real32 inv_sa = (1.0f - texel.a);
 
                 v4 blended = {
-                    (inv_sa * destPixel.r + color.r * texel.r),
-                    (inv_sa * destPixel.g + color.g * texel.g),
-                    (inv_sa * destPixel.b + color.b * texel.b),
+                    (inv_sa * destPixel.r + texel.r),
+                    (inv_sa * destPixel.g + texel.g),
+                    (inv_sa * destPixel.b + texel.b),
                     (texel.a + destPixel.a - destPixel.a * texel.a)
                 };
 
@@ -230,22 +242,6 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer, v2 origin, v2 xAxis, v2 yAxis, 
         }
         row += drawBuffer->Pitch;
     }
-}
-
-// TODO: rewrite use v2!!!
-internal
-void
-RenderRectangleOutline(loaded_bitmap *drawBuffer, real32 minX, real32 minY, real32 maxX, real32 maxY, v4 color)
-{
-    real32 lineWidth = 2.0f;
-    real32 lineHalfWidth = lineWidth * 0.5f;
-    // top bottom
-    RenderRectangle(drawBuffer, minX, minY - lineHalfWidth, maxX, minY + lineHalfWidth, color);
-    RenderRectangle(drawBuffer, minX, maxY - lineHalfWidth, maxX, maxY + lineHalfWidth, color);
-
-    // left/right
-    RenderRectangle(drawBuffer, minX-lineHalfWidth, minY, minX+lineHalfWidth, maxY, color);
-    RenderRectangle(drawBuffer, maxX-lineHalfWidth, minY, maxX+lineHalfWidth, maxY, color);
 }
 
 internal void
@@ -299,37 +295,44 @@ RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
              x < maxX;
              ++x)
         {
-            
-            real32 sa = (real32)((*src >> 24) & 0xff) * cAlpha;
-            real32 sr = (real32)((*src >> 16) & 0xff) * cAlpha;
-            real32 sg = (real32)((*src >> 8) & 0xff) * cAlpha;
-            real32 sb = (real32)((*src >> 0) & 0xff) * cAlpha;
+            v4 texel = {
+                (real32)((*src >> 16) & 0xff),
+                (real32)((*src >> 8) & 0xff),
+                (real32)((*src >> 0) & 0xff),
+                (real32)((*src >> 24) & 0xff)
+            };
 
-            real32 da = (real32)((*dst >> 24) & 0xff);
-            real32 dr = (real32)((*dst >> 16) & 0xff);
-            real32 dg = (real32)((*dst >> 8) & 0xff);
-            real32 db = (real32)((*dst >> 0) & 0xff);
+            texel = SRGB255_ToLinear1(texel);
+            texel.rgb *= cAlpha;
 
-            real32 rsa = (sa / 255.0f);
-            real32 rda = (da / 255.0f);
+
+            v4 destTexel = {
+                (real32)((*dst >> 16) & 0xff),
+                (real32)((*dst >> 8) & 0xff),
+                (real32)((*dst >> 0) & 0xff),
+                (real32)((*dst >> 24) & 0xff)
+            };
+            destTexel = SRGB255_ToLinear1(destTexel);
+
+            real32 rsa = texel.a * cAlpha;
+            real32 rda = destTexel.a;
             
             real32 inv_sa = (1.0f - rsa);
 
-            real32 a = 255.0f * (rsa + rda - rsa * rda);
-            real32 r = inv_sa * dr + sr;
-            real32 g = inv_sa * dg + sg;
-            real32 b = inv_sa * db + sb;
+            v4 result = {
+                inv_sa * destTexel.r + texel.r,
+                inv_sa * destTexel.g + texel.g,
+                inv_sa * destTexel.b + texel.b,
+                (rsa + rda - rsa * rda)
+            };
 
-            if (cAlpha < 1.0f) {
-                int j = 0;
-            }
-            
+            result = Linear_1_ToSRGB255(result);
             
             *dst = (
-                   ((uint32)(a + 0.5f) << 24)
-                   | ((uint32)(r + 0.5f) << 16)
-                   | ((uint32)(g + 0.5f) << 8)
-                   | ((uint32)(b + 0.5f) << 0)
+                   ((uint32)(result.a + 0.5f) << 24)
+                   | ((uint32)(result.r + 0.5f) << 16)
+                   | ((uint32)(result.g + 0.5f) << 8)
+                   | ((uint32)(result.b + 0.5f) << 0)
                     );
             
             *dst++;
@@ -340,6 +343,22 @@ RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
         srcrow += bitmap->Pitch;
     }
     
+}
+
+// TODO: rewrite use v2!!!
+internal
+void
+RenderRectangleOutline(loaded_bitmap *drawBuffer, real32 minX, real32 minY, real32 maxX, real32 maxY, v4 color)
+{
+    real32 lineWidth = 2.0f;
+    real32 lineHalfWidth = lineWidth * 0.5f;
+    // top bottom
+    RenderRectangle(drawBuffer, minX, minY - lineHalfWidth, maxX, minY + lineHalfWidth, color);
+    RenderRectangle(drawBuffer, minX, maxY - lineHalfWidth, maxX, maxY + lineHalfWidth, color);
+
+    // left/right
+    RenderRectangle(drawBuffer, minX-lineHalfWidth, minY, minX+lineHalfWidth, maxY, color);
+    RenderRectangle(drawBuffer, maxX-lineHalfWidth, minY, maxX+lineHalfWidth, maxY, color);
 }
 
 internal void
@@ -394,14 +413,18 @@ AllocateRenderGroup(memory_arena *arena, real32 metersToPixels, uint32 maxPushBu
 
 #define PushRenderElement(group, type) (type *)PushRenderElement_(group, sizeof(type), RenderEntryType_##type)
 
-inline render_entry_header *
+inline void*
 PushRenderElement_(render_group *grp, uint32 size, render_entry_type type)
 {
-    render_entry_header *result = 0;
+    size += sizeof(render_entry_header);
+    
+    void *result = 0;
     if (grp->PushBufferSize + size < grp->MaxPushBufferSize)
     {
-        result = (render_entry_header *)(grp->PushBufferBase + grp->PushBufferSize);
-        result->Type = type;
+        render_entry_header* header = (render_entry_header *)(grp->PushBufferBase + grp->PushBufferSize);
+        header->Type = type;
+
+        result = ((uint8 *)header + sizeof(*header));
         grp->PushBufferSize += size;
     }
     else
@@ -560,18 +583,20 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
          )
     {
         render_entry_header *entryHeader = (render_entry_header *)(renderGroup->PushBufferBase + baseAddress);
+        baseAddress += sizeof(*entryHeader);
+        void *voidEntry = (render_entry_header *)(renderGroup->PushBufferBase + baseAddress);
 
         switch (entryHeader->Type)
         {
         case RenderEntryType_render_entry_clear: {
-            render_entry_clear *entry = (render_entry_clear *) entryHeader;
+            render_entry_clear *entry = (render_entry_clear *) voidEntry;
 
             RenderRectangle(outputTarget, 0, 0, (real32)outputTarget->Width, (real32)outputTarget->Height, entry->Color);
             
             baseAddress += sizeof(*entry);
         } break;
         case RenderEntryType_render_entry_bitmap: {
-            render_entry_bitmap *entry = (render_entry_bitmap *) entryHeader;
+            render_entry_bitmap *entry = (render_entry_bitmap *) voidEntry;
 
             v2 center = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
 
@@ -581,7 +606,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
             baseAddress += sizeof(*entry);
         } break;
         case RenderEntryType_render_entry_rectangle: {
-            render_entry_rectangle *entry = (render_entry_rectangle *) entryHeader;
+            render_entry_rectangle *entry = (render_entry_rectangle *) voidEntry;
 
             v2 center = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
             RenderRectangle(outputTarget, center.x, center.y, center.x + entry->Dim.x, center.y + entry->Dim.y, entry->Color);
@@ -589,39 +614,18 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
             baseAddress += sizeof(*entry);
         } break;
         case RenderEntryType_render_entry_screen_dot: {
-            render_entry_screen_dot *entry = (render_entry_screen_dot *) entryHeader;
+            render_entry_screen_dot *entry = (render_entry_screen_dot *) voidEntry;
 
             RenderSquareDot(outputTarget, entry->P.x, entry->P.y, 0.5f * entry->Width, entry->Color);
 
             baseAddress += sizeof(*entry);
         } break;
         case RenderEntryType_render_entry_coordinate_system: {
-            render_entry_coordinate_system *entry = (render_entry_coordinate_system *) entryHeader;
+            render_entry_coordinate_system *entry = (render_entry_coordinate_system *) voidEntry;
 
             v2 p = entry->Origin;
             v2 dim = {5, 5};
             RenderRectangleSlowly(outputTarget, entry->Origin, entry->XAxis, entry->YAxis, entry->Color, entry->Texture);
-
-
-            /*
-
-            p = entry->Origin + entry->XAxis;
-            RenderRectangle(outputTarget, p.x - dim.x, p.y - dim.y, p.x + dim.x, p.y + dim.y, entry->Color);
-
-            p = entry->Origin + entry->YAxis;
-            RenderRectangle(outputTarget, p.x - dim.x, p.y - dim.y, p.x + dim.x, p.y + dim.y, entry->Color);
-
-            for (uint32 pointIndex=0;
-                 pointIndex < ArrayCount(entry->Points);
-                 ++pointIndex)
-            {
-                v2 newP = entry->Points[pointIndex];
-
-                p = entry->Origin + newP.y * entry->YAxis + newP.x * entry->XAxis;
-                
-                RenderRectangle(outputTarget, p.x - dim.x, p.y - dim.y, p.x + dim.x, p.y + dim.y, entry->Color);
-            }
-            */
 
             baseAddress += sizeof(*entry);
         } break;

@@ -91,21 +91,22 @@ internal loaded_bitmap DEBUGLoadBMP(thread_context *thread, debug_platform_read_
             {
                 uint32 color = *srcDest;
 
-                real32 r = (real32)((color & redMask) >> redShiftDown);
-                real32 g = (real32)((color & greenMask) >> greenShiftDown);
-                real32 b = (real32)((color & blueMask) >> blueShiftDown);
-                real32 a = (real32)((color & alphaMask) >> alphaShiftDown);
+                v4 texel = {
+                    (real32)((color & redMask) >> redShiftDown),
+                    (real32)((color & greenMask) >> greenShiftDown),
+                    (real32)((color & blueMask) >> blueShiftDown),
+                    (real32)((color & alphaMask) >> alphaShiftDown)
+                };
 
-                real32 ra = a / 255.0f;
+                texel = SRGB255_ToLinear1(texel);
+                texel.rgb *= texel.a;
 
-                r *= ra;
-                g *= ra;
-                b *= ra;
+                texel = Linear_1_ToSRGB255(texel);
 
-                *srcDest++ = ((uint32)(a + 0.5f) << alphaShiftUp)
-                    | ((uint32)(r + 0.5f) << redShiftUp)
-                    | ((uint32)(g + 0.5f) << greenShiftUp)
-                    | ((uint32)(b + 0.5f) << blueShiftUp);
+                *srcDest++ = ((uint32)(texel.a + 0.5f) << alphaShiftUp)
+                    | ((uint32)(texel.r + 0.5f) << redShiftUp)
+                    | ((uint32)(texel.g + 0.5f) << greenShiftUp)
+                    | ((uint32)(texel.b + 0.5f) << blueShiftUp);
             }
         }
     }
@@ -1212,12 +1213,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     real32 disp = 20.0f * Cos(10 * angle);
     
     v2 origin = screenCenter;
-    v2 xAxis = (230.0f + 30 * Cos(10.0f * angle)) * V2(Cos(10.0f * angle), Sin(10.0f * angle));
+    v2 xAxis = (230.0f) * V2(Cos(angle), Sin(angle));
     v2 yAxis = Perp(xAxis);
     // v2 xAxis = V2(200.0f, 0);
     // v2 yAxis = V2(0, 120.0f);
-    v4 color = { (Sin(4.0f * angle) + 1.0f) / 2.0f, 0.0f, 1, (Cos(4.0f * angle) + 1.0f) / 2.0f};
-    PushCoordinateSystem(renderGroup, origin - 0.5 * xAxis - 0.5 * yAxis + V2(disp, 0), xAxis, yAxis, color, &(gameState->HeroBitmaps[3].Character));
+    // v4 color = { (Sin(4.0f * angle) + 1.0f) / 2.0f, 0.0f, 1, (Cos(4.0f * angle) + 1.0f) / 2.0f};
+    v4 color = {1.0f, 1.0f, 1.0f, 1.0f };
+    PushCoordinateSystem(renderGroup, origin - 0.5 * xAxis - 0.5 * yAxis, xAxis, yAxis, color, &(gameState->HeroBitmaps[3].Character));
 
     RenderGroup(drawBuffer, renderGroup);
 

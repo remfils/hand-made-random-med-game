@@ -1,70 +1,4 @@
-* to be done [9/613]
-
-** DONE Handmade Hero Day 085 - Transient Ground Buffers
-- [[https://www.youtube.com/watch?v=QhjuxnQyBwk]]
-
-Добавлен transient storage
-
-** DONE Handmade Hero Day 086 - Aligning Ground Buffers to World Chunks
-- [[https://www.youtube.com/watch?v=TxowSnU2_cQ]]
-
-Убрался концепт тайлов из системы, метры в пиксели были завязаны на
-тайлы + некоторая логика. Были сделаны некоторые оптимизации, которые
-потенциально сломали этажи и подьемы.
-
-** DONE Handmade Hero Day 087 - Seamless Ground Textures
-- [[https://www.youtube.com/watch?v=YAaqiKuSmsk]]
-
-Сделана идея отрисовки безшовных текстур. Это сделано путем
-отрисовывания всего окружения квадрата, который рисуется сейчас.
-
-Так же добавлена история переиспользования буферов
-
-Я исправил некоторый баг который у себя нашел, который скорее всего
-есть у Кейси (есть он у него или нет мне заметить сложно). Лично я
-смог разобраться а есть ли баг вообще только после того, как нарисовал
-свою текстуру - она обязательно должна быть не симметричная (хоть как либо).
-
-** DONE Handmade Hero Day 088 - Push Buffer Rendering
-- [[https://www.youtube.com/watch?v=zbufcZ_JBbU]]
-
-Логика отрисовки картинок вынесена в отдельный стек картинок. Картинки
-кладутся на стек как есть (в мировых координатах) а потом
-преобразоываются в мониторные координаты
-
-** DONE Handmade Hero Day 089 - Renderer Push Buffer Entry Types
-- [[https://www.youtube.com/watch?v=lllby5vrEes]]
-
-Код продолжает разбиватся на выделенную обработку для отрисовки
-элементов. Добавлена фича для списка элеметов с динамической
-типизацией.
-
-** DONE Handmade Hero Day 090 - Bases Part I
-- [[https://www.youtube.com/watch?v=lcmjmOfWPNU]]
-
-** DONE Handmade Hero Day 091 - Bases Part II
-- [[https://www.youtube.com/watch?v=2yKKcjBIaL0]]
-
-Добавлена элемент отрисовки системы координат. Саму систему координат
-можно вращать относительно системы координат монитора.
-
-** DONE Handmade Hero Day 092 - Filling Rotated and Scaled Rectangles
-- [[https://www.youtube.com/watch?v=kVU_QIxm3AA]]
-
-Добавилось вращение прямоугольника. Это было сделано путем замены
-условий x >= minX && x < maxX на проверку с наклоненными ребрами.
-
-** DONE Handmade Hero Day 093 - Textured Quadrilaterals
-- [[https://www.youtube.com/watch?v=k5wzQeWRokA]]
-
-Добавлена возможность наложения текстуры на вращающийся
-прямоугольник. Возможно маштабирование. Но не очень оптимально.
-
-** TODO Handmade Hero Day 094 - Converting sRGB to Light-linear Space
-- [[https://www.youtube.com/watch?v=GKVMOmEGVoQ]]
-
-** TODO Handmade Hero Day 095 - Gamma-correct Premultiplied Alpha
-- [[https://www.youtube.com/watch?v=JTIzGsGqQaA]]
+* to be done [0/602]
 
 ** TODO Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -2404,3 +2338,74 @@ premultiplied, hence destination is always premultiplied.)
 
 Сделан простой буфер со сгенерированной землей. Эта земля двигается
 относительно камеры.
+** DONE Handmade Hero Day 085 - Transient Ground Buffers
+- [[https://www.youtube.com/watch?v=QhjuxnQyBwk]]
+
+Добавлен transient storage
+
+** DONE Handmade Hero Day 086 - Aligning Ground Buffers to World Chunks
+- [[https://www.youtube.com/watch?v=TxowSnU2_cQ]]
+
+Убрался концепт тайлов из системы, метры в пиксели были завязаны на
+тайлы + некоторая логика. Были сделаны некоторые оптимизации, которые
+потенциально сломали этажи и подьемы.
+
+** DONE Handmade Hero Day 087 - Seamless Ground Textures
+- [[https://www.youtube.com/watch?v=YAaqiKuSmsk]]
+
+Сделана идея отрисовки безшовных текстур. Это сделано путем
+отрисовывания всего окружения квадрата, который рисуется сейчас.
+
+Так же добавлена история переиспользования буферов
+
+Я исправил некоторый баг который у себя нашел, который скорее всего
+есть у Кейси (есть он у него или нет мне заметить сложно). Лично я
+смог разобраться а есть ли баг вообще только после того, как нарисовал
+свою текстуру - она обязательно должна быть не симметричная (хоть как либо).
+
+** DONE Handmade Hero Day 088 - Push Buffer Rendering
+- [[https://www.youtube.com/watch?v=zbufcZ_JBbU]]
+
+Логика отрисовки картинок вынесена в отдельный стек картинок. Картинки
+кладутся на стек как есть (в мировых координатах) а потом
+преобразоываются в мониторные координаты
+
+** DONE Handmade Hero Day 089 - Renderer Push Buffer Entry Types
+- [[https://www.youtube.com/watch?v=lllby5vrEes]]
+
+Код продолжает разбиватся на выделенную обработку для отрисовки
+элементов. Добавлена фича для списка элеметов с динамической
+типизацией.
+
+** DONE Handmade Hero Day 090 - Bases Part I
+- [[https://www.youtube.com/watch?v=lcmjmOfWPNU]]
+
+** DONE Handmade Hero Day 091 - Bases Part II
+- [[https://www.youtube.com/watch?v=2yKKcjBIaL0]]
+
+Добавлена элемент отрисовки системы координат. Саму систему координат
+можно вращать относительно системы координат монитора.
+
+** DONE Handmade Hero Day 092 - Filling Rotated and Scaled Rectangles
+- [[https://www.youtube.com/watch?v=kVU_QIxm3AA]]
+
+Добавилось вращение прямоугольника. Это было сделано путем замены
+условий x >= minX && x < maxX на проверку с наклоненными ребрами.
+
+** DONE Handmade Hero Day 093 - Textured Quadrilaterals
+- [[https://www.youtube.com/watch?v=k5wzQeWRokA]]
+
+Добавлена возможность наложения текстуры на вращающийся
+прямоугольник. Возможно маштабирование. Но не очень оптимально.
+
+** DONE Handmade Hero Day 094 - Converting sRGB to Light-linear Space
+- [[https://www.youtube.com/watch?v=GKVMOmEGVoQ]]
+
+Добавлена коррекция для гаммы - не сильно вижу разницу
+
+** DONE Handmade Hero Day 095 - Gamma-correct Premultiplied Alpha
+- [[https://www.youtube.com/watch?v=JTIzGsGqQaA]]
+
+переработка логики обработки гаммы - ничего не поменялось, но стало
+ооооочень медленно.
+
