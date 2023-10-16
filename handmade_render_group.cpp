@@ -597,11 +597,13 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
         } break;
         case RenderEntryType_render_entry_bitmap: {
             render_entry_bitmap *entry = (render_entry_bitmap *) voidEntry;
+#if 0
 
             v2 center = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
 
             Assert(entry->Bitmap);
             RenderBitmap(outputTarget, entry->Bitmap, center.x, center.y + entry->EntityBasis.EntitiyZC, entry->Alpha);
+#endif
                 
             baseAddress += sizeof(*entry);
         } break;
