@@ -472,8 +472,8 @@ MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, bool32 clearToZe
 internal void
 MakeSphereNormalMap(loaded_bitmap *bitmap, real32 roughness)
 {
-    real32 invWidth = 1.0f / (1.0f - bitmap->Width);
-    real32 invHeight = 1.0f / (1.0f - bitmap->Height);
+    real32 invWidth = 1.0f / ((real32)bitmap->Width - 1.0f);
+    real32 invHeight = 1.0f / ((real32)bitmap->Height - 1.0f);
 
     uint8 *row = (uint8 *)bitmap->Memory;
     
@@ -481,7 +481,6 @@ MakeSphereNormalMap(loaded_bitmap *bitmap, real32 roughness)
         y < bitmap->Height;
         y++)
     {
-
         uint32 *pixel = (uint32 *)row;
         
         for(int32 x =0;
@@ -492,16 +491,29 @@ MakeSphereNormalMap(loaded_bitmap *bitmap, real32 roughness)
                 invWidth * (real32)x, invHeight * (real32)y
             };
             v3 normal = {2.0f * bitmapUV.x - 1.0f, 2.0f * bitmapUV.y - 1.0f, 0.0f};
-            normal.z = SquareRoot(1.0f - Minimum(1.0f, Square(normal.x) + Square(normal.y)));
-            normal = Normalize(normal);
+
+            real32 rootTerm = 1.0f - Square(normal.x) - Square(normal.y);
+
+            if (rootTerm >= 0)
+            {
+                normal.z = SquareRoot(rootTerm);
+            }
+            else
+            {
+                normal.x = 0.0f;
+                normal.y = 0.0f;
+                normal.z = 1.0f;
+            }
+            
+            
             v4 color = {
                 255.0f * 0.5f * (normal.x + 1.0f),
                 255.0f * 0.5f * (normal.y + 1.0f),
-                normal.z,
+                255.0f * 0.5f * (normal.z + 1.0f),
                 255.0f * roughness
             };
 
-            *pixel = (
+            *pixel++ = (
                       ((uint32)(color.a + 0.5f) << 24)
                       | ((uint32)(color.r + 0.5f) << 16)
                       | ((uint32)(color.g + 0.5f) << 8)
@@ -781,6 +793,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     transient_state *tranState = (transient_state *)memory->TransientStorage;
     if (!tranState->IsInitialized) {
         InitializeArena(&tranState->TransientArena, memory->TransientStorageSize-sizeof(transient_state), (uint8 *)memory->TransientStorage + sizeof(transient_state));
+
+
+        // NOTE: make square for now
+        gameState->HeroNormal = MakeEmptyBitmap(&gameState->WorldArena, gameState->HeroBitmaps[3].Character.Width, gameState->HeroBitmaps[3].Character.Height, false);
+        MakeSphereNormalMap(&gameState->HeroNormal, 1.0f);
+        
 
         uint32 groundBufferWidth = 256;
         uint32 groundBufferHeight = 256;
@@ -1264,7 +1282,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // v4 color = { (Sin(4.0f * angle) + 1.0f) / 2.0f, 0.0f, 1, (Cos(4.0f * angle) + 1.0f) / 2.0f};
     v4 color = {1.0f, 1.0f, 1.0f, 1.0f };
     PushCoordinateSystem(renderGroup, origin - 0.5 * xAxis - 0.5 * yAxis, xAxis, yAxis, color,
-                         &(gameState->HeroBitmaps[3].Character), 0, 0, 0, 0);
+                         &(gameState->HeroBitmaps[3].Character), &gameState->HeroNormal, 0, 0, 0);
 
     RenderGroup(drawBuffer, renderGroup);
 

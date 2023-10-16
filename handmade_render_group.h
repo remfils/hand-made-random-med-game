@@ -3,7 +3,7 @@ struct render_environment_map
     // NOTE: LevelOfDetails[0] - 2 ^ WidthPow2 and 2 ^ HeightPow2
     uint32 WidthPow2;
     uint32 HeightPow2;
-    loaded_bitmap *LevelOfDetails[4];
+    loaded_bitmap *LevelsOfDetails[4];
 };
 
 struct render_basis

@@ -1,4 +1,4 @@
-* to be done [2/602]
+* to be done [3/602]
 
 ** DONE Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -9,10 +9,15 @@
 ** DONE Handmade Hero Day 097 - Adding Normal Maps to the Pipeline
 - [[https://www.youtube.com/watch?v=oww19zUryVg]]
 
-добавлено куча кода для семплинга из render_environment_map
+добавлено куча кода для семплинга из render_environment_map. Код
+компилируется но ничего не реботает
 
-** TODO Handmade Hero Day 098 - Normal Map Code Cleanup
+** DONE Handmade Hero Day 098 - Normal Map Code Cleanup
 - [[https://www.youtube.com/watch?v=xWQfjqAHvxs]]
+
+Уже получается некоторое улучшение процесса. Множество странных вещей
+были устранены. Сейчас получается вращающийся персонаж, который
+раскрашен сгенерированной картой нормалей для сферы.
 
 ** TODO Handmade Hero Day 099 - Test Environment Maps
 - [[https://www.youtube.com/watch?v=07UpVTmIKdU]]

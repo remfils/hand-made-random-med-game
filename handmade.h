@@ -241,6 +241,8 @@ struct game_state
     loaded_bitmap SwordDemoBitmap;
     loaded_bitmap StairwayBitmap;
 
+    loaded_bitmap HeroNormal;
+    
     world_position GroundP;    
     
     hero_bitmaps HeroBitmaps[4];
