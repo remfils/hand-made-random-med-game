@@ -68,10 +68,9 @@
 
 #include "handmade_platform.h"
 #include "handmade_platform.cpp"
-
 #include "handmade_intrinsics.h"
 #include "handmade_math.h"
-
+#include "handmade_render_group.h"
 
 
 
@@ -114,16 +113,6 @@ struct temporary_memory
     memory_arena *Arena;
     memory_index Used;
 };
-
-#define BITMAP_BYTES_PER_PIXEL 4
-struct loaded_bitmap
-{
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
-    void *Memory;
-};
-
 
 struct hero_bitmaps
 {
@@ -240,8 +229,6 @@ struct game_state
     loaded_bitmap WallDemoBitmap;
     loaded_bitmap SwordDemoBitmap;
     loaded_bitmap StairwayBitmap;
-
-    loaded_bitmap HeroNormal;
     
     world_position GroundP;    
     
@@ -259,6 +246,9 @@ struct game_state
     sim_entity_collision_volume_group *FamiliarCollision;
     sim_entity_collision_volume_group *WallCollision;
     sim_entity_collision_volume_group *StandardRoomCollision;
+
+    loaded_bitmap TestDiffuse;
+    loaded_bitmap TestNormal;
 };
 
 struct transient_state
@@ -267,6 +257,10 @@ struct transient_state
     memory_arena TransientArena;
     uint32 GroundBufferCount;
     ground_buffer *GroundBuffers;
+
+    uint32 EnvMapWidth;
+    uint32 EnvMapHeight;
+    render_environment_map EnvMaps[3];
 };
 
 

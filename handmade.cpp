@@ -1,5 +1,4 @@
 #include "handmade.h"
-#include "handmade_render_group.h"
 #include "handmade_render_group.cpp"
 #include "handmade_world.cpp"
 #include "random.h"
@@ -796,8 +795,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 
         // NOTE: make square for now
-        gameState->HeroNormal = MakeEmptyBitmap(&gameState->WorldArena, gameState->HeroBitmaps[3].Character.Width, gameState->HeroBitmaps[3].Character.Height, false);
-        MakeSphereNormalMap(&gameState->HeroNormal, 1.0f);
+        gameState->TestDiffuse = MakeEmptyBitmap(&gameState->WorldArena, 256, 256, false);
+        RenderRectangle(&gameState->TestDiffuse, 0,0, (real32)gameState->TestDiffuse.Width, (real32)gameState->TestDiffuse.Height, V4(0.2f, 0.2f, 0.2f, 1.0f));
+        gameState->TestNormal = MakeEmptyBitmap(&gameState->WorldArena, gameState->TestDiffuse.Width, gameState->TestDiffuse.Height, false);
+        MakeSphereNormalMap(&gameState->TestNormal, 0.0f);
         
 
         uint32 groundBufferWidth = 256;
@@ -819,6 +820,20 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         // TODO: test fill
         // FillGroundChunk(tranState, gameState, tranState->GroundBuffers, &gameState->CameraPosition);
+
+        tranState->EnvMapWidth = 512;
+        tranState->EnvMapHeight = 256;
+        for (uint32 i=0; i<ArrayCount(tranState->EnvMaps); i++) {
+            render_environment_map *map = tranState->EnvMaps + i;
+
+            uint32 width = tranState->EnvMapWidth;
+            uint32 height = tranState->EnvMapHeight;
+            for (uint32 j=0; j < ArrayCount(map->LevelsOfDetails); j++) {
+                map->LevelsOfDetails[j] = MakeEmptyBitmap(&tranState->TransientArena, width, height, false);
+                width >>= 1;
+                height >>= 1;
+            }
+        }
     }
 
     if (input->ExecutableReloaded)
@@ -1271,18 +1286,81 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     gameState->CurrentTime += input->DtForFrame;
 
+    // show what is beeing sampled
+    PushPiece(renderGroup, &tranState->EnvMaps[0].LevelsOfDetails[0], V2(0,0), 0, V2(0,0));
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    // render temp
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    v4 envColors[] = {
+        {1.0f, 0,0, 1},
+        {0, 1.0f, 0, 1},
+        {0, 0, 1.0f, 1}
+    };
+    
+    v4 blackColor = {0, 0, 0, 1};
+
+    v2 checkerDim = {30.0f, 30.0f};
+
+    for (uint32 mapIndex=0;
+         mapIndex < ArrayCount(tranState->EnvMaps);
+         mapIndex++)
+    {
+        render_environment_map *map = tranState->EnvMaps + mapIndex;
+        loaded_bitmap *level = map->LevelsOfDetails + 0;
+        v4 envColor = envColors[mapIndex];
+
+        bool32 rowCheckerOn = false;
+        for (uint32 y=0;
+             y < 15;
+             y++)
+        {
+            bool32 checkOn = rowCheckerOn;
+            for (uint32 x=0;
+                 x < 30;
+                 x++)
+            {
+                v2 min = {x * checkerDim.x, y * checkerDim.y};
+                v2 max = min + checkerDim;
+
+                RenderRectangle(level, min.x, min.y, max.x, max.y, checkOn ? blackColor : envColor);
+                checkOn = !checkOn;
+            }
+            rowCheckerOn = !rowCheckerOn;
+        }
+    }
+    
+
+    // RenderRectangle(&tranState->EnvMaps[0].LevelsOfDetails[0], 0, 0, (real32)tranState->EnvMapWidth, (real32)tranState->EnvMapWidth, envColors[0]);
+    // RenderRectangle(&tranState->EnvMaps[1].LevelsOfDetails[0], 0, 0, (real32)tranState->EnvMapWidth, (real32)tranState->EnvMapWidth, envColors[1]);
+    // RenderRectangle(&tranState->EnvMaps[2].LevelsOfDetails[0], 0, 0, (real32)tranState->EnvMapWidth, (real32)tranState->EnvMapWidth, envColors[2]);
+
     real32 angle = gameState->CurrentTime;
     real32 disp = 20.0f * Cos(10 * angle);
     
     v2 origin = screenCenter;
-    v2 xAxis = (230.0f) * V2(Cos(angle), Sin(angle));
-    v2 yAxis = Perp(xAxis);
+    v2 xAxis = V2i(gameState->TestDiffuse.Width, 0);
+    v2 yAxis = V2i(0, gameState->TestDiffuse.Height);
     // v2 xAxis = V2(200.0f, 0);
     // v2 yAxis = V2(0, 120.0f);
     // v4 color = { (Sin(4.0f * angle) + 1.0f) / 2.0f, 0.0f, 1, (Cos(4.0f * angle) + 1.0f) / 2.0f};
     v4 color = {1.0f, 1.0f, 1.0f, 1.0f };
     PushCoordinateSystem(renderGroup, origin - 0.5 * xAxis - 0.5 * yAxis, xAxis, yAxis, color,
-                         &(gameState->HeroBitmaps[3].Character), &gameState->HeroNormal, 0, 0, 0);
+                         &(gameState->TestDiffuse), &gameState->TestNormal,
+                         tranState->EnvMaps+2, tranState->EnvMaps+1, tranState->EnvMaps+0);
+
+    v2 mapP = V2(20.0f, 20.0f);
+    for (int32 i=0; i < ArrayCount(tranState->EnvMaps); i++) {
+        render_environment_map *map = tranState->EnvMaps + i;
+        loaded_bitmap *level = map->LevelsOfDetails + 0;
+        xAxis = 0.5 * V2i(level->Width, 0);
+        yAxis = 0.5 * V2i(0, level->Height);
+        
+        PushCoordinateSystem(renderGroup, mapP, xAxis, yAxis, color, level, 0,0,0,0);
+
+        mapP += yAxis + V2(0.0f, 6.0f);
+    }
 
     RenderGroup(drawBuffer, renderGroup);
 

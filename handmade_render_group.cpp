@@ -150,19 +150,18 @@ SRGBBilinearBlend(bilinear_sample texelSamples, real32 fX, real32 fY)
 internal v4
 SampleEnvironmentMap(v2 screenSpaceUV, v3 normal, real32 roughness, render_environment_map *map)
 {
-    return V4(normal.x, normal.y, normal.z, 1.0f);
-    
     uint32 roughIndex = (uint32)(roughness * ((real32)ArrayCount(map->LevelsOfDetails) - 1.0f) + 0.5f);
     Assert(roughIndex < ArrayCount(map->LevelsOfDetails));
 
-    real32 fX = 0.0f;
-    real32 fY = 0.0f;
+    loaded_bitmap *level = map->LevelsOfDetails + roughIndex;
 
-    uint32 mapX = 0;
-    uint32 mapY = 0;
+    real32 fX = level->Width / 2 + normal.x * (real32)(level->Width / 2);
+    real32 fY = level->Height / 2 + normal.y * (real32)(level->Height / 2);
 
-    loaded_bitmap *lod = map->LevelsOfDetails[roughIndex];
-    bilinear_sample sample = BilinearSample(lod, mapX, mapY);
+    uint32 mapX = (int32)fX;
+    uint32 mapY = (int32)fY;
+
+    bilinear_sample sample = BilinearSample(level, mapX, mapY);
 
     v4 result = SRGBBilinearBlend(sample, fX, fY);
     
@@ -276,7 +275,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                     if (tEnvMap < -0.5)
                     {
                         farMap = bottom;
-                        tFarMap = (tEnvMap + 1.0f) * 2.0f;
+                        tFarMap = 1.0f - (tEnvMap + 1.0f) * 2.0f;
                     }
                     else if (tEnvMap > 0.5)
                     {
@@ -284,13 +283,12 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                         tFarMap = (tEnvMap - 0.5f) * 2.0f;
                     }
 
-                    // v4 lightColor = SampleEnvironmentMap(screenSpaceUV, normal.xyz, normal.w, middle);
-                    v4 lightColor = {0,0,0,1.0f};
+                    v4 lightColor = {0,0,0,1}; // SampleEnvironmentMap(screenSpaceUV, normal.xyz, normal.w, middle);
                     if (farMap) {
                         v4 farMapColor = SampleEnvironmentMap(screenSpaceUV, normal.xyz, normal.w, farMap);
                         lightColor = Lerp(lightColor, tFarMap, farMapColor);
                     }
-                    lightColor = normal; // DEBUG: pretty colors
+                    // lightColor = normal; // DEBUG: pretty colors
                     
                     texel.rgb = texel.rgb + lightColor.rgb * texel.a;
 #else

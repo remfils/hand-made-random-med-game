@@ -1,4 +1,4 @@
-* to be done [3/602]
+* to be done [4/602]
 
 ** DONE Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -19,8 +19,12 @@
 были устранены. Сейчас получается вращающийся персонаж, который
 раскрашен сгенерированной картой нормалей для сферы.
 
-** TODO Handmade Hero Day 099 - Test Environment Maps
+** DONE Handmade Hero Day 099 - Test Environment Maps
 - [[https://www.youtube.com/watch?v=07UpVTmIKdU]]
+
+Добавлены тестовые текстуры шахматной доски и сделан "работающий"
+набросок отрисовки текстуры на карте нормалей - координаты пока что не
+используются.
 
 ** TODO Handmade Hero Day 100 - Reflection Vectors
 - [[https://www.youtube.com/watch?v=PHz3ulc_mFk]]
