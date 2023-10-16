@@ -1,4 +1,5 @@
-uint32 GetUintColor(v4 color)
+inline uint32
+GetUintColor(v4 color)
 {
     uint32 uColor = (uint32)(
                              (RoundReal32ToInt32(color.a * 255.0f) << 24) |
@@ -10,8 +11,7 @@ uint32 GetUintColor(v4 color)
     return uColor;
 }
 
-internal
-void
+internal void
 RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color)
 {
     uint32 uColor = GetUintColor(color);
@@ -346,8 +346,7 @@ RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
 }
 
 // TODO: rewrite use v2!!!
-internal
-void
+internal void
 RenderRectangleOutline(loaded_bitmap *drawBuffer, real32 minX, real32 minY, real32 maxX, real32 maxY, v4 color)
 {
     real32 lineWidth = 2.0f;

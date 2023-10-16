@@ -36,7 +36,8 @@ struct bitmap_header {
 #pragma pack(pop)
 
 
-internal loaded_bitmap DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireFile, char *filename)
+internal loaded_bitmap
+DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireFile, char *filename)
 {
     // NOTE: bitmap order is AABBGGRR, bottom row is first
     
@@ -289,8 +290,7 @@ AddWall(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
     return lowEntityResult;
 }
 
-internal
-void
+internal void
 GameOutputSound(game_sound_output_buffer *soundBuffer, game_state *gameState)
 {
     int16 *sampleOut = soundBuffer->Samples;
@@ -325,7 +325,7 @@ InitializeArena(memory_arena *arena, memory_index size, void *base)
 }
 
 
-sim_entity_collision_volume_group *
+internal sim_entity_collision_volume_group *
 MakeNullCollision(game_state *gameState)
 {
     // TODO: fundamental types arena
@@ -340,7 +340,7 @@ MakeNullCollision(game_state *gameState)
     return group;
 }
 
-sim_entity_collision_volume_group *
+internal sim_entity_collision_volume_group *
 MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
 {
     // TODO: fundamental types arena

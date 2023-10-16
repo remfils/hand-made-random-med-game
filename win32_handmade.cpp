@@ -216,7 +216,7 @@ Win32InitXInput(void)
 }
 
 
-win32_window_dimension
+inline win32_window_dimension
 Win32GetWindowDimension(HWND window)
 {
      win32_window_dimension dim;

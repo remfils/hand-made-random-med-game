@@ -1,4 +1,4 @@
-uint32
+inline uint32
 SafeTruncateUInt64(uint64 value)
 {
     Assert(value <= 0xFFFFFFFF);
