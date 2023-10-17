@@ -1,4 +1,4 @@
-* to be done [4/602]
+* to be done [5/602]
 
 ** DONE Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -26,8 +26,12 @@
 набросок отрисовки текстуры на карте нормалей - координаты пока что не
 используются.
 
-** TODO Handmade Hero Day 100 - Reflection Vectors
+** DONE Handmade Hero Day 100 - Reflection Vectors
 - [[https://www.youtube.com/watch?v=PHz3ulc_mFk]]
+
+Достаточно близко подошел к работе отражений. Все еще есть баги с
+отражениями - они работают не правильно. Скорее всего нужно будет
+перепроверить всю работу в ручную...
 
 ** TODO Handmade Hero Day 101 - The Inverse and the Transpose
 - [[https://www.youtube.com/watch?v=PPDAqEJvUUQ]]

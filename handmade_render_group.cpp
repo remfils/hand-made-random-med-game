@@ -148,18 +148,34 @@ SRGBBilinearBlend(bilinear_sample texelSamples, real32 fX, real32 fY)
 }
 
 internal v4
-SampleEnvironmentMap(v2 screenSpaceUV, v3 normal, real32 roughness, render_environment_map *map)
+SampleEnvironmentMap(v2 screenSpaceUV, v3 sampleDirection, real32 roughness, render_environment_map *map)
 {
     uint32 roughIndex = (uint32)(roughness * ((real32)ArrayCount(map->LevelsOfDetails) - 1.0f) + 0.5f);
     Assert(roughIndex < ArrayCount(map->LevelsOfDetails));
+    Assert(sampleDirection.y > 0.0f);
+
+    real32 heightOfSkyBox = 1.0f;
+    real32 uvsPerMeter = 0.1f;
+    real32 coef = (uvsPerMeter * heightOfSkyBox) / sampleDirection.y;
+    // TODO: make sure we know what direction Z should go and why
+    v2 offset = coef * V2(sampleDirection.x, sampleDirection.z);
+
+    v2 uv = screenSpaceUV + offset;
+    uv = Clamp01(uv);
 
     loaded_bitmap *level = map->LevelsOfDetails + roughIndex;
+        
+    real32 tX = 1.0f + (uv.x * ((real32)(level->Width - 2)));
+    real32 tY = 1.0f + (uv.y * ((real32)(level->Height - 2)));
+    // tX = Clamp01(tX);
+    // tY = Clamp01(tY);
 
-    real32 fX = level->Width / 2 + normal.x * (real32)(level->Width / 2);
-    real32 fY = level->Height / 2 + normal.y * (real32)(level->Height / 2);
+    uint32 mapX = (int32)tX;
+    uint32 mapY = (int32)tY;
+    
+    real32 fX = tX - (real32)mapX;
+    real32 fY = tY - (real32)mapY;
 
-    uint32 mapX = (int32)fX;
-    uint32 mapY = (int32)fY;
 
     bilinear_sample sample = BilinearSample(level, mapX, mapY);
 
@@ -255,6 +271,8 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                 bilinear_sample texelSamples = BilinearSample(texture, imgX, imgY);
                 v4 texel = SRGBBilinearBlend(texelSamples, fX, fY);
 
+                texel.rgb = texel.rgb * texel.a;
+
                 if (normalMap)
                 {
                     bilinear_sample normalSamples = BilinearSample(normalMap, imgX, imgY);
@@ -268,14 +286,23 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 
                     normal = UnscaleAndBiasNormal(normal);
 
+                    // NOTE: eye vector is always assumed to be from top
+                    // v3 eyeVector = {0,0,1};
+
+                    // TODO: compute a bounce based on normals
+
+                    v3 bounceDirection = 2.f * normal.z * normal.xyz;
+                    //bounceDirection.z *= -1.0f; // DEBUG
+
 #if 1
-                    real32 tEnvMap = normal.y;
+                    real32 tEnvMap = bounceDirection.y;
                     real32 tFarMap = 0.0f;
                     render_environment_map *farMap = 0;
                     if (tEnvMap < -0.5)
                     {
                         farMap = bottom;
                         tFarMap = 1.0f - (tEnvMap + 1.0f) * 2.0f;
+                        bounceDirection = -bounceDirection;
                     }
                     else if (tEnvMap > 0.5)
                     {
@@ -285,7 +312,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 
                     v4 lightColor = {0,0,0,1}; // SampleEnvironmentMap(screenSpaceUV, normal.xyz, normal.w, middle);
                     if (farMap) {
-                        v4 farMapColor = SampleEnvironmentMap(screenSpaceUV, normal.xyz, normal.w, farMap);
+                        v4 farMapColor = SampleEnvironmentMap(screenSpaceUV, bounceDirection, normal.w, farMap);
                         lightColor = Lerp(lightColor, tFarMap, farMapColor);
                     }
                     // lightColor = normal; // DEBUG: pretty colors
