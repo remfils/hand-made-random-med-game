@@ -34,6 +34,11 @@ union v4
         real32 w;
     };
     struct {
+        v2 xy;
+        real32 ignored1_;
+        real32 ignored2_;
+    };
+    struct {
         v3 rgb;
         real32 a;
     };
@@ -676,6 +681,36 @@ Hadamard(v4 a, v4 b)
     result.w = a.w * b.w;
     return result;
 }
+
+inline real32
+Inner(v4 a, v4 b)
+{
+    real32 res = a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+    return res;
+}
+
+
+inline real32
+LengthSq(v4 a)
+{
+    real32 result = Inner(a, a);
+    return result;
+}
+
+inline real32
+Length(v4 a)
+{
+    real32 result = SquareRoot(LengthSq(a));
+    return result;
+}
+
+inline v4
+Normalize(v4 a)
+{
+    v4 result = a * (1.0f / Length(a));
+    return result;
+}
+
 
 #define HANDMADE_MATH_H
 #endif

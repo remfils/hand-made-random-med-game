@@ -554,6 +554,8 @@ MakeSphereNormalMap(loaded_bitmap *bitmap, real32 roughness, real32 cx = 1.0f, r
             v2 bitmapUV = {
                 invWidth * (real32)x, invHeight * (real32)y
             };
+
+            // TODO(vlad): check coef... cylynder doesnt work
             v3 normal = {
                 cx * (2.0f * bitmapUV.x - 1.0f),
                 cy * (2.0f * bitmapUV.y - 1.0f),
@@ -869,7 +871,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->TestDiffuse = MakeEmptyBitmap(&gameState->WorldArena, 256, 256, false);
         RenderRectangle(&gameState->TestDiffuse, 0,0, (real32)gameState->TestDiffuse.Width, (real32)gameState->TestDiffuse.Height, V4(0.2f, 0.2f, 0.2f, 1.0f));
         gameState->TestNormal = MakeEmptyBitmap(&gameState->WorldArena, gameState->TestDiffuse.Width, gameState->TestDiffuse.Height, false);
-        MakeSphereNormalMap(&gameState->TestNormal, 0.0f, 1.0f);
+        MakeSphereNormalMap(&gameState->TestNormal, 0.0f);
         //MakePyramidNormalMap(&gameState->TestNormal, 0.0f);
         
 
@@ -1359,7 +1361,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     gameState->CurrentTime += input->DtForFrame;
 
     // show what is beeing sampled
-    PushPiece(renderGroup, &tranState->EnvMaps[0].LevelsOfDetails[0], V2(0,0), 0, V2(0,0));
+    //PushPiece(renderGroup, &tranState->EnvMaps[0].LevelsOfDetails[0], V2(0,0), 0, V2(0,0));
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // render temp
@@ -1404,33 +1406,28 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
     
 
-    // RenderRectangle(&tranState->EnvMaps[0].LevelsOfDetails[0], 0, 0, (real32)tranState->EnvMapWidth, (real32)tranState->EnvMapWidth, envColors[0]);
-    // RenderRectangle(&tranState->EnvMaps[1].LevelsOfDetails[0], 0, 0, (real32)tranState->EnvMapWidth, (real32)tranState->EnvMapWidth, envColors[1]);
-    // RenderRectangle(&tranState->EnvMaps[2].LevelsOfDetails[0], 0, 0, (real32)tranState->EnvMapWidth, (real32)tranState->EnvMapWidth, envColors[2]);
-
     real32 angle = gameState->CurrentTime;
     real32 disp = 20.0f * Cos(2.0f * angle);
     real32 disp2 = 20.0f * Sin(2.0f * angle);
-    
+
     v2 origin = screenCenter - V2i(50, 50);
-    v2 xAxis = V2i(gameState->TestDiffuse.Width, 0);
-    v2 yAxis = V2i(0, gameState->TestDiffuse.Height);
+    v2 xAxis = (real32)gameState->TestDiffuse.Width * V2(Cos(angle), Sin(angle));
+    v2 yAxis = Perp(xAxis);// V2i(0, gameState->TestDiffuse.Height);
     // v2 xAxis = V2(200.0f, 0);
     // v2 yAxis = V2(0, 120.0f);
     // v4 color = { (Sin(4.0f * angle) + 1.0f) / 2.0f, 0.0f, 1, (Cos(4.0f * angle) + 1.0f) / 2.0f};
     v4 color = {1.0f, 1.0f, 1.0f, 1.0f };
+
+    v2 mapP = V2(20.0f, 20.0f);
+    
+
+    xAxis = (real32)gameState->TestDiffuse.Width * V2(Cos(angle), Sin(angle));
+    yAxis = Perp(xAxis);// V2i(0, gameState->TestDiffuse.Height);
     
     PushCoordinateSystem(renderGroup, origin - 0.01f * disp * xAxis - 0.01f * disp2 * yAxis, xAxis, yAxis, color,
                          &(gameState->TestDiffuse), &gameState->TestNormal,
                          tranState->EnvMaps+2, tranState->EnvMaps+1, tranState->EnvMaps+0);
-    
-    /*
-    PushCoordinateSystem(renderGroup, origin - 0.01f * disp * xAxis - 0.01f * disp2 * yAxis, xAxis, yAxis, color,
-                         &(gameState->TestNormal), 0,
-                         0, 0, 0);
-    */
 
-    v2 mapP = V2(20.0f, 20.0f);
     for (int32 i=0; i < ArrayCount(tranState->EnvMaps); i++) {
         render_environment_map *map = tranState->EnvMaps + i;
         loaded_bitmap *level = map->LevelsOfDetails + 0;
@@ -1441,6 +1438,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         mapP += yAxis + V2(0.0f, 6.0f);
     }
+    
+    /*
+    PushCoordinateSystem(renderGroup, origin - 0.01f * disp * xAxis - 0.01f * disp2 * yAxis, xAxis, yAxis, color,
+                         &(gameState->TestNormal), 0,
+                         0, 0, 0);
+    */
 
     // PushSaturationFilter(renderGroup, (1.0f + Cos(4.0f * angle) * 0.5f));
     // PushSaturationFilter(renderGroup, 0.5f + Cos(2.0f * angle) * 0.5f);

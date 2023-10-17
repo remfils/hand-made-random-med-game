@@ -1,4 +1,4 @@
-* to be done [5/602]
+* to be done [7/602]
 
 ** DONE Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -33,11 +33,16 @@
 отражениями - они работают не правильно. Скорее всего нужно будет
 перепроверить всю работу в ручную...
 
-** TODO Handmade Hero Day 101 - The Inverse and the Transpose
+** DONE Handmade Hero Day 101 - The Inverse and the Transpose
 - [[https://www.youtube.com/watch?v=PPDAqEJvUUQ]]
 
-** TODO Handmade Hero Day 102 - Transforming Normals Properly
+Лекция про то, как появляются матрицы в вычислених графики. 
+
+** DONE Handmade Hero Day 102 - Transforming Normals Properly
 - [[https://www.youtube.com/watch?v=73u0sR4DU9E]]
+
+Вращающиеся нормали работают, но есть баг с верхом (красным
+цветом). Скорее всего проблема в векторе зрения (v3(0,0,1))
 
 ** TODO Handmade Hero Day 103 - Card-like Normal Map Reflections
 - [[https://www.youtube.com/watch?v=-LWk-TVfGTk]]
