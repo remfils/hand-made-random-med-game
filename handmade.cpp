@@ -597,6 +597,63 @@ MakeSphereNormalMap(loaded_bitmap *bitmap, real32 roughness, real32 cx = 1.0f, r
     }
 }
 
+internal void
+MakeSphereDiffuseMap(loaded_bitmap *bitmap)
+{
+    real32 invWidth = 1.0f / ((real32)bitmap->Width - 1.0f);
+    real32 invHeight = 1.0f / ((real32)bitmap->Height - 1.0f);
+
+    uint8 *row = (uint8 *)bitmap->Memory;
+    
+    for(int32 y =0;
+        y < bitmap->Height;
+        y++)
+    {
+        uint32 *pixel = (uint32 *)row;
+        
+        for(int32 x =0;
+            x < bitmap->Width;
+            x++)
+        {
+            v2 bitmapUV = {
+                invWidth * (real32)x, invHeight * (real32)y
+            };
+
+            // TODO(vlad): check coef... cylynder doesnt work
+            v3 normal = {
+                (2.0f * bitmapUV.x - 1.0f),
+                (2.0f * bitmapUV.y - 1.0f),
+                0.0f
+            };
+
+            real32 rootTerm = 1.0f - Square(normal.x) - Square(normal.y);
+
+            real32 alpha = 0.0f;
+            if (rootTerm >= 0)
+            {
+                alpha  = 255.0f;
+            }
+            
+            v4 baseColor = {1,1,1,1};
+            v4 color = {
+                (baseColor.x),
+                (baseColor.y),
+                (baseColor.z),
+                alpha
+            };
+
+            *pixel++ = (
+                      ((uint32)(color.a + 0.5f) << 24)
+                      | ((uint32)(color.r + 0.5f) << 16)
+                      | ((uint32)(color.g + 0.5f) << 8)
+                      | ((uint32)(color.b + 0.5f) << 0)
+                      );
+        }
+
+        row += bitmap->Pitch;
+    }
+}
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
     Assert(sizeof(game_state) <= memory->PermanentStorageSize);
@@ -868,11 +925,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 
         // NOTE: make square for now
-        gameState->TestDiffuse = MakeEmptyBitmap(&gameState->WorldArena, 256, 256, false);
-        RenderRectangle(&gameState->TestDiffuse, 0,0, (real32)gameState->TestDiffuse.Width, (real32)gameState->TestDiffuse.Height, V4(0.2f, 0.2f, 0.2f, 1.0f));
+        gameState->TestDiffuse = MakeEmptyBitmap(&gameState->WorldArena, (int32)(256 * 0.5f), (int32)(256 * 0.5f), false);
+        MakeSphereDiffuseMap(&gameState->TestDiffuse);
+        //RenderRectangle(&gameState->TestDiffuse, 0,0, (real32)gameState->TestDiffuse.Width, (real32)gameState->TestDiffuse.Height, V4(0.2f, 0.2f, 0.2f, 1.0f));
         gameState->TestNormal = MakeEmptyBitmap(&gameState->WorldArena, gameState->TestDiffuse.Width, gameState->TestDiffuse.Height, false);
         MakeSphereNormalMap(&gameState->TestNormal, 0.0f);
-        //MakePyramidNormalMap(&gameState->TestNormal, 0.0f);
+
+        // MakePyramidNormalMap(&gameState->TestNormal, 0.0f);
         
 
         uint32 groundBufferWidth = 256;
@@ -908,6 +967,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 height >>= 1;
             }
         }
+
+        tranState->EnvMaps[0].PositionZ = -2.0f;
+        tranState->EnvMaps[1].PositionZ = 0.5f;
+        tranState->EnvMaps[2].PositionZ = 2.0f;
     }
 
     if (input->ExecutableReloaded)
@@ -1410,19 +1473,30 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     real32 disp = 20.0f * Cos(2.0f * angle);
     real32 disp2 = 20.0f * Sin(2.0f * angle);
 
+    /*
+    disp = 0;
+    disp2 = 0;
+    */
+
     v2 origin = screenCenter - V2i(50, 50);
+
     v2 xAxis = (real32)gameState->TestDiffuse.Width * V2(Cos(angle), Sin(angle));
     v2 yAxis = Perp(xAxis);// V2i(0, gameState->TestDiffuse.Height);
+
+    xAxis = (real32)gameState->TestDiffuse.Width * V2(1.0f, 0.0);
+    yAxis = Perp(xAxis);
+
     // v2 xAxis = V2(200.0f, 0);
     // v2 yAxis = V2(0, 120.0f);
     // v4 color = { (Sin(4.0f * angle) + 1.0f) / 2.0f, 0.0f, 1, (Cos(4.0f * angle) + 1.0f) / 2.0f};
-    v4 color = {1.0f, 1.0f, 1.0f, 1.0f };
+    v4 color = {1.0f, 1.0f, 1.0f, 1.0f};
 
     v2 mapP = V2(20.0f, 20.0f);
     
-
+    /*
     xAxis = (real32)gameState->TestDiffuse.Width * V2(Cos(angle), Sin(angle));
     yAxis = Perp(xAxis);// V2i(0, gameState->TestDiffuse.Height);
+    */
     
     PushCoordinateSystem(renderGroup, origin - 0.01f * disp * xAxis - 0.01f * disp2 * yAxis, xAxis, yAxis, color,
                          &(gameState->TestDiffuse), &gameState->TestNormal,

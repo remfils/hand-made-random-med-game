@@ -10,6 +10,7 @@ struct loaded_bitmap
 struct render_environment_map
 {
     loaded_bitmap LevelsOfDetails[4];
+    real32 PositionZ;
 };
 
 struct render_basis

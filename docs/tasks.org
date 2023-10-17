@@ -1,4 +1,4 @@
-* to be done [7/602]
+* to be done [8/602]
 
 ** DONE Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -44,8 +44,18 @@
 Вращающиеся нормали работают, но есть баг с верхом (красным
 цветом). Скорее всего проблема в векторе зрения (v3(0,0,1))
 
-** TODO Handmade Hero Day 103 - Card-like Normal Map Reflections
+** DONE Handmade Hero Day 103 - Card-like Normal Map Reflections
 - [[https://www.youtube.com/watch?v=-LWk-TVfGTk]]
+
+Проблему я так и не понял. На сколько я смог понять - основная
+проблема в том, что очень криво воспринимаются данные из z. В итоге
+сделана комбинация из z + y
+
+Сейчас прошелся по коду, все равно ничгео не понятно... Почему оно
+зарешало совсем не ясно.
+
+Постарался поразбираться и похоже добавил еще багов. Все равно не
+понятно, почему именно так нужно все рисовать и в чем была проблема.
 
 ** TODO Handmade Hero Day 104 - Switching to Y-is-up Render Targets
 - [[https://www.youtube.com/watch?v=CfjMu8DwOnY]]
