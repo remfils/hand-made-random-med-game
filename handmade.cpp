@@ -115,12 +115,17 @@ DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireF
         // todo: error
     }
 
-    result.Pitch = -result.Width * BITMAP_BYTES_PER_PIXEL;
-    result.Memory = (uint8 *)result.Memory - result.Pitch * (result.Height - 1);
+    result.Pitch = result.Width * BITMAP_BYTES_PER_PIXEL;
     
     return result;
 }
 
+inline v2
+FromTopDownToDownUpAlign(loaded_bitmap *image, v2 topDownAlignment)
+{
+    v2 result = {topDownAlignment.x, (real32)(image->Height - 1) - topDownAlignment.y};
+    return result;
+}
 
 struct add_low_entity_result
 {
@@ -383,7 +388,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             // TODO: look into wang hashing here
             random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
-            v2 center = V2((real32)chunkOffsetX * drawBuffer->Width, -(real32)chunkOffsetY * drawBuffer->Height);
+            v2 center = V2((real32)chunkOffsetX * drawBuffer->Width, (real32)chunkOffsetY * drawBuffer->Height);
 
             for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
             {
@@ -396,7 +401,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                PushPiece(renderGroup, bitmap, grassCenter, 0, V2(0,0));
+                PushBitmap(renderGroup, bitmap, grassCenter, 0, FromTopDownToDownUpAlign(bitmap, V2(0,0)));
             }
         }
     }
@@ -417,7 +422,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             // TODO: look into wang hashing here
             random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
-            v2 center = V2((real32)chunkOffsetX * drawBuffer->Width, -(real32)chunkOffsetY * drawBuffer->Height);
+            v2 center = V2((real32)chunkOffsetX * drawBuffer->Width, (real32)chunkOffsetY * drawBuffer->Height);
 
             for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
             {
@@ -430,7 +435,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                PushPiece(renderGroup, bitmap, grassCenter, 0, V2(0,0));
+                PushBitmap(renderGroup, bitmap, grassCenter, 0, FromTopDownToDownUpAlign(bitmap, V2(0,0)));
             }
         }
     }
@@ -1138,7 +1143,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         FillGroundChunk(tranState, gameState, furtherstBuffer, &chunkCenter);
                     }
 
+                    #if 1
                     PushPieceRectOutline(renderGroup, relP.xy, 0, gameState->World->ChunkDimInMeters.xy, chunkColor);
+                    #endif
                 }
             }
         }
@@ -1152,7 +1159,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         if (IsValid(buf->P)) {
             loaded_bitmap *bmp = &buf->Bitmap;
             v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
-            PushPiece(renderGroup, bmp, groundDelta.xy, groundDelta.z, 0.5f * V2i(bmp->Width, bmp->Height), 1);
+            PushBitmap(renderGroup, bmp, groundDelta.xy, groundDelta.z, 0.5f * V2i(bmp->Width, bmp->Height), 1);
         }
     }
 
@@ -1192,7 +1199,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     wallAlpha = 1.0f;
                 }
                 
-                PushPiece(renderGroup, &gameState->WallDemoBitmap, V2(0,0), 0, V2(64.0f * 0.5f, 64.0f * 0.5f), wallAlpha);
+                PushBitmap(renderGroup, &gameState->WallDemoBitmap, V2(0,0), 0, FromTopDownToDownUpAlign(&gameState->WallDemoBitmap, V2(64.0f * 0.5f, 64.0f * 0.5f)), wallAlpha);
             } break;
             case EntityType_Sword:
             {
@@ -1205,7 +1212,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     ClearCollisionRulesFor(gameState, simEntity->StorageIndex);
                 }
 
-                PushPiece(renderGroup, &gameState->SwordDemoBitmap, V2(0,0),0, V2(12,60), 1);
+                PushBitmap(renderGroup, &gameState->SwordDemoBitmap, V2(0,0),0, FromTopDownToDownUpAlign(&gameState->SwordDemoBitmap, V2(12,60)), 1);
             } break;
             case EntityType_Hero:
             {
@@ -1233,7 +1240,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     }
                 }
 
-                PushPiece(renderGroup, &heroBitmaps->Character, V2(0, 0), 0, heroBitmaps->Align, 1);
+                PushBitmap(renderGroup, &heroBitmaps->Character, V2(0, 0), 0, FromTopDownToDownUpAlign(&heroBitmaps->Character, heroBitmaps->Align), 1);
 
                 sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
                 PushPieceRectOutline(renderGroup, volume->Offset.xy, 0, volume->Dim.xy, V4(0, 0.3f, 0.3f, 0));
@@ -1242,7 +1249,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             case EntityType_Monster:
             {
-                PushPiece(renderGroup, &gameState->EnemyDemoBitmap, V2(0, 0), 0, V2(61,197), 1);
+                PushBitmap(renderGroup, &gameState->EnemyDemoBitmap, V2(0, 0), 0, FromTopDownToDownUpAlign(&gameState->EnemyDemoBitmap, V2(61,197)), 1);
 
                 DrawHitpoints(renderGroup, simEntity);
             } break;
@@ -1286,7 +1293,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     simEntity->TBobing -= 2.0f * Pi32;
                 }
 
-                PushPiece(renderGroup, &gameState->FamiliarDemoBitmap, V2(0, 0.2f * Sin(13 * simEntity->TBobing)), 0, V2(58, 203), 1);
+                PushBitmap(renderGroup, &gameState->FamiliarDemoBitmap, V2(0, 0.2f * Sin(13 * simEntity->TBobing)), 0, FromTopDownToDownUpAlign(&gameState->FamiliarDemoBitmap, V2(58, 203)), 1);
             } break;
             case EntityType_Stairwell:
             {
@@ -1467,11 +1474,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             rowCheckerOn = !rowCheckerOn;
         }
     }
-    
+
+#if 1
 
     real32 angle = gameState->CurrentTime;
-    real32 disp = 20.0f * Cos(2.0f * angle);
-    real32 disp2 = 20.0f * Sin(2.0f * angle);
+    real32 disp = 50.0f * Cos(3.0f * angle);
+    real32 disp2 = 50.0f * Sin(3.0f * angle);
 
     /*
     disp = 0;
@@ -1512,6 +1520,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         mapP += yAxis + V2(0.0f, 6.0f);
     }
+
+    #endif
     
     /*
     PushCoordinateSystem(renderGroup, origin - 0.01f * disp * xAxis - 0.01f * disp2 * yAxis, xAxis, yAxis, color,

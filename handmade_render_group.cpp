@@ -155,15 +155,15 @@ SRGBBilinearBlend(bilinear_sample texelSamples, real32 fX, real32 fY)
  * @param heightOfSkyBox - how far away from ground skybox texture is
  */
 internal v4
-SampleEnvironmentMap(v2 screenSpaceUV, v3 sampleDirection, real32 roughness, render_environment_map *map, real32 heightOfSkyBox)
+SampleEnvironmentMap(v2 screenSpaceUV, v3 sampleDirection, real32 roughness, render_environment_map *map, real32 distanceToMapInZ)
 {
     uint32 roughIndex = (uint32)(roughness * ((real32)ArrayCount(map->LevelsOfDetails) - 1.0f) + 0.5f);
     Assert(roughIndex < ArrayCount(map->LevelsOfDetails));
     
     loaded_bitmap *level = map->LevelsOfDetails + roughIndex;
     
-    real32 uvsPerMeter = 0.01f;
-    real32 coef = (uvsPerMeter * heightOfSkyBox) / sampleDirection.y;
+    real32 uvsPerMeter = 0.1f;
+    real32 coef = (uvsPerMeter * distanceToMapInZ) / sampleDirection.y;
     // TODO: make sure we know what direction Z should go and why
     v2 offset = coef * V2(sampleDirection.x, sampleDirection.z);
 
@@ -208,6 +208,21 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
     real32 invWidthMax = 1.0f / (real32)widthMax;
     real32 invHeightMax = 1.0f / (real32)heightMax;
 
+    real32 xAxisLen = Length(xAxis);
+    real32 yAxisLen = Length(yAxis);
+    
+    real32 invXLengthSq = 1.0f / LengthSq(xAxis);
+    real32 invYLengthSq = 1.0f / LengthSq(yAxis);
+
+    v2 normalXAxis = (yAxisLen / xAxisLen)  * xAxis;
+    v2 normalYAxis = (xAxisLen / yAxisLen) * yAxis;
+
+    real32 zScale = (xAxisLen + yAxisLen) / 2;
+
+    real32 originZ = 0.0f;
+    real32 originY = (origin + 0.5f *xAxis + 0.5f * yAxis).y;
+    real32 fixedCastY = invHeightMax * originY; // TODO: specify this as param separatly
+    
     int32 minX = widthMax;
     int32 maxX = 0;
     int32 minY = heightMax;
@@ -232,25 +247,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
     if (minY < 0) minY = 0;
     if (maxX > widthMax) maxX = widthMax;
     if (maxY > heightMax) maxY = heightMax;
-
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
-
-    real32 invXLengthSq = 1.0f / LengthSq(xAxis);
-    real32 invYLengthSq = 1.0f / LengthSq(yAxis);;
-
-    real32 xAxisLen = Length(xAxis);
-    real32 yAxisLen = Length(yAxis);
-
-    v2 normalXAxis = (yAxisLen / xAxisLen)  * xAxis;
-    v2 normalYAxis = (xAxisLen / yAxisLen) * yAxis;
-
-    real32 zScale = (xAxisLen + yAxisLen) / 2;
-
-    real32 originZ = 0.0f;
-    real32 originY = (0.5 *xAxis + (0.5 * yAxis)).y;
-    real32 fixedCastY = invHeightMax * (origin.y + originY); // TODO: specify this as param separatly
-    
-    
     for (int32 y = minY; y <= maxY; ++y)
     {
         uint32 *pixel = (uint32 *)row;
@@ -328,12 +325,12 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                     real32 tEnvMap = bounceDirection.y;
                     real32 tFarMap = 0.0f;
                     render_environment_map *farMap = 0;
-                    if (tEnvMap < -0.5)
+                    if (tEnvMap < -0.5f)
                     {
                         farMap = bottom;
                         tFarMap = -1.0f - 2.0f*tEnvMap;
                     }
-                    else if (tEnvMap > 0.5)
+                    else if (tEnvMap > 0.5f)
                     {
                         farMap = top;
                         tFarMap = 2.0f * (tEnvMap - 0.5f);
@@ -626,13 +623,13 @@ PushSaturationFilter(render_group *grp, real32 level)
 }
 
 inline void
-PushPiece(render_group *grp, loaded_bitmap *bmp, v2 offset, real32 offsetZ, v2 align, real32 alpha = 1.0f, real32 EntitiyZC=1.0f)
+PushBitmap(render_group *grp, loaded_bitmap *bmp, v2 offset, real32 offsetZ, v2 align, real32 alpha = 1.0f, real32 EntitiyZC=1.0f)
 {
     render_entry_bitmap *renderEntry = PushRenderElement(grp, render_entry_bitmap);
 
     if (renderEntry) {
         renderEntry->EntityBasis.Basis = grp->DefaultBasis;
-        renderEntry->EntityBasis.Offset = grp->MetersToPixels * V2(offset.x, -offset.y) - align;
+        renderEntry->EntityBasis.Offset = grp->MetersToPixels * offset - align;
         renderEntry->EntityBasis.OffsetZ = offsetZ * grp->MetersToPixels;
         renderEntry->EntityBasis.EntitiyZC = EntitiyZC;
         renderEntry->Bitmap = bmp;
@@ -652,7 +649,7 @@ PushPieceRect(render_group *grp, v2 offset, real32 offsetZ, v2 dim, v4 color)
         v2 halfDim = 0.5f * renderEntry->Dim;
         
         renderEntry->EntityBasis.Basis = grp->DefaultBasis;
-        renderEntry->EntityBasis.Offset = V2(grp->MetersToPixels * offset.x - halfDim.x, grp->MetersToPixels * offset.y - halfDim.y);
+        renderEntry->EntityBasis.Offset = grp->MetersToPixels * offset - halfDim;
         renderEntry->EntityBasis.OffsetZ = offsetZ * grp->MetersToPixels;
         renderEntry->Color = color;
     }
@@ -663,12 +660,12 @@ PushPieceRectOutline(render_group *grp, v2 offset, real32 offsetZ, v2 dim, v4 co
 {
     real32 lineWidth = 0.05f;
     // top bottom
-    PushPieceRect(grp, V2(offset.x, -offset.y-dim.y/2), offsetZ, V2(dim.x, lineWidth), color);
-    PushPieceRect(grp, V2(offset.x, -offset.y+dim.y/2), offsetZ, V2(dim.x, lineWidth), color);
+    PushPieceRect(grp, V2(offset.x, offset.y+dim.y/2), offsetZ, V2(dim.x, lineWidth), color);
+    PushPieceRect(grp, V2(offset.x, offset.y-dim.y/2), offsetZ, V2(dim.x, lineWidth), color);
 
     // left/right
-    PushPieceRect(grp, V2(offset.x-dim.x/2, -offset.y), offsetZ, V2(lineWidth, dim.y), color);
-    PushPieceRect(grp, V2(offset.x+dim.x/2, -offset.y), offsetZ, V2(lineWidth, dim.y), color);
+    PushPieceRect(grp, V2(offset.x-dim.x/2, offset.y), offsetZ, V2(lineWidth, dim.y), color);
+    PushPieceRect(grp, V2(offset.x+dim.x/2, offset.y), offsetZ, V2(lineWidth, dim.y), color);
 }
 
 inline void
@@ -695,6 +692,7 @@ PushScreenSquareDot(render_group *grp, v2 screenPosition, real32 width, v4 color
         renderEntry->Color = color;
     }
 }
+
 
 inline void
 PushCoordinateSystem(render_group *grp, v2 origin, v2 x, v2 y, v4 color, loaded_bitmap *texture, loaded_bitmap *normalMap,
@@ -757,14 +755,15 @@ DrawHitpoints(render_group *renderGroup, sim_entity *simEntity)
 inline v2
 GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenCenter, render_entity_basis *entityBasis)
 {
+    // TODO: ZHANDLING
+    
     v3 entityBaseP = entityBasis->Basis->P;
     real32 zFugde = 1.0f + 0.1f * entityBaseP.z;
 
-    real32 entityX = screenCenter.x + entityBaseP.x * renderGroup->MetersToPixels * zFugde;
-    real32 entityY = screenCenter.y - entityBaseP.y * renderGroup->MetersToPixels * zFugde;
-    real32 entityZ = -entityBaseP.z * renderGroup->MetersToPixels - entityBasis->OffsetZ;
+    v2 entityGroundPoint = screenCenter + entityBaseP.xy * renderGroup->MetersToPixels * zFugde;
+    real32 entityZ = entityBaseP.z * renderGroup->MetersToPixels - entityBasis->OffsetZ;
 
-    v2 result = {entityX + entityBasis->Offset.x, entityY + entityBasis->Offset.y + entityZ};
+    v2 result = entityGroundPoint + entityBasis->Offset + V2(0, entityZ);
 
     return result;
 }
@@ -793,13 +792,12 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
         } break;
         case RenderEntryType_render_entry_bitmap: {
             render_entry_bitmap *entry = (render_entry_bitmap *) voidEntry;
-#if 0
 
             v2 center = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
 
             Assert(entry->Bitmap);
+            
             RenderBitmap(outputTarget, entry->Bitmap, center.x, center.y + entry->EntityBasis.EntitiyZC, entry->Alpha);
-#endif
                 
             baseAddress += sizeof(*entry);
         } break;

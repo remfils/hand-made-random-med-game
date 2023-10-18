@@ -1,3 +1,26 @@
+/****************************************************************************************************
+
+NOTE
+
+  1. everywhere outside render Y always up, X to right.
+  
+  2. All bitmaps including render target are bottom up - first row
+  pointer point to the bottom-most row when viewed on screen. 
+ 
+  3. All inputs to renderer are in meters (NOT pixels) unless
+  specified otherwise. All in pixel values MUST be marked explicitly
+
+  4. Z is a special coord - it is broken up into descrete slices and
+  renderer understands these slices
+
+
+tag to search by to handle z
+// TODO: ZHANDLING
+
+ ****************************************************************************************************/
+
+
+
 #define BITMAP_BYTES_PER_PIXEL 4
 struct loaded_bitmap
 {
@@ -54,6 +77,8 @@ struct render_entry_clear
     v4 Color;
 };
 
+
+// NOTE: this is only for tests
 struct render_entry_coordinate_system
 {
     v2 Origin;
