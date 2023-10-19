@@ -116,7 +116,6 @@ struct temporary_memory
 
 struct hero_bitmaps
 {
-    v2 Align;
     loaded_bitmap Character;
 };
 

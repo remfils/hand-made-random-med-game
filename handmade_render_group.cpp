@@ -320,7 +320,6 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 
                     v3 bounceDirection = 2.f * normal.z * normal.xyz;
                     bounceDirection.z -= 1.0f;
-                    bounceDirection.z = -bounceDirection.z;
 
                     real32 tEnvMap = bounceDirection.y;
                     real32 tFarMap = 0.0f;
@@ -335,6 +334,9 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                         farMap = top;
                         tFarMap = 2.0f * (tEnvMap - 0.5f);
                     }
+
+                    tFarMap *= tFarMap;
+                    tFarMap *= tFarMap;
 
                     v4 lightColor = {0,0,0,1}; // SampleEnvironmentMap(screenSpaceUV, normal.xyz, normal.w, middle);
 
@@ -427,8 +429,10 @@ ApplySaturation(loaded_bitmap *outputTarget, real32 level)
 internal void
 RenderBitmap(loaded_bitmap *drawBuffer, loaded_bitmap *bitmap,
     real32 realX, real32 realY,
-    real32 cAlpha = 1.0f)
+    v4 color)
 {
+    real32 cAlpha = color.a;
+    
     int32 minX = RoundReal32ToInt32(realX);
     int32 minY = RoundReal32ToInt32(realY);
     int32 maxX = minX + bitmap->Width;
@@ -613,6 +617,48 @@ PushRenderElement_(render_group *grp, uint32 size, render_entry_type type)
 }
 
 inline void
+PushBitmap(render_group *grp, loaded_bitmap *bmp, v3 offset, v4 color = {1,1,1,1})
+{
+    render_entry_bitmap *renderEntry = PushRenderElement(grp, render_entry_bitmap);
+
+    if (renderEntry) {
+        v2 align = V2i(bmp->AlignX, bmp->AlignY);
+        renderEntry->EntityBasis.Basis = grp->DefaultBasis;
+        renderEntry->EntityBasis.Offset = grp->MetersToPixels * offset;
+        renderEntry->EntityBasis.Offset.xy = renderEntry->EntityBasis.Offset.xy - align;
+        renderEntry->Bitmap = bmp;
+        renderEntry->Color = color;
+    }
+}
+
+
+inline void
+PushPieceRect(render_group *grp, v3 offset, v2 dim, v4 color)
+{
+    render_entry_rectangle *renderEntry = PushRenderElement(grp, render_entry_rectangle);
+
+    if (renderEntry) {
+        renderEntry->EntityBasis.Basis = grp->DefaultBasis;
+        renderEntry->EntityBasis.Offset = grp->MetersToPixels * (offset - 0.5f * V3(dim.x, dim.y, 0));
+        renderEntry->Color = color;
+        renderEntry->Dim = grp->MetersToPixels * dim;
+    }
+}
+
+inline void
+PushPieceRectOutline(render_group *grp, v3 offset, v2 dim, v4 color)
+{
+    real32 lineWidth = 0.05f;
+    // top bottom
+    PushPieceRect(grp, V3(offset.x, offset.y+dim.y/2, offset.z), V2(dim.x, lineWidth), color);
+    PushPieceRect(grp, V3(offset.x, offset.y-dim.y/2, offset.z), V2(dim.x, lineWidth), color);
+
+    // left/right
+    PushPieceRect(grp, V3(offset.x-dim.x/2, offset.y, offset.z), V2(lineWidth, dim.y), color);
+    PushPieceRect(grp, V3(offset.x+dim.x/2, offset.y, offset.z), V2(lineWidth, dim.y), color);
+}
+
+inline void
 PushSaturationFilter(render_group *grp, real32 level)
 {
     render_entry_saturation *renderEntry = PushRenderElement(grp, render_entry_saturation);
@@ -620,52 +666,6 @@ PushSaturationFilter(render_group *grp, real32 level)
     if (renderEntry) {
         renderEntry->Level = level;
     }
-}
-
-inline void
-PushBitmap(render_group *grp, loaded_bitmap *bmp, v2 offset, real32 offsetZ, v2 align, real32 alpha = 1.0f, real32 EntitiyZC=1.0f)
-{
-    render_entry_bitmap *renderEntry = PushRenderElement(grp, render_entry_bitmap);
-
-    if (renderEntry) {
-        renderEntry->EntityBasis.Basis = grp->DefaultBasis;
-        renderEntry->EntityBasis.Offset = grp->MetersToPixels * offset - align;
-        renderEntry->EntityBasis.OffsetZ = offsetZ * grp->MetersToPixels;
-        renderEntry->EntityBasis.EntitiyZC = EntitiyZC;
-        renderEntry->Bitmap = bmp;
-        renderEntry->Alpha = alpha;
-    }
-}
-
-
-inline void
-PushPieceRect(render_group *grp, v2 offset, real32 offsetZ, v2 dim, v4 color)
-{
-    render_entry_rectangle *renderEntry = PushRenderElement(grp, render_entry_rectangle);
-
-    if (renderEntry) {
-        renderEntry->Dim = grp->MetersToPixels * dim;
-        
-        v2 halfDim = 0.5f * renderEntry->Dim;
-        
-        renderEntry->EntityBasis.Basis = grp->DefaultBasis;
-        renderEntry->EntityBasis.Offset = grp->MetersToPixels * offset - halfDim;
-        renderEntry->EntityBasis.OffsetZ = offsetZ * grp->MetersToPixels;
-        renderEntry->Color = color;
-    }
-}
-
-inline void
-PushPieceRectOutline(render_group *grp, v2 offset, real32 offsetZ, v2 dim, v4 color)
-{
-    real32 lineWidth = 0.05f;
-    // top bottom
-    PushPieceRect(grp, V2(offset.x, offset.y+dim.y/2), offsetZ, V2(dim.x, lineWidth), color);
-    PushPieceRect(grp, V2(offset.x, offset.y-dim.y/2), offsetZ, V2(dim.x, lineWidth), color);
-
-    // left/right
-    PushPieceRect(grp, V2(offset.x-dim.x/2, offset.y), offsetZ, V2(lineWidth, dim.y), color);
-    PushPieceRect(grp, V2(offset.x+dim.x/2, offset.y), offsetZ, V2(lineWidth, dim.y), color);
 }
 
 inline void
@@ -746,7 +746,7 @@ DrawHitpoints(render_group *renderGroup, sim_entity *simEntity)
                 color.b = 0.2f;
             }
                     
-            PushPieceRect(renderGroup, V2(firstX, firstY), 0, healthDim, color);
+            PushPieceRect(renderGroup, V3(firstX, firstY , 0), healthDim, color);
             firstX += spacingX + healthDim.x;
         }
     }
@@ -755,15 +755,10 @@ DrawHitpoints(render_group *renderGroup, sim_entity *simEntity)
 inline v2
 GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenCenter, render_entity_basis *entityBasis)
 {
-    // TODO: ZHANDLING
-    
-    v3 entityBaseP = entityBasis->Basis->P;
-    real32 zFugde = 1.0f + 0.1f * entityBaseP.z;
-
-    v2 entityGroundPoint = screenCenter + entityBaseP.xy * renderGroup->MetersToPixels * zFugde;
-    real32 entityZ = entityBaseP.z * renderGroup->MetersToPixels - entityBasis->OffsetZ;
-
-    v2 result = entityGroundPoint + entityBasis->Offset + V2(0, entityZ);
+    v3 entityBaseP = renderGroup->MetersToPixels * entityBasis->Basis->P;
+    real32 zFugde = 1.0f + 0.1f * entityBaseP.z; // TODO: coef 0.1++
+    v2 entityGroundPoint = screenCenter + entityBaseP.xy * zFugde + entityBasis->Offset.xy;
+    v2 result = entityGroundPoint + V2(0, entityBaseP.z + entityBasis->Offset.z);
 
     return result;
 }
@@ -797,7 +792,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 
             Assert(entry->Bitmap);
             
-            RenderBitmap(outputTarget, entry->Bitmap, center.x, center.y + entry->EntityBasis.EntitiyZC, entry->Alpha);
+            RenderBitmap(outputTarget, entry->Bitmap, center.x, center.y, entry->Color);
                 
             baseAddress += sizeof(*entry);
         } break;

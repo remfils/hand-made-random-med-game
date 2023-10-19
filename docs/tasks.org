@@ -1,4 +1,4 @@
-* to be done [9/602]
+* to be done [10/602]
 
 ** DONE Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -73,8 +73,17 @@
 Пересмотрел код и поправил состояние отражений. Сейчас оно мне не
 нравится, но работает так как на видосе.
 
-** TODO Handmade Hero Day 105 - Cleaning Up the Renderer API
+на почитать
+https://fgiesen.wordpress.com/2011/07/09/a-trip-through-the-graphics-pipeline-2011-index/
+
+** DONE Handmade Hero Day 105 - Cleaning Up the Renderer API
 - [[https://www.youtube.com/watch?v=Jklm_p_qrKU]]
+
+Наведение порядков - удален коцепт EntityCZ. Прозрачнее работает
+логика работы с z коррдинатой. Но все еще есть баги, которые остаются
+на потом.
+
+Появилась задача разбить персонажа на тело + тень
 
 ** TODO Handmade Hero Day 106 - World Scaling
 - [[https://www.youtube.com/watch?v=UCTcu8vJ92c]]
