@@ -1,4 +1,4 @@
-* to be done [10/602]
+* to be done [11/602]
 
 ** DONE Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -85,8 +85,11 @@ https://fgiesen.wordpress.com/2011/07/09/a-trip-through-the-graphics-pipeline-20
 
 Появилась задача разбить персонажа на тело + тень
 
-** TODO Handmade Hero Day 106 - World Scaling
+** DONE Handmade Hero Day 106 - World Scaling
 - [[https://www.youtube.com/watch?v=UCTcu8vJ92c]]
+
+Добавлено управление камерой - ее можно поднимать и опускать на
+мир. При отдалении/приближении изменяется маштам всех объектов.
 
 ** TODO Handmade Hero Day 107 - Fading Z Layers
 - [[https://www.youtube.com/watch?v=CmXCiK8dK9c]]

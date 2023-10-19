@@ -59,6 +59,7 @@ struct render_entity_basis
 {
     render_basis *Basis;
     v3 Offset;
+    real32 Scale;
 };
 
 // NOTE: render group entry is a efficient "discriminated union"
@@ -117,6 +118,7 @@ struct render_entry_bitmap
 
 struct render_group
 {
+    real32 Alpha;
     real32 MetersToPixels;
 
     render_basis *DefaultBasis;

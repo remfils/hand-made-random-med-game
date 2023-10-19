@@ -291,8 +291,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 
                 bilinear_sample texelSamples = BilinearSample(texture, imgX, imgY);
                 v4 texel = SRGBBilinearBlend(texelSamples, fX, fY);
-
-                texel.rgb = texel.rgb * texel.a;
+                texel.rgb = texel.rgb * color.a;
 
                 if (normalMap)
                 {
@@ -354,7 +353,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 #endif
                 }
 
-                texel = Hadamard(texel, color);
+                texel.rgb = Hadamard(texel.rgb, color.rgb);
                 texel.r = Clamp01(texel.r);
                 texel.b = Clamp01(texel.b);
                 texel.g = Clamp01(texel.g);
@@ -752,20 +751,30 @@ DrawHitpoints(render_group *renderGroup, sim_entity *simEntity)
     }
 }
 
-inline v2
+struct entity_basis_p_result
+{
+    v2 P;
+    real32 Scale;
+};
+inline entity_basis_p_result
 GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenCenter, render_entity_basis *entityBasis)
 {
     v3 entityBaseP = renderGroup->MetersToPixels * entityBasis->Basis->P;
-    real32 zFugde = 1.0f + 0.1f * entityBaseP.z; // TODO: coef 0.1++
-    v2 entityGroundPoint = screenCenter + entityBaseP.xy * zFugde + entityBasis->Offset.xy;
-    v2 result = entityGroundPoint + V2(0, entityBaseP.z + entityBasis->Offset.z);
+    real32 zFudge = 1.0f + 0.0025f * entityBaseP.z; // TODO: coef 0.1++
+    v2 entityGroundPoint = screenCenter + zFudge * (entityBaseP.xy  + entityBasis->Offset.xy);
+    v2 p = entityGroundPoint + V2(0, entityBaseP.z /*+ entityBasis->Offset.z*/);
 
+    entity_basis_p_result result = {};
+    result.P = p;
+    result.Scale = zFudge;
     return result;
 }
 
 internal void
 RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 {
+    real32 pixelsToMeters = 1.0f / renderGroup->MetersToPixels;
+    
     v2 screenCenter = 0.5f * V2i(outputTarget->Width, outputTarget->Height);
     
     for (uint32 baseAddress=0;
@@ -788,19 +797,31 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
         case RenderEntryType_render_entry_bitmap: {
             render_entry_bitmap *entry = (render_entry_bitmap *) voidEntry;
 
-            v2 center = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
+            entity_basis_p_result basisResult = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
 
             Assert(entry->Bitmap);
-            
-            RenderBitmap(outputTarget, entry->Bitmap, center.x, center.y, entry->Color);
+
+            #if 0
+            RenderBitmap(outputTarget, entry->Bitmap, basisResult.P.x, basisResult.P.y, entry->Color);
+            #else
+
+            RenderRectangleSlowly(outputTarget,
+                                  basisResult.P, basisResult.Scale * V2i(entry->Bitmap->Width,0), basisResult.Scale * V2i(0,entry->Bitmap->Height), entry->Color,
+                                  entry->Bitmap, 0,
+                                  0, 0, 0,
+                                  pixelsToMeters
+                                  );
+            #endif
                 
             baseAddress += sizeof(*entry);
         } break;
         case RenderEntryType_render_entry_rectangle: {
             render_entry_rectangle *entry = (render_entry_rectangle *) voidEntry;
+            
 
-            v2 center = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
-            RenderRectangle(outputTarget, center.x, center.y, center.x + entry->Dim.x, center.y + entry->Dim.y, entry->Color);
+            entity_basis_p_result basisResult = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
+            v2 center = basisResult.P;
+            RenderRectangle(outputTarget, center.x, center.y, center.x + basisResult.Scale * entry->Dim.x, center.y + basisResult.Scale * entry->Dim.y, entry->Color);
             
             baseAddress += sizeof(*entry);
         } break;

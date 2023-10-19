@@ -768,7 +768,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             // DEBUG, no up and down movement currently
             rand = RandomChoice(&generatorSeries, 3);
-            // rand = RandomChoice(&generatorSeries, 2);
+            //rand = RandomChoice(&generatorSeries, 2);
             
             if (rand == 0) {
                 isDoorRight = true;
@@ -1031,6 +1031,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             }
             else
             {
+
                 if (inputController->MoveUp.EndedDown)
                 {
                     controlledHero->ddPRequest.y = 1.0f;
@@ -1047,8 +1048,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 {
                     controlledHero->ddPRequest.x = 1.0f;
                 }
+
+
             }
 
+#if 0
+            
             if (inputController->ActionUp.EndedDown)
             {
                 controlledHero->dSwordRequest.y = 1;
@@ -1065,6 +1070,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             {
                 controlledHero->dSwordRequest.x = 1;
             }
+                #else
+            real32 zoomRate = 1.0f;
+            if (inputController->ActionUp.EndedDown)
+            {
+                gameState->OffsetZ += zoomRate * input->DtForFrame;
+            }
+            if (inputController->ActionDown.EndedDown)
+            {
+                gameState->OffsetZ -= zoomRate * input->DtForFrame;
+            }
+            
+            #endif
         }
     }
 
@@ -1193,7 +1210,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             switch (simEntity->Type) {
             case EntityType_Wall:
             {
-                v4 wallColor = {0,0,0, 0.5f};
+                v4 wallColor = {1,1,1, 0.5f};
                 real32 halfDepth = simEntity->Collision->TotalVolume.Dim.z * 0.5f;
                 if (simEntity->P.z < halfDepth && simEntity->P.z > -0.5f*halfDepth) {
                     wallColor.a = 1.0f;
@@ -1331,6 +1348,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             */
 
             basis->P = GetEntityGroundPoint(simEntity);
+            basis->P = GetEntityGroundPoint(simEntity) + V3(0, 0, gameState->OffsetZ);
             
 
             if (false) // draw entity bounds
@@ -1475,7 +1493,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         }
     }
 
-#if 1
+#if 0
 
     real32 angle = gameState->CurrentTime;
     real32 disp = 50.0f * Cos(3.0f * angle);
