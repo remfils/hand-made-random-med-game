@@ -365,6 +365,7 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
 internal void
 FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position *chunkP)
 {
+    return;
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, 1, Megabytes(4));
     
@@ -705,7 +706,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         gameState->NullCollision = MakeNullCollision(gameState);
         gameState->SwordCollision = MakeSimpleGroundedCollision(gameState, 01.f, 0.1f, 0.1f);
-        gameState->StairCollision = MakeSimpleGroundedCollision(gameState, tileSideInMeters, 2.0f * tileSideInMeters, 1.05f * tileDepthInMeters);
+        gameState->StairCollision = MakeSimpleGroundedCollision(gameState, tileSideInMeters, 2.0f * tileSideInMeters, 1.2f * gameState->TypicalFloorHeight);
         gameState->PlayerCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.5f);
         gameState->MonsterCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.5f);
         gameState->FamiliarCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.1f);
@@ -752,6 +753,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         bool isDoorBottom = false;
         bool isDoorUp = false;
         bool isDoorDown = false;
+        bool32 isDoorUpAndOnLeft = false;
         
         uint32 drawZDoorCounter = 0;
         uint32 famimiliarMaxCount = 1;
@@ -768,8 +770,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             // DEBUG, no up and down movement currently
             rand = RandomChoice(&generatorSeries, 3);
-            //rand = RandomChoice(&generatorSeries, 2);
+
+            rand = 3;
             
+            //rand = RandomChoice(&generatorSeries, 2);
+
             if (rand == 0) {
                 isDoorRight = true;
             }
@@ -777,12 +782,17 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 isDoorTop = true;
             } else {
                 drawZDoorCounter = 2;
+                /*
                 if (absTileZ == screenBaseZ) {
                     isDoorUp = true;
                 } else {
                     isDoorDown = true;
                 }
+                */
+                // isDoorDown = true;
+                isDoorUp = true;
             }
+            
 
             AddStandartRoom(gameState, screenX * tilesPerScreenWidth + tilesPerScreenWidth/2, screenY * tilesPerScreenHeight + tilesPerScreenHeight/2, absTileZ);
 
@@ -834,18 +844,23 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         }
                     }
 
-                    // TODO: one door span for two chunks?
-                    if (drawZDoorCounter != 0 && isDoorUp) {
-                        if (tileY == 4 && ((tileX - 1) == tilesPerScreenWidth / 2)) {
+                    if (isDoorUpAndOnLeft) {
+                        if (tileY == 4 && (tileX == tilesPerScreenWidth / 2 - 2)) {
+                            AddStairway(gameState, absTileX, absTileY, absTileZ);
+                        }
+                    } else {
+                        if (tileY == 4 && (tileX == tilesPerScreenWidth / 2 + 2)) {
                             AddStairway(gameState, absTileX, absTileY, absTileZ);
                         }
                     }
-                    
+
+                    /*
                     if (drawZDoorCounter != 0 && isDoorDown) {
-                        if (tileY == (tilesPerScreenHeight / 2) - 2 && (tileX + 1 == tilesPerScreenWidth / 2)) {
+                        if (tileY == (tilesPerScreenHeight / 2) && (tileX + 1 == tilesPerScreenWidth / 2)) {
                             AddStairway(gameState, absTileX, absTileY, absTileZ);
                         }
                     }
+                    */
                     
                     if (isWallTile)
                     {
@@ -853,7 +868,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     }
                 }   
             }
-            
+
+            /*
             if (rand == 2) {
                 if (isDoorUp) {
                     ++absTileZ;
@@ -862,7 +878,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     --absTileZ;
                 }
             }
+            */
+
+
+            absTileZ += 1.0f;
             
+            /*
             if (drawZDoorCounter > 0) {
                 --drawZDoorCounter;
                 
@@ -871,25 +892,32 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     isDoorDown = false;
                 } else {
                     if (isDoorDown) {
+                        absTileZ -= 1.0f;
                         isDoorDown = false;
-                        isDoorUp = true;
+                        isDoorUp = false; // DEBUG
                     } else if (isDoorUp) {
-                        isDoorDown = true;
+                        absTileZ += 1.0f;
+                        isDoorDown = false; // DEBUG
                         isDoorUp = false;
                     }
                 }
             }
+            */
             
             isDoorLeft = isDoorRight;
             isDoorBottom = isDoorTop;
             isDoorRight = false;
             isDoorTop = false;
-            
+
+            isDoorUpAndOnLeft = !isDoorUpAndOnLeft;
+
+            /*
             if (rand == 0) {
                 screenX += 1;
             } else if (rand == 1) {
                 screenY += 1;
             }
+            */
         }
         
 #if HANDMADE_INERNAL
@@ -1052,7 +1080,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             }
 
-#if 0
+#if 1
             
             if (inputController->ActionUp.EndedDown)
             {
@@ -1070,17 +1098,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             {
                 controlledHero->dSwordRequest.x = 1;
             }
-                #else
-            real32 zoomRate = 1.0f;
-            if (inputController->ActionUp.EndedDown)
-            {
-                gameState->OffsetZ += zoomRate * input->DtForFrame;
-            }
-            if (inputController->ActionDown.EndedDown)
-            {
-                gameState->OffsetZ -= zoomRate * input->DtForFrame;
-            }
-            
+#else
             #endif
         }
     }
@@ -1181,11 +1199,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
 
     // TODO: fix meters
-    v3 simBoundsExpansion = V3(15.0f, 15.0f, 15.0f);
+    v3 simBoundsExpansion = V3(15.0f, 15.0f, 2.0f * gameState->TypicalFloorHeight);
     rectangle3 simBounds = AddRadiusTo(cameraBoundsInMeters, simBoundsExpansion);
 
     temporary_memory simMemory = BeginTemporaryMemory(&tranState->TransientArena);
+    world_position simCenterP = gameState->CameraPosition;
     sim_region *simRegion = BeginSim(&tranState->TransientArena, gameState, gameState->World, gameState->CameraPosition, simBounds, input->DtForFrame);
+
+    v3 cameraPosition = Subtract(gameState->World, &gameState->CameraPosition, &simCenterP);
     
     
     sim_entity *simEntity = simRegion->Entities;
@@ -1206,15 +1227,32 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             render_basis *basis = PushStruct(&tranState->TransientArena, render_basis);
             renderGroup->DefaultBasis = basis;
+
+            v3 cameraRelativeGroundP = GetEntityGroundPoint(simEntity) - cameraPosition;
+
+            real32 fadeTopEndZ = 0.9f * gameState->TypicalFloorHeight;
+            real32 fadeTopStartZ = 0.2f * gameState->TypicalFloorHeight;
+            real32 fadeBottomStartZ = -1.2 * gameState->TypicalFloorHeight;
+            real32 fadeBottomEndZ = - 2.0f *gameState->TypicalFloorHeight;
+
+            renderGroup->GlobalAlpha = 1.0f;
+            if (cameraRelativeGroundP.z > fadeTopStartZ)
+            {
+                renderGroup->GlobalAlpha = 1.0f - Clamp01MapToRange(fadeTopStartZ, cameraRelativeGroundP.z, fadeTopEndZ);
+            }
+            else if (cameraRelativeGroundP.z < fadeBottomStartZ)
+            {
+                renderGroup->GlobalAlpha = 1.0f - Clamp01MapToRange(fadeBottomStartZ, cameraRelativeGroundP.z, fadeBottomEndZ);
+            }
             
             switch (simEntity->Type) {
             case EntityType_Wall:
             {
-                v4 wallColor = {1,1,1, 0.5f};
-                real32 halfDepth = simEntity->Collision->TotalVolume.Dim.z * 0.5f;
-                if (simEntity->P.z < halfDepth && simEntity->P.z > -0.5f*halfDepth) {
-                    wallColor.a = 1.0f;
-                }
+                v4 wallColor = {1,1,1,1};
+                // real32 halfDepth = simEntity->Collision->TotalVolume.Dim.z * 0.5f;
+                // if (simEntity->P.z < halfDepth && simEntity->P.z > -0.5f*halfDepth) {
+                //     wallColor.a = 1.0f;
+                // }
                 
                 PushBitmap(renderGroup, &gameState->WallDemoBitmap, V3(0,0, 0), wallColor);
             } break;
@@ -1320,7 +1358,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 // }
                 
                 PushPieceRect(renderGroup, V3(0, 0, 0), simEntity->WalkableDim, V4(1,1,0,1));
-                PushPieceRect(renderGroup, V3(0, 0, simEntity->WalkableHeight), simEntity->WalkableDim, V4(0.5,0.5,0,1));
+
+                // NOTE(vlad): this is hack to make top door in z-space
+                render_basis *secondBasis = PushStruct(&tranState->TransientArena, render_basis);
+                secondBasis->P = GetEntityGroundPoint(simEntity);
+                secondBasis->P.z += simEntity->WalkableHeight;
+                renderGroup->DefaultBasis = secondBasis;
+                PushPieceRect(renderGroup, V3(0, 0, 0), simEntity->WalkableDim, V4(0.5f,0.5f,0, 1.0f));
             } break;
             case EntityType_Space:
             {
@@ -1348,7 +1392,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             */
 
             basis->P = GetEntityGroundPoint(simEntity);
-            basis->P = GetEntityGroundPoint(simEntity) + V3(0, 0, gameState->OffsetZ);
             
 
             if (false) // draw entity bounds

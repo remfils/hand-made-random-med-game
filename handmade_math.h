@@ -79,6 +79,17 @@ Clamp01(real32 value)
     return result;
 }
 
+inline real32
+Clamp01MapToRange(real32 min, real32 t, real32 max)
+{
+    real32 range = max - min;
+    real32 result = 0;
+    if (range != 0) {
+        result = Clamp01((t - min) / range);
+    }
+    return result;
+}
+
 inline v2
 V2(real32 x, real32 y)
 {

@@ -214,7 +214,7 @@ BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_posi
 
     simRegion->World = world;
     simRegion->Origin = regionCenter;
-    simRegion->UpdatableBounds = AddRadiusTo(regionBounds, V3(simRegion->MaxEntityRadius, simRegion->MaxEntityRadius, simRegion->MaxEntityRadius));
+    simRegion->UpdatableBounds = AddRadiusTo(regionBounds, V3(simRegion->MaxEntityRadius, simRegion->MaxEntityRadius, 0.0f));
     simRegion->Bounds = AddRadiusTo(simRegion->UpdatableBounds, V3(updateSafetyMargin, updateSafetyMargin, updateSafetyMarginZ));;
 
     world_position minChunkP = MapIntoChunkSpace(simRegion->World, simRegion->Origin, GetMinCorner(simRegion->Bounds));
@@ -425,9 +425,9 @@ EndSim(sim_region *region, game_state *gameState)
                 newCameraPosition.ChunkX -= 17;
             }
 #else
-            real32 offsetZ = gameState->CameraPosition._Offset.z;
+            //real32 offsetZ = gameState->CameraPosition._Offset.z;
             gameState->CameraPosition = stored->WorldP;
-            gameState->CameraPosition._Offset.z = offsetZ;
+            //gameState->CameraPosition._Offset.z = offsetZ;
 #endif
         }
     }

@@ -1,4 +1,4 @@
-* to be done [11/602]
+* to be done [12/602]
 
 ** DONE Handmade Hero Day 096 - Introduction to Lighting
 - [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
@@ -91,8 +91,11 @@ https://fgiesen.wordpress.com/2011/07/09/a-trip-through-the-graphics-pipeline-20
 Добавлено управление камерой - ее можно поднимать и опускать на
 мир. При отдалении/приближении изменяется маштам всех объектов.
 
-** TODO Handmade Hero Day 107 - Fading Z Layers
+** DONE Handmade Hero Day 107 - Fading Z Layers
 - [[https://www.youtube.com/watch?v=CmXCiK8dK9c]]
+
+Добавлена штука при которой камера следит за персонажем на лестинце,
+получилось очень хорошо. Верхние и нижние этажи пропадают через alpha.
 
 ** TODO Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]

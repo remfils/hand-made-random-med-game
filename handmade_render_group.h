@@ -118,7 +118,7 @@ struct render_entry_bitmap
 
 struct render_group
 {
-    real32 Alpha;
+    real32 GlobalAlpha;
     real32 MetersToPixels;
 
     render_basis *DefaultBasis;

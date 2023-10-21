@@ -11,48 +11,6 @@ GetUintColor(v4 color)
     return uColor;
 }
 
-internal void
-RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color)
-{
-    uint32 uColor = GetUintColor(color);
-    
-    int32 minX = RoundReal32ToInt32(realMinX);
-    int32 minY = RoundReal32ToInt32(realMinY);
-    int32 maxX = RoundReal32ToInt32(realMaxX);
-    int32 maxY = RoundReal32ToInt32(realMaxY);
-    
-    if (minX < 0)
-    {
-        minX = 0;
-    }
-    if (minY < 0)
-    {
-        minY = 0;
-    }
-    
-    if (maxX > drawBuffer->Width)
-    {
-        maxX = drawBuffer->Width;
-    }
-    if (maxY > drawBuffer->Height)
-    {
-        maxY = drawBuffer->Height;
-    }
-    
-    uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
-    for (int y = minY; y < maxY; ++y)
-    {
-        uint32 *pixel = (uint32 *)row;
-        
-        for (int x = minX; x < maxX; ++x)
-        {
-            *(uint32 *)pixel = uColor;
-            pixel++;
-        }
-        row += drawBuffer->Pitch;
-    }
-}
-
 inline v4
 SRGB255_ToLinear1(v4 color)
 {
@@ -93,6 +51,68 @@ Unpack4x8(uint32 packed)
         (real32)((packed >> 24) & 0xff)
     };
     return result;
+}
+
+
+internal void
+RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color)
+{
+    int32 minX = RoundReal32ToInt32(realMinX);
+    int32 minY = RoundReal32ToInt32(realMinY);
+    int32 maxX = RoundReal32ToInt32(realMaxX);
+    int32 maxY = RoundReal32ToInt32(realMaxY);
+    
+    if (minX < 0)
+    {
+        minX = 0;
+    }
+    if (minY < 0)
+    {
+        minY = 0;
+    }
+    
+    if (maxX > drawBuffer->Width)
+    {
+        maxX = drawBuffer->Width;
+    }
+    if (maxY > drawBuffer->Height)
+    {
+        maxY = drawBuffer->Height;
+    }
+
+    color.rgb *= color.a;
+    
+    uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
+    for (int y = minY; y < maxY; ++y)
+    {
+        uint32 *pixel = (uint32 *)row;
+        
+        for (int x = minX; x < maxX; ++x)
+        {
+            v4 destPixel = Unpack4x8(*pixel);
+            destPixel = SRGB255_ToLinear1(destPixel);
+
+            real32 inv_sa = (1.0f - color.a);
+
+            v4 blended = {
+                (inv_sa * destPixel.r + color.r),
+                (inv_sa * destPixel.g + color.g),
+                (inv_sa * destPixel.b + color.b),
+                (color.a + destPixel.a - destPixel.a * color.a)
+            };
+
+            blended = Linear_1_ToSRGB255(blended);
+
+            *pixel = (
+                      ((uint32)(blended.a + 0.5f) << 24)
+                      | ((uint32)(blended.r + 0.5f) << 16)
+                      | ((uint32)(blended.g + 0.5f) << 8)
+                      | ((uint32)(blended.b + 0.5f) << 0)
+                      );
+            pixel++;
+        }
+        row += drawBuffer->Pitch;
+    }
 }
 
 inline v4
@@ -200,7 +220,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                       render_environment_map *top, render_environment_map *middle, render_environment_map *bottom,
                       real32 pixelsToMeters)
 {
-    color.rgb *= color.a;
+    // color.rgb *= color.a;
 
     int32 widthMax = drawBuffer->Width - 1;
     int32 heightMax = drawBuffer->Height - 1;
@@ -291,7 +311,9 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 
                 bilinear_sample texelSamples = BilinearSample(texture, imgX, imgY);
                 v4 texel = SRGBBilinearBlend(texelSamples, fX, fY);
-                texel.rgb = texel.rgb * color.a;
+                
+                texel.a = texel.a * color.a;
+                texel.rgb = texel.rgb * texel.a;
 
                 if (normalMap)
                 {
@@ -310,12 +332,10 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 
                     normal.xy = normal.x * normalXAxis + normal.y * normalYAxis;
                     normal.z *= zScale;
-                    normal.xyz = Normalize(normal.xyz); // TODO: is this needed?
+                    normal.xyz = Normalize(normal.xyz);
 
                     // NOTE: eye vector is always assumed to be from top
                     // v3 eyeVector = {0,0,1};
-
-                    // TODO: compute a bounce based on normals
 
                     v3 bounceDirection = 2.f * normal.z * normal.xyz;
                     bounceDirection.z -= 1.0f;
@@ -626,6 +646,8 @@ PushBitmap(render_group *grp, loaded_bitmap *bmp, v3 offset, v4 color = {1,1,1,1
         renderEntry->EntityBasis.Offset = grp->MetersToPixels * offset;
         renderEntry->EntityBasis.Offset.xy = renderEntry->EntityBasis.Offset.xy - align;
         renderEntry->Bitmap = bmp;
+
+        color.a = grp->GlobalAlpha;
         renderEntry->Color = color;
     }
 }
@@ -639,6 +661,8 @@ PushPieceRect(render_group *grp, v3 offset, v2 dim, v4 color)
     if (renderEntry) {
         renderEntry->EntityBasis.Basis = grp->DefaultBasis;
         renderEntry->EntityBasis.Offset = grp->MetersToPixels * (offset - 0.5f * V3(dim.x, dim.y, 0));
+
+        color.a = grp->GlobalAlpha;
         renderEntry->Color = color;
         renderEntry->Dim = grp->MetersToPixels * dim;
     }
