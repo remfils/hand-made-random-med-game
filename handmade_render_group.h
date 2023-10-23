@@ -26,7 +26,9 @@ tag to search by to handle z
 #define BITMAP_BYTES_PER_PIXEL 4
 struct loaded_bitmap
 {
-    int32 AlignX, AlignY;
+    v2 AlignPercent;
+    real32 WidthOverHeight;
+    
     int32 Width;
     int32 Height;
     int32 Pitch;
@@ -112,6 +114,7 @@ struct render_entry_rectangle
 struct render_entry_bitmap
 {
     loaded_bitmap *Bitmap;
+    v2 Size;
     v4 Color;
     render_entity_basis EntityBasis;
 };
@@ -119,7 +122,6 @@ struct render_entry_bitmap
 struct render_group
 {
     real32 GlobalAlpha;
-    real32 MetersToPixels;
 
     render_basis *DefaultBasis;
     

@@ -1000,6 +1000,7 @@ int CALLBACK WinMain(
     windowClass.lpszClassName = "HandmadeHeroWindowClass";
 
     Win32ResizeDIBSection(&globalBackbuffer, 1088, 576);
+    // Win32ResizeDIBSection(&globalBackbuffer, 1920, 1080);
 
     LARGE_INTEGER perfCounterFrequencyResult;
     QueryPerformanceFrequency(&perfCounterFrequencyResult);

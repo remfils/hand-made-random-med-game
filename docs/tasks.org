@@ -1,4 +1,4 @@
-* to be done [1/590]
+* to be done [2/590]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -7,7 +7,7 @@
 ближе к реальности. Но по какой то причине все еще не используются
 реальзные цифры (30 см от монитора + 5 метров от земли до камеры).
 
-** TODO Handmade Hero Day 109 - Resolution-Independent Rendering
+** DONE Handmade Hero Day 109 - Resolution-Independent Rendering
 - [[https://www.youtube.com/watch?v=e3d7kEtX6iw]]
 
 ** TODO Handmade Hero Day 110 - Unprojecting Screen Boundaries

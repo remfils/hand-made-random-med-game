@@ -50,7 +50,7 @@ DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireF
     debug_read_file_result readResult = ReadEntireFile(thread, filename);
     
     loaded_bitmap result = {};
-    
+
     if (readResult.Content)
     {
         void *content = readResult.Content;
@@ -59,9 +59,12 @@ DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireF
         
         result.Width = header->Width;
         result.Height = header->Height;
-        result.AlignX = topDownAlignX;
-        result.AlignY = (result.Height - 1) - topDownAlignY;
-        
+        result.WidthOverHeight = SafeRatio_1((real32)result.Width, (real32)result.Height);
+
+        result.AlignPercent = V2(
+                                 SafeRatio_0((real32)topDownAlignX, (real32)result.Width),
+                                 SafeRatio_0((real32)((result.Height - 1) - topDownAlignY), (real32)result.Height)
+                                 );
         uint8 *pixels = (uint8 *)((uint8 *)content + header->BitmapOffset);
         result.Memory = pixels;
 
@@ -367,7 +370,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 {
     return;
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, 1, Megabytes(4));
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4));
     
     loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
 
@@ -404,7 +407,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                PushBitmap(renderGroup, bitmap, V3(grassCenter.x, grassCenter.y, 0));
+                PushBitmap(renderGroup, bitmap, 1.0f, V3(grassCenter.x, grassCenter.y, 0));
             }
         }
     }
@@ -438,7 +441,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                PushBitmap(renderGroup, bitmap, V3(grassCenter.x, grassCenter.y, 0));
+                PushBitmap(renderGroup, bitmap, 1.0f, V3(grassCenter.x, grassCenter.y, 0));
             }
         }
     }
@@ -464,11 +467,14 @@ MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, bool32 clearToZe
 
     result.Width = width;
     result.Height = height;
+    result.WidthOverHeight = SafeRatio_1((real32)result.Width, (real32)result.Height);
     result.Pitch = width * BITMAP_BYTES_PER_PIXEL;
 
-    result.AlignX = alignX;
-    result.AlignY = alignY;
-
+    result.AlignPercent = V2(
+                             (real32)alignX / (real32)result.Width,
+                             ((real32)alignY) / (real32)result.Height
+                             );
+    
     int32 totalBitmapSize = result.Pitch * result.Height;
     result.Memory = PushSize(arena, totalBitmapSize);
 
@@ -670,9 +676,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     Assert(sizeof(game_state) <= memory->PermanentStorageSize);
     
     game_state *gameState = (game_state *)memory->PermanentStorage;
-
-    real32 screenWidthInMeters = buffer->Width * gameState->PixelsToMeters;
-    real32 screenHeightInMeters = buffer->Height * gameState->PixelsToMeters;
     
     // real32 metersToPixels = (real32)TileSideInPixels / (real32)TileSideInMeters;
     
@@ -680,10 +683,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     {
         uint32 groundBufferWidth = 256;
         uint32 groundBufferHeight = 256;
-        
-        real32 metersToPixels = 32.0f;
-        gameState->MetersToPixels = metersToPixels;
-        gameState->PixelsToMeters = 1.0f / metersToPixels;
+
+        // TODO: remove
         gameState->TypicalFloorHeight = 3.0f;
 
         real32 tileSideInMeters = 2.0f;
@@ -692,7 +693,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         uint32 tilesPerScreenWidth = 17;
         uint32 tilesPerScreenHeight = 9;
 
-        v3 chunkDimInMeters = V3(groundBufferWidth * gameState->PixelsToMeters, groundBufferHeight * gameState->PixelsToMeters, gameState->TypicalFloorHeight);
+        real32 pixelsToMeters = 1.0f / 32.0f;
+        v3 chunkDimInMeters = V3(groundBufferWidth * pixelsToMeters, groundBufferHeight * pixelsToMeters, gameState->TypicalFloorHeight);
 
         
         // TODO: sub arena start partitioning memory space
@@ -1105,7 +1107,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     // TODO: how much push buffer should be
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, gameState->MetersToPixels, Megabytes(4));
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4));
 
     loaded_bitmap drawBuffer_ = {};
     loaded_bitmap *drawBuffer = &drawBuffer_;
@@ -1119,6 +1121,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 
     v2 screenCenter = 0.5f * V2((real32) drawBuffer->Width, (real32)drawBuffer->Height);
+
+    real32 pixelsToMeters = 1.0f / 32.0f;
+    real32 screenWidthInMeters = buffer->Width * pixelsToMeters;
+    real32 screenHeightInMeters = buffer->Height * pixelsToMeters;
     rectangle3 cameraBoundsInMeters = RectCenterDim(V3(0,0,0), V3(screenWidthInMeters, screenHeightInMeters, 0));
     
     {
@@ -1126,7 +1132,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         world_position maxChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMaxCorner(cameraBoundsInMeters));
 
         v4 chunkColor = {1.0f,1.0f,0.0f,0.0f};
-        v2 chunkDimPixels = 0.5f * gameState->MetersToPixels * gameState->World->ChunkDimInMeters.xy;
+        v2 chunkDimPixels = 0.5f * (1.0f / pixelsToMeters) * gameState->World->ChunkDimInMeters.xy;
 
         for (int32 chunkZ=minChunkP.ChunkZ;
              chunkZ <= maxChunkP.ChunkZ;
@@ -1157,7 +1163,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         }
                         else if (IsValid(groundBuffer->P))
                         {
-                            v3 bufferP = gameState->MetersToPixels *Subtract(gameState->World, &groundBuffer->P, &gameState->CameraPosition);
+                            v3 bufferP = Subtract(gameState->World, &groundBuffer->P, &gameState->CameraPosition);
                             real32 distanceToCamera = LengthSq(bufferP.xy);
 
                             if (furthestBufferLengthSq < distanceToCamera) {
@@ -1194,7 +1200,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         if (IsValid(buf->P)) {
             loaded_bitmap *bmp = &buf->Bitmap;
             v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
-            PushBitmap(renderGroup, bmp, groundDelta);
+            PushBitmap(renderGroup, bmp, 1.0f, groundDelta);
         }
     }
 
@@ -1254,7 +1260,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 //     wallColor.a = 1.0f;
                 // }
                 
-                PushBitmap(renderGroup, &gameState->WallDemoBitmap, V3(0,0, 0), wallColor);
+                PushBitmap(renderGroup, &gameState->WallDemoBitmap, 2.0f, V3(0,0, 0), wallColor);
             } break;
             case EntityType_Sword:
             {
@@ -1267,7 +1273,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     ClearCollisionRulesFor(gameState, simEntity->StorageIndex);
                 }
 
-                PushBitmap(renderGroup, &gameState->SwordDemoBitmap, V3(0,0,0));
+                PushBitmap(renderGroup, &gameState->SwordDemoBitmap, 0.5f, V3(0,0,0));
             } break;
             case EntityType_Hero:
             {
@@ -1295,7 +1301,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     }
                 }
 
-                PushBitmap(renderGroup, &heroBitmaps->Character, V3(0, 0, 0));
+                PushBitmap(renderGroup, &heroBitmaps->Character, 3.0f, V3(0, 0, 0));
 
                 sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
                 PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, V4(0, 0.3f, 0.3f, 0));
@@ -1304,7 +1310,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             case EntityType_Monster:
             {
-                PushBitmap(renderGroup, &gameState->EnemyDemoBitmap, V3(0, 0, 0));
+                PushBitmap(renderGroup, &gameState->EnemyDemoBitmap, 4.0f, V3(0, 0, 0));
 
                 DrawHitpoints(renderGroup, simEntity);
             } break;
@@ -1348,7 +1354,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     simEntity->TBobing -= 2.0f * Pi32;
                 }
 
-                PushBitmap(renderGroup, &gameState->FamiliarDemoBitmap, V3(0, 0.2f * Sin(13 * simEntity->TBobing), 0));
+                PushBitmap(renderGroup, &gameState->FamiliarDemoBitmap, 2.0f, V3(0, 0.2f * Sin(13 * simEntity->TBobing), 0));
             } break;
             case EntityType_Stairwell:
             {

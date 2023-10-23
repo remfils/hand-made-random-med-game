@@ -295,7 +295,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                     (real32)x * invWidthMax, fixedCastY
                 };
 
-                real32 zDiff = pixelsToMeters * ((real32)y - originY);
+                real32 zDiff = ((real32)y - originY);
                 
                 real32 u = invXLengthSq * Inner(d, xAxis);
                 real32 v = invYLengthSq * Inner(d, yAxis);
@@ -598,10 +598,9 @@ ClearRenderBuffer(loaded_bitmap *drawBuffer)
 
 
 internal render_group *
-AllocateRenderGroup(memory_arena *arena, real32 metersToPixels, uint32 maxPushBufferSize)
+AllocateRenderGroup(memory_arena *arena, uint32 maxPushBufferSize)
 {
     render_group *result = PushStruct(arena, render_group);
-    result->MetersToPixels = metersToPixels;
     result->PushBufferBase = (uint8 *)PushSize(arena, maxPushBufferSize);
     result->DefaultBasis = PushStruct(arena, render_basis);
     result->DefaultBasis->P = V3(0,0,0);
@@ -636,14 +635,18 @@ PushRenderElement_(render_group *grp, uint32 size, render_entry_type type)
 }
 
 inline void
-PushBitmap(render_group *grp, loaded_bitmap *bmp, v3 offset, v4 color = {1,1,1,1})
+PushBitmap(render_group *grp, loaded_bitmap *bmp, real32 height, v3 offset, v4 color = {1,1,1,1})
 {
     render_entry_bitmap *renderEntry = PushRenderElement(grp, render_entry_bitmap);
 
     if (renderEntry) {
-        v2 align = V2i(bmp->AlignX, bmp->AlignY);
         renderEntry->EntityBasis.Basis = grp->DefaultBasis;
-        renderEntry->EntityBasis.Offset = grp->MetersToPixels * offset;
+        renderEntry->EntityBasis.Offset = offset;
+
+        renderEntry->Size = {height * bmp->WidthOverHeight, height};
+
+        v2 align = Hadamard(bmp->AlignPercent, renderEntry->Size);
+        
         renderEntry->EntityBasis.Offset.xy = renderEntry->EntityBasis.Offset.xy - align;
         renderEntry->Bitmap = bmp;
 
@@ -660,11 +663,11 @@ PushPieceRect(render_group *grp, v3 offset, v2 dim, v4 color)
 
     if (renderEntry) {
         renderEntry->EntityBasis.Basis = grp->DefaultBasis;
-        renderEntry->EntityBasis.Offset = grp->MetersToPixels * (offset - 0.5f * V3(dim.x, dim.y, 0));
+        renderEntry->EntityBasis.Offset = (offset - 0.5f * V3(dim.x, dim.y, 0));
 
         color.a = grp->GlobalAlpha;
         renderEntry->Color = color;
-        renderEntry->Dim = grp->MetersToPixels * dim;
+        renderEntry->Dim = dim;
     }
 }
 
@@ -782,14 +785,19 @@ struct entity_basis_p_result
     bool32 Valid;
 };
 inline entity_basis_p_result
-GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenCenter, render_entity_basis *entityBasis)
+GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenDim, render_entity_basis *entityBasis)
 {
-    v3 entityBaseP = renderGroup->MetersToPixels * entityBasis->Basis->P;
+    real32 monitorWidthInWorldUnits = 940.0f / 20.0f;
+    real32 metersToPixels = screenDim.x / monitorWidthInWorldUnits;
+
+    v2 screenCenter = 0.5 * screenDim;
     
-    real32 distanceToMonitorZ = renderGroup->MetersToPixels * 3.0f;
-    real32 cameraDistanceAboveGround = renderGroup->MetersToPixels * 2.0f;
-    real32 distanceToPointZ = distanceToMonitorZ + cameraDistanceAboveGround - entityBaseP.z;
-    real32 nearClipPlane = renderGroup->MetersToPixels * 0.3f;
+    v3 entityBaseP = entityBasis->Basis->P;
+    
+    real32 distanceToMonitorZ = 10.0f;
+    real32 cameraDistanceAboveGround = 5.0f;
+    real32 distanceToPointZ = cameraDistanceAboveGround - entityBaseP.z;
+    real32 nearClipPlane = 0.3f;
 
     entity_basis_p_result result = {};
     if (distanceToPointZ > nearClipPlane) {
@@ -797,10 +805,10 @@ GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenCenter, render
 
         v3 projectedXY = rawXY * distanceToMonitorZ * (1.0f / distanceToPointZ);
 
-        v2 center = screenCenter + projectedXY.xy;
+        v2 center = screenCenter + projectedXY.xy * metersToPixels;
 
         result.P = center;
-        result.Scale = projectedXY.z;
+        result.Scale = metersToPixels * projectedXY.z;
         result.Valid = true;
     }
     
@@ -810,9 +818,9 @@ GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenCenter, render
 internal void
 RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 {
-    real32 pixelsToMeters = 1.0f / renderGroup->MetersToPixels;
-    
-    v2 screenCenter = 0.5f * V2i(outputTarget->Width, outputTarget->Height);
+    real32 pixelsToMeters = 32.0f;// TODO: this WILL produce bug in ground
+
+    v2 screenDim = V2i(outputTarget->Width, outputTarget->Height);
     
     for (uint32 baseAddress=0;
          baseAddress < renderGroup->PushBufferSize;
@@ -834,7 +842,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
         case RenderEntryType_render_entry_bitmap: {
             render_entry_bitmap *entry = (render_entry_bitmap *) voidEntry;
 
-            entity_basis_p_result basisResult = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
+            entity_basis_p_result basisResult = GetTopLeftPointForEntityBasis(renderGroup, screenDim, &entry->EntityBasis);
 
             Assert(entry->Bitmap);
 
@@ -844,7 +852,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 
             if (basisResult.Valid) {
                 RenderRectangleSlowly(outputTarget,
-                                      basisResult.P, basisResult.Scale * V2i(entry->Bitmap->Width,0), basisResult.Scale * V2i(0,entry->Bitmap->Height), entry->Color,
+                                      basisResult.P, basisResult.Scale * V2(entry->Size.x,0), basisResult.Scale * V2(0, entry->Size.y), entry->Color,
                                       entry->Bitmap, 0,
                                       0, 0, 0,
                                       pixelsToMeters
@@ -858,7 +866,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
             render_entry_rectangle *entry = (render_entry_rectangle *) voidEntry;
             
 
-            entity_basis_p_result basisResult = GetTopLeftPointForEntityBasis(renderGroup, screenCenter, &entry->EntityBasis);
+            entity_basis_p_result basisResult = GetTopLeftPointForEntityBasis(renderGroup, screenDim, &entry->EntityBasis);
 
             if (basisResult.Valid) {
                 v2 center = basisResult.P;
@@ -890,7 +898,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
                                   entry->Origin, entry->XAxis, entry->YAxis, entry->Color,
                                   entry->Texture, entry->NormalMap,
                                   entry->Top, entry->Middle, entry->Bottom,
-                                  1.0f / renderGroup->MetersToPixels
+                                  pixelsToMeters
                                   );
 
             baseAddress += sizeof(*entry);
