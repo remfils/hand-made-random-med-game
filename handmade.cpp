@@ -881,7 +881,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             */
 
 
-            absTileZ += 1.0f;
+            absTileZ += 1;
             
             /*
             if (drawZDoorCounter > 0) {
@@ -1232,7 +1232,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             real32 fadeTopEndZ = 0.9f * gameState->TypicalFloorHeight;
             real32 fadeTopStartZ = 0.2f * gameState->TypicalFloorHeight;
-            real32 fadeBottomStartZ = -1.2 * gameState->TypicalFloorHeight;
+            real32 fadeBottomStartZ = -1.2f * gameState->TypicalFloorHeight;
             real32 fadeBottomEndZ = - 2.0f *gameState->TypicalFloorHeight;
 
             renderGroup->GlobalAlpha = 1.0f;

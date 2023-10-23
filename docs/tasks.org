@@ -1,104 +1,11 @@
-* to be done [12/602]
+* to be done [1/590]
 
-** DONE Handmade Hero Day 096 - Introduction to Lighting
-- [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
-
-Лекция про то, как будет моделироваться свет. Освещаются основные
-проблемы при работе со светом + возможная реализация в 2д.
-
-** DONE Handmade Hero Day 097 - Adding Normal Maps to the Pipeline
-- [[https://www.youtube.com/watch?v=oww19zUryVg]]
-
-добавлено куча кода для семплинга из render_environment_map. Код
-компилируется но ничего не реботает
-
-** DONE Handmade Hero Day 098 - Normal Map Code Cleanup
-- [[https://www.youtube.com/watch?v=xWQfjqAHvxs]]
-
-Уже получается некоторое улучшение процесса. Множество странных вещей
-были устранены. Сейчас получается вращающийся персонаж, который
-раскрашен сгенерированной картой нормалей для сферы.
-
-** DONE Handmade Hero Day 099 - Test Environment Maps
-- [[https://www.youtube.com/watch?v=07UpVTmIKdU]]
-
-Добавлены тестовые текстуры шахматной доски и сделан "работающий"
-набросок отрисовки текстуры на карте нормалей - координаты пока что не
-используются.
-
-** DONE Handmade Hero Day 100 - Reflection Vectors
-- [[https://www.youtube.com/watch?v=PHz3ulc_mFk]]
-
-Достаточно близко подошел к работе отражений. Все еще есть баги с
-отражениями - они работают не правильно. Скорее всего нужно будет
-перепроверить всю работу в ручную...
-
-** DONE Handmade Hero Day 101 - The Inverse and the Transpose
-- [[https://www.youtube.com/watch?v=PPDAqEJvUUQ]]
-
-Лекция про то, как появляются матрицы в вычислених графики. 
-
-** DONE Handmade Hero Day 102 - Transforming Normals Properly
-- [[https://www.youtube.com/watch?v=73u0sR4DU9E]]
-
-Вращающиеся нормали работают, но есть баг с верхом (красным
-цветом). Скорее всего проблема в векторе зрения (v3(0,0,1))
-
-** DONE Handmade Hero Day 103 - Card-like Normal Map Reflections
-- [[https://www.youtube.com/watch?v=-LWk-TVfGTk]]
-
-Проблему я так и не понял. На сколько я смог понять - основная
-проблема в том, что очень криво воспринимаются данные из z. В итоге
-сделана комбинация из z + y
-
-Сейчас прошелся по коду, все равно ничгео не понятно... Почему оно
-зарешало совсем не ясно.
-
-Постарался поразбираться и похоже добавил еще багов. Все равно не
-понятно, почему именно так нужно все рисовать и в чем была проблема.
-
-** DONE Handmade Hero Day 104 - Switching to Y-is-up Render Targets
-- [[https://www.youtube.com/watch?v=CfjMu8DwOnY]]
-
-Важная мысль - не нужно править реальные вещи танцами с бубном. Нужно
-решать проблемы на корню. Иначе можно оказаться в ситуации, в которой
-исправляя баги ломаются посторенные (ложные, но дающие "правильные"
-результаты) взаимодействия.
-
-Чтение картинок приведено в порядок. Отрисовка изображений приведена в
-порядок. Почему нужно было начинать с обратного порядка (У направлена
-вниз мне стало не сильно понято). Я знаю, что во флэше использовался
-именно такой базис.
-
-Пересмотрел код и поправил состояние отражений. Сейчас оно мне не
-нравится, но работает так как на видосе.
-
-на почитать
-https://fgiesen.wordpress.com/2011/07/09/a-trip-through-the-graphics-pipeline-2011-index/
-
-** DONE Handmade Hero Day 105 - Cleaning Up the Renderer API
-- [[https://www.youtube.com/watch?v=Jklm_p_qrKU]]
-
-Наведение порядков - удален коцепт EntityCZ. Прозрачнее работает
-логика работы с z коррдинатой. Но все еще есть баги, которые остаются
-на потом.
-
-Появилась задача разбить персонажа на тело + тень
-
-** DONE Handmade Hero Day 106 - World Scaling
-- [[https://www.youtube.com/watch?v=UCTcu8vJ92c]]
-
-Добавлено управление камерой - ее можно поднимать и опускать на
-мир. При отдалении/приближении изменяется маштам всех объектов.
-
-** DONE Handmade Hero Day 107 - Fading Z Layers
-- [[https://www.youtube.com/watch?v=CmXCiK8dK9c]]
-
-Добавлена штука при которой камера следит за персонажем на лестинце,
-получилось очень хорошо. Верхние и нижние этажи пропадают через alpha.
-
-** TODO Handmade Hero Day 108 - Perspective Projection
+** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
+
+Доработана логика маштаба - ZFudge заменен на коэффициент, который
+ближе к реальности. Но по какой то причине все еще не используются
+реальзные цифры (30 см от монитора + 5 метров от земли до камеры).
 
 ** TODO Handmade Hero Day 109 - Resolution-Independent Rendering
 - [[https://www.youtube.com/watch?v=e3d7kEtX6iw]]
@@ -2469,4 +2376,101 @@ premultiplied, hence destination is always premultiplied.)
 
 переработка логики обработки гаммы - ничего не поменялось, но стало
 ооооочень медленно.
+
+** DONE Handmade Hero Day 096 - Introduction to Lighting
+- [[https://www.youtube.com/watch?v=QtepVbq6_pw]]
+
+Лекция про то, как будет моделироваться свет. Освещаются основные
+проблемы при работе со светом + возможная реализация в 2д.
+
+** DONE Handmade Hero Day 097 - Adding Normal Maps to the Pipeline
+- [[https://www.youtube.com/watch?v=oww19zUryVg]]
+
+добавлено куча кода для семплинга из render_environment_map. Код
+компилируется но ничего не реботает
+
+** DONE Handmade Hero Day 098 - Normal Map Code Cleanup
+- [[https://www.youtube.com/watch?v=xWQfjqAHvxs]]
+
+Уже получается некоторое улучшение процесса. Множество странных вещей
+были устранены. Сейчас получается вращающийся персонаж, который
+раскрашен сгенерированной картой нормалей для сферы.
+
+** DONE Handmade Hero Day 099 - Test Environment Maps
+- [[https://www.youtube.com/watch?v=07UpVTmIKdU]]
+
+Добавлены тестовые текстуры шахматной доски и сделан "работающий"
+набросок отрисовки текстуры на карте нормалей - координаты пока что не
+используются.
+
+** DONE Handmade Hero Day 100 - Reflection Vectors
+- [[https://www.youtube.com/watch?v=PHz3ulc_mFk]]
+
+Достаточно близко подошел к работе отражений. Все еще есть баги с
+отражениями - они работают не правильно. Скорее всего нужно будет
+перепроверить всю работу в ручную...
+
+** DONE Handmade Hero Day 101 - The Inverse and the Transpose
+- [[https://www.youtube.com/watch?v=PPDAqEJvUUQ]]
+
+Лекция про то, как появляются матрицы в вычислених графики. 
+
+** DONE Handmade Hero Day 102 - Transforming Normals Properly
+- [[https://www.youtube.com/watch?v=73u0sR4DU9E]]
+
+Вращающиеся нормали работают, но есть баг с верхом (красным
+цветом). Скорее всего проблема в векторе зрения (v3(0,0,1))
+
+** DONE Handmade Hero Day 103 - Card-like Normal Map Reflections
+- [[https://www.youtube.com/watch?v=-LWk-TVfGTk]]
+
+Проблему я так и не понял. На сколько я смог понять - основная
+проблема в том, что очень криво воспринимаются данные из z. В итоге
+сделана комбинация из z + y
+
+Сейчас прошелся по коду, все равно ничгео не понятно... Почему оно
+зарешало совсем не ясно.
+
+Постарался поразбираться и похоже добавил еще багов. Все равно не
+понятно, почему именно так нужно все рисовать и в чем была проблема.
+
+** DONE Handmade Hero Day 104 - Switching to Y-is-up Render Targets
+- [[https://www.youtube.com/watch?v=CfjMu8DwOnY]]
+
+Важная мысль - не нужно править реальные вещи танцами с бубном. Нужно
+решать проблемы на корню. Иначе можно оказаться в ситуации, в которой
+исправляя баги ломаются посторенные (ложные, но дающие "правильные"
+результаты) взаимодействия.
+
+Чтение картинок приведено в порядок. Отрисовка изображений приведена в
+порядок. Почему нужно было начинать с обратного порядка (У направлена
+вниз мне стало не сильно понято). Я знаю, что во флэше использовался
+именно такой базис.
+
+Пересмотрел код и поправил состояние отражений. Сейчас оно мне не
+нравится, но работает так как на видосе.
+
+на почитать
+https://fgiesen.wordpress.com/2011/07/09/a-trip-through-the-graphics-pipeline-2011-index/
+
+** DONE Handmade Hero Day 105 - Cleaning Up the Renderer API
+- [[https://www.youtube.com/watch?v=Jklm_p_qrKU]]
+
+Наведение порядков - удален коцепт EntityCZ. Прозрачнее работает
+логика работы с z коррдинатой. Но все еще есть баги, которые остаются
+на потом.
+
+Появилась задача разбить персонажа на тело + тень
+
+** DONE Handmade Hero Day 106 - World Scaling
+- [[https://www.youtube.com/watch?v=UCTcu8vJ92c]]
+
+Добавлено управление камерой - ее можно поднимать и опускать на
+мир. При отдалении/приближении изменяется маштам всех объектов.
+
+** DONE Handmade Hero Day 107 - Fading Z Layers
+- [[https://www.youtube.com/watch?v=CmXCiK8dK9c]]
+
+Добавлена штука при которой камера следит за персонажем на лестинце,
+получилось очень хорошо. Верхние и нижние этажи пропадают через alpha.
 
