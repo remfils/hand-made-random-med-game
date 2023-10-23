@@ -10,6 +10,9 @@
 ** DONE Handmade Hero Day 109 - Resolution-Independent Rendering
 - [[https://www.youtube.com/watch?v=e3d7kEtX6iw]]
 
+Работа по удалению pixelsToMeters. Сейчас очень мало мест в которых
+оно вообще используется.
+
 ** TODO Handmade Hero Day 110 - Unprojecting Screen Boundaries
 - [[https://www.youtube.com/watch?v=s-eL7riOnwc]]
 
