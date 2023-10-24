@@ -605,10 +605,10 @@ AllocateRenderGroup(memory_arena *arena, uint32 maxPushBufferSize, uint32 resolu
     real32 widthOfMonitorInMeters = 0.635f;
     result->MetersToPixels = resolutionPixelX / widthOfMonitorInMeters;
     
-    real32 pixelsToMeters = 1.0f / result->MetersToPixels;
+    real32 pixelsToMeters = 0.5f / result->MetersToPixels;
     result->MonitorHalfDimInMeters = {
-        0.5f * resolutionPixelX * pixelsToMeters,
-        0.5f * resolutionPixelY * pixelsToMeters
+        resolutionPixelX * pixelsToMeters,
+        resolutionPixelY * pixelsToMeters
     };
 
     return result;

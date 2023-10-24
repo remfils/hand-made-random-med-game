@@ -369,12 +369,13 @@ internal void
 FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position *chunkP)
 {
     // TODO: how to draw ground chunk res?
-    
-    return;
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4), 1920, 1080);
-    
     loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
+
+    
+    PushDefaultColorFill(renderGroup, ToV4(0,1,0,1));
+    #if 0
 
     groundBuffer->P = *chunkP;
     real32 width = (real32)drawBuffer->Width;
@@ -447,6 +448,8 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             }
         }
     }
+
+    #endif
 
     RenderGroup(drawBuffer, renderGroup);
 
@@ -1133,7 +1136,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         world_position minChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMinCorner(cameraBoundsInMeters));
         world_position maxChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMaxCorner(cameraBoundsInMeters));
 
-        v4 chunkColor = {1.0f,1.0f,0.0f, 1.0f};
         v2 chunkDimPixels = 0.5f * (1.0f / pixelsToMeters) * gameState->World->ChunkDimInMeters.xy;
 
         for (int32 chunkZ=minChunkP.ChunkZ;
@@ -1185,15 +1187,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     {
                         FillGroundChunk(tranState, gameState, furtherstBuffer, &chunkCenter);
                     }
-
-                    #if 1
-                    PushPieceRectOutline(renderGroup, relP, gameState->World->ChunkDimInMeters.xy, chunkColor);
-                    #endif
                 }
             }
         }
     }
 
+    v4 chunkColor = {1.0f,1.0f,0.0f, 1.0f};
     for (uint32 groundBufferIndex=0;
          groundBufferIndex < tranState->GroundBufferCount;
          groundBufferIndex++)
@@ -1202,7 +1201,16 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         if (IsValid(buf->P)) {
             loaded_bitmap *bmp = &buf->Bitmap;
             v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
-            PushBitmap(renderGroup, bmp, 1.0f, groundDelta);
+
+            render_basis *basis = PushStruct(&tranState->TransientArena, render_basis);
+            renderGroup->DefaultBasis = basis;
+            basis->P = groundDelta;
+
+#if 1
+            PushPieceRectOutline(renderGroup, ToV3(0,0,0), ToV2(3.0f, 3.0f), chunkColor);
+#endif
+            
+            PushBitmap(renderGroup, bmp, 1.0f, ToV3(0,0,0));
         }
     }
 
@@ -1216,6 +1224,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     v3 cameraPosition = Subtract(gameState->World, &gameState->CameraPosition, &simCenterP);
 
+    render_basis *cameraBasis = PushStruct(&tranState->TransientArena, render_basis);
+    renderGroup->DefaultBasis = cameraBasis;
+    cameraBasis->P = ToV3(0,0,0);
     PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(screenBounds), ToV4(0.2f, 0.0f, 0.2f, 1.0f));
     PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(simRegion->Bounds).xy, ToV4(0.4f, 0.0f, 0.4f, 1.0f));
     PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(simRegion->UpdatableBounds).xy, ToV4(1.0f, 0.0f, 1.0f, 1.0f));

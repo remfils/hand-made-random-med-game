@@ -33,7 +33,7 @@ union v4
     };
     struct {
         v3 xyz;
-        real32 w;
+        real32 ignored0_;
     };
     struct {
         v2 xy;
