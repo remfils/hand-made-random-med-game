@@ -1,4 +1,4 @@
-#define IvalidP V3(10000.0f, 10000.0f, 10000.0f)
+#define IvalidP ToV3(10000.0f, 10000.0f, 10000.0f)
 
 inline bool32
 IsSet(sim_entity *entity, uint32 flag)
@@ -214,8 +214,8 @@ BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_posi
 
     simRegion->World = world;
     simRegion->Origin = regionCenter;
-    simRegion->UpdatableBounds = AddRadiusTo(regionBounds, V3(simRegion->MaxEntityRadius, simRegion->MaxEntityRadius, 0.0f));
-    simRegion->Bounds = AddRadiusTo(simRegion->UpdatableBounds, V3(updateSafetyMargin, updateSafetyMargin, updateSafetyMarginZ));;
+    simRegion->UpdatableBounds = AddRadiusTo(regionBounds, ToV3(simRegion->MaxEntityRadius, simRegion->MaxEntityRadius, 0.0f));
+    simRegion->Bounds = AddRadiusTo(simRegion->UpdatableBounds, ToV3(updateSafetyMargin, updateSafetyMargin, updateSafetyMarginZ));;
 
     world_position minChunkP = MapIntoChunkSpace(simRegion->World, simRegion->Origin, GetMinCorner(simRegion->Bounds));
     world_position maxChunkP = MapIntoChunkSpace(simRegion->World, simRegion->Origin, GetMaxCorner(simRegion->Bounds));
@@ -665,7 +665,7 @@ TestSpeculativeCollision(sim_entity *movingEntity, sim_entity *region, v3 testPo
 }
 
 internal bool32
-EntitiesOverlap(sim_entity *movingEntity, sim_entity *testEntity, v3 epsilon=V3(0,0,0))
+EntitiesOverlap(sim_entity *movingEntity, sim_entity *testEntity, v3 epsilon=ToV3(0,0,0))
 {
     bool32 result = false;
     for (uint32 movingVolumeIndex=0;

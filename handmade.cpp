@@ -61,7 +61,7 @@ DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireF
         result.Height = header->Height;
         result.WidthOverHeight = SafeRatio_1((real32)result.Width, (real32)result.Height);
 
-        result.AlignPercent = V2(
+        result.AlignPercent = ToV2(
                                  SafeRatio_0((real32)topDownAlignX, (real32)result.Width),
                                  SafeRatio_0((real32)((result.Height - 1) - topDownAlignY), (real32)result.Height)
                                  );
@@ -186,15 +186,15 @@ InitHitpoints(low_entity *lowEntity, uint32 hitpointCount, uint32 filledAmount =
 }
 
 inline world_position
-ChunkPositionFromTilePosition(world * world, int32 absTileX, int32 absTileY, int32 absTileZ, v3 additionalOffset=V3(0,0,0))
+ChunkPositionFromTilePosition(world * world, int32 absTileX, int32 absTileY, int32 absTileZ, v3 additionalOffset=ToV3(0,0,0))
 {
     world_position basePosition = {};
 
     real32 tileSideInMeters = 2.0f;
     real32 tileDepthInMeters = 3.0f;
 
-    v3 tileDim = V3(tileSideInMeters, tileSideInMeters, tileDepthInMeters);
-    v3 offset = Hadamard(tileDim, V3((real32)absTileX, (real32)absTileY, (real32)absTileZ));
+    v3 tileDim = ToV3(tileSideInMeters, tileSideInMeters, tileDepthInMeters);
+    v3 offset = Hadamard(tileDim, ToV3((real32)absTileX, (real32)absTileY, (real32)absTileZ));
 
     world_position result = MapIntoChunkSpace(world, basePosition, offset + additionalOffset);
 
@@ -343,9 +343,9 @@ MakeNullCollision(game_state *gameState)
     sim_entity_collision_volume_group *group = PushStruct(&gameState->WorldArena, sim_entity_collision_volume_group);
     group->VolumeCount = 0;
     group->Volumes = 0;
-    group->TotalVolume.Offset = V3(0,0, 0);
+    group->TotalVolume.Offset = ToV3(0,0, 0);
     // TODO: make negative ?
-    group->TotalVolume.Dim = V3(0,0, 0);
+    group->TotalVolume.Dim = ToV3(0,0, 0);
     return group;
 }
 
@@ -358,8 +358,8 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
     sim_entity_collision_volume_group *group = PushStruct(&gameState->WorldArena, sim_entity_collision_volume_group);
     group->VolumeCount = 1;
     group->Volumes = PushArray(&gameState->WorldArena, group->VolumeCount, sim_entity_collision_volume);
-    group->TotalVolume.Offset = V3(0,0, 0.5f * z);
-    group->TotalVolume.Dim = V3(x, y, z);
+    group->TotalVolume.Offset = ToV3(0,0, 0.5f * z);
+    group->TotalVolume.Dim = ToV3(x, y, z);
     group->Volumes[0] = group->TotalVolume;
 
     return group;
@@ -368,9 +368,11 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
 internal void
 FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position *chunkP)
 {
+    // TODO: how to draw ground chunk res?
+    
     return;
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4));
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4), 1920, 1080);
     
     loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
 
@@ -394,7 +396,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             // TODO: look into wang hashing here
             random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
-            v2 center = V2((real32)chunkOffsetX * drawBuffer->Width, (real32)chunkOffsetY * drawBuffer->Height);
+            v2 center = ToV2((real32)chunkOffsetX * drawBuffer->Width, (real32)chunkOffsetY * drawBuffer->Height);
 
             for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
             {
@@ -407,7 +409,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                PushBitmap(renderGroup, bitmap, 1.0f, V3(grassCenter.x, grassCenter.y, 0));
+                PushBitmap(renderGroup, bitmap, 1.0f, ToV3(grassCenter));
             }
         }
     }
@@ -428,7 +430,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             // TODO: look into wang hashing here
             random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
-            v2 center = V2((real32)chunkOffsetX * drawBuffer->Width, (real32)chunkOffsetY * drawBuffer->Height);
+            v2 center = ToV2((real32)chunkOffsetX * drawBuffer->Width, (real32)chunkOffsetY * drawBuffer->Height);
 
             for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
             {
@@ -441,7 +443,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 };
                 v2 grassCenter = center + offset;
         
-                PushBitmap(renderGroup, bitmap, 1.0f, V3(grassCenter.x, grassCenter.y, 0));
+                PushBitmap(renderGroup, bitmap, 1.0f, ToV3(grassCenter));
             }
         }
     }
@@ -470,7 +472,7 @@ MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, bool32 clearToZe
     result.WidthOverHeight = SafeRatio_1((real32)result.Width, (real32)result.Height);
     result.Pitch = width * BITMAP_BYTES_PER_PIXEL;
 
-    result.AlignPercent = V2(
+    result.AlignPercent = ToV2(
                              (real32)alignX / (real32)result.Width,
                              ((real32)alignY) / (real32)result.Height
                              );
@@ -694,7 +696,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         uint32 tilesPerScreenHeight = 9;
 
         real32 pixelsToMeters = 1.0f / 32.0f;
-        v3 chunkDimInMeters = V3(groundBufferWidth * pixelsToMeters, groundBufferHeight * pixelsToMeters, gameState->TypicalFloorHeight);
+        v3 chunkDimInMeters = ToV3(groundBufferWidth * pixelsToMeters, groundBufferHeight * pixelsToMeters, gameState->TypicalFloorHeight);
 
         
         // TODO: sub arena start partitioning memory space
@@ -1105,10 +1107,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         }
     }
 
-    temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
-    // TODO: how much push buffer should be
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4));
-
     loaded_bitmap drawBuffer_ = {};
     loaded_bitmap *drawBuffer = &drawBuffer_;
     drawBuffer->Memory = buffer->Memory;
@@ -1116,16 +1114,28 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     drawBuffer->Height = buffer->Height;
     drawBuffer->Pitch = buffer->Pitch;
 
+    temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
+    // TODO: how much push buffer should be
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
+
     
     PushDefaultRenderClear(renderGroup);
 
 
-    v2 screenCenter = 0.5f * V2((real32) drawBuffer->Width, (real32)drawBuffer->Height);
+    v2 screenCenter = 0.5f * ToV2((real32) drawBuffer->Width, (real32)drawBuffer->Height);
 
     real32 pixelsToMeters = 1.0f / 32.0f;
-    real32 screenWidthInMeters = buffer->Width * pixelsToMeters;
-    real32 screenHeightInMeters = buffer->Height * pixelsToMeters;
-    rectangle3 cameraBoundsInMeters = RectCenterDim(V3(0,0,0), V3(screenWidthInMeters, screenHeightInMeters, 0));
+
+    rectangle2 screenBounds = GetCameraRectangleAtTarget(renderGroup);
+
+    PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(screenBounds), ToV4(1.0f, 1.0f, 0, 0.0f));
+
+    /*
+    real32 screenWidthInMeters = buffer->Width * pixelsToMeters; // 34.0f
+    real32 screenHeightInMeters = buffer->Height * pixelsToMeters; // 18.0f
+    */
+
+    rectangle3 cameraBoundsInMeters = RectCenterDim(ToV3(screenBounds.Min), ToV3(screenBounds.Max));
     
     {
         world_position minChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMinCorner(cameraBoundsInMeters));
@@ -1205,7 +1215,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
 
     // TODO: fix meters
-    v3 simBoundsExpansion = V3(15.0f, 15.0f, 2.0f * gameState->TypicalFloorHeight);
+    v3 simBoundsExpansion = ToV3(15.0f, 15.0f, 2.0f * gameState->TypicalFloorHeight);
     rectangle3 simBounds = AddRadiusTo(cameraBoundsInMeters, simBoundsExpansion);
 
     temporary_memory simMemory = BeginTemporaryMemory(&tranState->TransientArena);
@@ -1260,7 +1270,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 //     wallColor.a = 1.0f;
                 // }
                 
-                PushBitmap(renderGroup, &gameState->WallDemoBitmap, 2.0f, V3(0,0, 0), wallColor);
+                PushBitmap(renderGroup, &gameState->WallDemoBitmap, 2.0f, ToV3(0,0, 0), wallColor);
             } break;
             case EntityType_Sword:
             {
@@ -1273,7 +1283,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     ClearCollisionRulesFor(gameState, simEntity->StorageIndex);
                 }
 
-                PushBitmap(renderGroup, &gameState->SwordDemoBitmap, 0.5f, V3(0,0,0));
+                PushBitmap(renderGroup, &gameState->SwordDemoBitmap, 0.5f, ToV3(0,0,0));
             } break;
             case EntityType_Hero:
             {
@@ -1286,7 +1296,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         moveSpec.Speed = 50.0f;
                         moveSpec.Drag = 8.0f;
 
-                        ddp = V3(conHero->ddPRequest, 0.0f);
+                        ddp = ToV3(conHero->ddPRequest);
 
                         if (conHero->dSwordRequest.x != 0 || conHero->dSwordRequest.y != 0)
                         {
@@ -1294,23 +1304,23 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                             if (swordEntity && IsSet(swordEntity, EntityFlag_Nonspacial))
                             {
                                 AddCollisionRule(gameState, simEntity->StorageIndex, swordEntity->StorageIndex, false);
-                                MakeEntitySpacial(swordEntity, simEntity->P, 7.0f * V3(conHero->dSwordRequest, 0));
+                                MakeEntitySpacial(swordEntity, simEntity->P, 7.0f * ToV3(conHero->dSwordRequest));
                                 swordEntity->DistanceLimit = 15.0f;
                             }
                         }
                     }
                 }
 
-                PushBitmap(renderGroup, &heroBitmaps->Character, 3.0f, V3(0, 0, 0));
+                PushBitmap(renderGroup, &heroBitmaps->Character, 3.0f, ToV3(0, 0, 0));
 
                 sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
-                PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, V4(0, 0.3f, 0.3f, 0));
+                PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 0));
 
                 DrawHitpoints(renderGroup, simEntity);
             } break;
             case EntityType_Monster:
             {
-                PushBitmap(renderGroup, &gameState->EnemyDemoBitmap, 4.0f, V3(0, 0, 0));
+                PushBitmap(renderGroup, &gameState->EnemyDemoBitmap, 4.0f, ToV3(0, 0, 0));
 
                 DrawHitpoints(renderGroup, simEntity);
             } break;
@@ -1354,7 +1364,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     simEntity->TBobing -= 2.0f * Pi32;
                 }
 
-                PushBitmap(renderGroup, &gameState->FamiliarDemoBitmap, 2.0f, V3(0, 0.2f * Sin(13 * simEntity->TBobing), 0));
+                PushBitmap(renderGroup, &gameState->FamiliarDemoBitmap, 2.0f, ToV3(0, 0.2f * Sin(13 * simEntity->TBobing), 0));
             } break;
             case EntityType_Stairwell:
             {
@@ -1363,21 +1373,21 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 //     wallAlpha = 0.1f;
                 // }
                 
-                PushPieceRect(renderGroup, V3(0, 0, 0), simEntity->WalkableDim, V4(1,1,0,1));
+                PushPieceRect(renderGroup, ToV3(0, 0, 0), simEntity->WalkableDim, ToV4(1,1,0,1));
 
                 // NOTE(vlad): this is hack to make top door in z-space
                 render_basis *secondBasis = PushStruct(&tranState->TransientArena, render_basis);
                 secondBasis->P = GetEntityGroundPoint(simEntity);
                 secondBasis->P.z += simEntity->WalkableHeight;
                 renderGroup->DefaultBasis = secondBasis;
-                PushPieceRect(renderGroup, V3(0, 0, 0), simEntity->WalkableDim, V4(0.5f,0.5f,0, 1.0f));
+                PushPieceRect(renderGroup, ToV3(0, 0, 0), simEntity->WalkableDim, ToV4(0.5f,0.5f,0, 1.0f));
             } break;
             case EntityType_Space:
             {
                 for (uint32 volumeIndex=0; volumeIndex < simEntity->Collision->VolumeCount; volumeIndex++)
                 {
                     sim_entity_collision_volume *volume = simEntity->Collision->Volumes + volumeIndex;
-                    PushPieceRectOutline(renderGroup, volume->Offset - V3(0, 0, 0.5f * volume->Dim.z), volume->Dim.xy, V4(0,1,1,0));
+                    PushPieceRectOutline(renderGroup, volume->Offset - ToV3(0, 0, 0.5f * volume->Dim.z), volume->Dim.xy, ToV4(0,1,1,0));
                 }
             } break;
             }
@@ -1476,6 +1486,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         real32 width = 10;
         int testSpace = 50;
         v4 color = {1.0f, 0.0f, 1.0f, 1.0f};
+
+        // TODO: mouse is in screen pixel space
         
         PushScreenSquareDot(renderGroup, V2i(input->MouseX + testSpace, input->MouseY + testSpace), width, color);
         PushScreenSquareDot(renderGroup, V2i(input->MouseX - testSpace, input->MouseY - testSpace), width, color);
@@ -1488,6 +1500,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         real32 width = 10;
         int testSpace = 50;
         v4 color = {1.0f, 0.0f, 1.0f, 1.0f};
+
+        // TODO: mouse is in screen pixel space
         
         PushScreenSquareDot(renderGroup, V2i(input->MouseX + testSpace, input->MouseY), width, color);
         PushScreenSquareDot(renderGroup, V2i(input->MouseX - testSpace, input->MouseY), width, color);

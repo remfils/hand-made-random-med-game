@@ -185,7 +185,7 @@ SampleEnvironmentMap(v2 screenSpaceUV, v3 sampleDirection, real32 roughness, ren
     real32 uvsPerMeter = 0.1f;
     real32 coef = (uvsPerMeter * distanceToMapInZ) / sampleDirection.y;
     // TODO: make sure we know what direction Z should go and why
-    v2 offset = coef * V2(sampleDirection.x, sampleDirection.z);
+    v2 offset = coef * ToV2(sampleDirection.x, sampleDirection.z);
 
     // find the intersection point
     v2 uv = screenSpaceUV + offset;
@@ -429,7 +429,7 @@ ApplySaturation(loaded_bitmap *outputTarget, real32 level)
 
             real32 avg = (destTexel.r + destTexel.g + destTexel.b) / 3.0f;
             v4 delta = {destTexel.r - avg, destTexel.g - avg, destTexel.b - avg, 0};
-            v4 result = V4(avg, avg, avg, destTexel.a) + level * delta;
+            v4 result = ToV4(avg, avg, avg, destTexel.a) + level * delta;
 
             *dst = (
                    ((uint32)(result.a + 0.5f) << 24)
@@ -598,15 +598,31 @@ ClearRenderBuffer(loaded_bitmap *drawBuffer)
 
 
 internal render_group *
-AllocateRenderGroup(memory_arena *arena, uint32 maxPushBufferSize)
+AllocateRenderGroup(memory_arena *arena, uint32 maxPushBufferSize, uint32 resolutionPixelX, uint32 resolutionPixelY)
 {
     render_group *result = PushStruct(arena, render_group);
+
+    result->GameCamera.FocalLength = 0.6f;
+    result->GameCamera.DistanceToTarget = 7.0f;
+
+    result->RenderCamera = result->GameCamera;
+    result->RenderCamera.DistanceToTarget = 30.0f;
+    
     result->PushBufferBase = (uint8 *)PushSize(arena, maxPushBufferSize);
     result->DefaultBasis = PushStruct(arena, render_basis);
-    result->DefaultBasis->P = V3(0,0,0);
+    result->DefaultBasis->P = ToV3(0,0,0);
 
     result->MaxPushBufferSize = maxPushBufferSize;
     result->PushBufferSize = 0;
+
+    real32 widthOfMonitorInMeters = 0.635f;
+    result->MetersToPixels = resolutionPixelX * widthOfMonitorInMeters;
+
+    real32 pixelsToMeters = 1.0f / result->MetersToPixels;
+    result->MonitorHalfDimInMeters = {
+        0.5f * resolutionPixelX * pixelsToMeters,
+        0.5f * resolutionPixelY * pixelsToMeters
+    };
 
     return result;
 }
@@ -663,7 +679,7 @@ PushPieceRect(render_group *grp, v3 offset, v2 dim, v4 color)
 
     if (renderEntry) {
         renderEntry->EntityBasis.Basis = grp->DefaultBasis;
-        renderEntry->EntityBasis.Offset = (offset - 0.5f * V3(dim.x, dim.y, 0));
+        renderEntry->EntityBasis.Offset = (offset - 0.5f * ToV3(dim));
 
         color.a = grp->GlobalAlpha;
         renderEntry->Color = color;
@@ -674,14 +690,18 @@ PushPieceRect(render_group *grp, v3 offset, v2 dim, v4 color)
 inline void
 PushPieceRectOutline(render_group *grp, v3 offset, v2 dim, v4 color)
 {
-    real32 lineWidth = 0.05f;
+    // TODO: redo to offset is left corner + dim
+    
+    real32 lineWidth = 0.1f;
+    real32 halfW = 0.5f * lineWidth;
+    v2 halfD = 0.5f * dim;
     // top bottom
-    PushPieceRect(grp, V3(offset.x, offset.y+dim.y/2, offset.z), V2(dim.x, lineWidth), color);
-    PushPieceRect(grp, V3(offset.x, offset.y-dim.y/2, offset.z), V2(dim.x, lineWidth), color);
+    PushPieceRect(grp, ToV3(offset.x, offset.y+halfD.y, offset.z), ToV2(dim.x, lineWidth), color);
+    PushPieceRect(grp, ToV3(offset.x, offset.y-halfD.y, offset.z), ToV2(dim.x, lineWidth), color);
 
     // left/right
-    PushPieceRect(grp, V3(offset.x-dim.x/2, offset.y, offset.z), V2(lineWidth, dim.y), color);
-    PushPieceRect(grp, V3(offset.x+dim.x/2, offset.y, offset.z), V2(lineWidth, dim.y), color);
+    PushPieceRect(grp, ToV3(offset.x-halfD.x, offset.y, offset.z), ToV2(lineWidth, dim.y), color);
+    PushPieceRect(grp, ToV3(offset.x+halfD.x, offset.y, offset.z), ToV2(lineWidth, dim.y), color);
 }
 
 inline void
@@ -754,7 +774,7 @@ DrawHitpoints(render_group *renderGroup, sim_entity *simEntity)
 {
     // health bars
     if (simEntity->HitPointMax >= 1) {
-        v2 healthDim = V2(0.2f, 0.2f);
+        v2 healthDim = ToV2(0.2f, 0.2f);
         real32 spacingX = healthDim.x;
         real32 firstY = 0.3f;
         real32 firstX = -1 * (real32)(simEntity->HitPointMax - 1) * spacingX;
@@ -763,7 +783,7 @@ DrawHitpoints(render_group *renderGroup, sim_entity *simEntity)
              idx++)
         {
             hit_point *hp = simEntity->HitPoints + idx;
-            v4 color = V4(1.0f, 0.0f, 0.0f, 1);
+            v4 color = ToV4(1.0f, 0.0f, 0.0f, 1);
 
             if (hp->FilledAmount == 0)
             {
@@ -772,7 +792,7 @@ DrawHitpoints(render_group *renderGroup, sim_entity *simEntity)
                 color.b = 0.2f;
             }
                     
-            PushPieceRect(renderGroup, V3(firstX, firstY , 0), healthDim, color);
+            PushPieceRect(renderGroup, ToV3(firstX, firstY , 0), healthDim, color);
             firstX += spacingX + healthDim.x;
         }
     }
@@ -787,28 +807,23 @@ struct entity_basis_p_result
 inline entity_basis_p_result
 GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenDim, render_entity_basis *entityBasis)
 {
-    real32 monitorWidthInWorldUnits = 940.0f / 20.0f;
-    real32 metersToPixels = screenDim.x / monitorWidthInWorldUnits;
-
     v2 screenCenter = 0.5 * screenDim;
     
     v3 entityBaseP = entityBasis->Basis->P;
     
-    real32 distanceToMonitorZ = 10.0f;
-    real32 cameraDistanceAboveGround = 5.0f;
-    real32 distanceToPointZ = cameraDistanceAboveGround - entityBaseP.z;
+    real32 distanceToPointZ = renderGroup->RenderCamera.DistanceToTarget - entityBaseP.z;
     real32 nearClipPlane = 0.3f;
 
     entity_basis_p_result result = {};
     if (distanceToPointZ > nearClipPlane) {
-        v3 rawXY = V3(entityBaseP.x  + entityBasis->Offset.x, entityBaseP.y  + entityBasis->Offset.y, 1.0f);
+        v3 rawXY = ToV3(entityBaseP.x  + entityBasis->Offset.x, entityBaseP.y  + entityBasis->Offset.y, 1.0f);
 
-        v3 projectedXY = rawXY * distanceToMonitorZ * (1.0f / distanceToPointZ);
+        v3 projectedXY = rawXY * renderGroup->RenderCamera.FocalLength * (1.0f / distanceToPointZ);
 
-        v2 center = screenCenter + projectedXY.xy * metersToPixels;
+        v2 center = screenCenter + projectedXY.xy * renderGroup->MetersToPixels;
 
         result.P = center;
-        result.Scale = metersToPixels * projectedXY.z;
+        result.Scale = renderGroup->MetersToPixels * projectedXY.z;
         result.Valid = true;
     }
     
@@ -818,7 +833,7 @@ GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenDim, render_en
 internal void
 RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 {
-    real32 pixelsToMeters = 32.0f;// TODO: this WILL produce bug in ground
+    real32 pixelsToMeters = 1.0f / renderGroup->MetersToPixels;// TODO: this WILL produce bug in ground
 
     v2 screenDim = V2i(outputTarget->Width, outputTarget->Height);
     
@@ -852,7 +867,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 
             if (basisResult.Valid) {
                 RenderRectangleSlowly(outputTarget,
-                                      basisResult.P, basisResult.Scale * V2(entry->Size.x,0), basisResult.Scale * V2(0, entry->Size.y), entry->Color,
+                                      basisResult.P, basisResult.Scale * ToV2(entry->Size.x,0), basisResult.Scale * ToV2(0, entry->Size.y), entry->Color,
                                       entry->Bitmap, 0,
                                       0, 0, 0,
                                       pixelsToMeters
@@ -908,4 +923,29 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 
         }
     }
+}
+
+inline v2
+Unproject(render_group * group, v2 projectedXY, real32 atDistanceFromCamera)
+{
+    v2 rawXY = (atDistanceFromCamera / group->RenderCamera.FocalLength) * projectedXY;
+    return rawXY;
+}
+
+inline rectangle2
+GetCameraRectangleAtDistance(render_group *group, real32 distanceFromCamera)
+{
+    rectangle2 result;
+
+    v2 rawXY = Unproject(group, group->MonitorHalfDimInMeters, distanceFromCamera);
+
+    result = RectCenterHalfDim(ToV2(0,0), rawXY);
+    return result;
+}
+
+inline rectangle2
+GetCameraRectangleAtTarget(render_group *group)
+{
+    rectangle2 result = GetCameraRectangleAtDistance(group, group->GameCamera.DistanceToTarget);
+    return result;
 }

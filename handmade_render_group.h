@@ -119,8 +119,21 @@ struct render_entry_bitmap
     render_entity_basis EntityBasis;
 };
 
+struct render_group_camera
+{
+    real32 FocalLength;
+    real32 DistanceToTarget;
+};
+
 struct render_group
 {
+    render_group_camera GameCamera;
+    render_group_camera RenderCamera;
+    
+    real32 MetersToPixels; // translates meters on monitor to pixels on monitor
+    v2 MonitorHalfDimInMeters;
+    
+    // camera parameters for render
     real32 GlobalAlpha;
 
     render_basis *DefaultBasis;
