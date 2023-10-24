@@ -702,16 +702,19 @@ PushSaturationFilter(render_group *grp, real32 level)
 }
 
 inline void
-PushDefaultRenderClear(render_group *grp)
+PushDefaultColorFill(render_group *grp, v4 color)
 {
     render_entry_clear *renderEntry = PushRenderElement(grp, render_entry_clear);
 
     if (renderEntry) {
-        renderEntry->Color.r = (143.0f / 255.0f);
-        renderEntry->Color.g = (118.0f / 255.0f);
-        renderEntry->Color.b = (74.0f / 255.0f);
-        renderEntry->Color.a = 1.0f;
+        renderEntry->Color = color;
     }
+}
+
+inline void
+PushDefaultRenderClear(render_group *grp)
+{
+    PushDefaultColorFill(grp, ToV4(143.0f / 255.0f, 118.0f / 255.0f, 74.0f / 255.0f, 1.0f));
 }
 
 inline void

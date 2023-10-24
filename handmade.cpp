@@ -132,6 +132,14 @@ DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireF
     return result;
 }
 
+internal loaded_bitmap
+DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireFile, char *filename)
+{
+    loaded_bitmap result = DEBUGLoadBMP(thread, ReadEntireFile, filename, 0, 0);
+    result.AlignPercent = ToV2(0.5f, 0.5f);
+    return result;
+}
+
 struct add_low_entity_result
 {
     low_entity *Low;
@@ -366,20 +374,21 @@ MakeSimpleGroundedCollision(game_state *gameState, real32 x, real32 y, real32 z)
 }
 
 internal void
-FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position *chunkP)
+FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position chunkP)
 {
     // TODO: how to draw ground chunk res?
+    // TODO: set orthographic display mode here
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
     render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
 
+    groundBuffer->P = chunkP;
     
     PushDefaultColorFill(renderGroup, ToV4(0,1,0,1));
-    #if 0
+    #if 1
 
-    groundBuffer->P = *chunkP;
-    real32 width = (real32)drawBuffer->Width;
-    real32 height = (real32)drawBuffer->Height;
+    real32 width = gameState->World->ChunkDimInMeters.x;
+    real32 height = gameState->World->ChunkDimInMeters.y;
 
     for (int32 chunkOffsetX =  - 1;
          chunkOffsetX <= 1;
@@ -390,27 +399,24 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
              ++chunkOffsetY)
         {
         
-            int32 chunkX = chunkP->ChunkX + chunkOffsetX;
-            int32 chunkY = chunkP->ChunkY + chunkOffsetY;
-            int32 chunkZ = chunkP->ChunkZ;
+            int32 chunkX = chunkP.ChunkX + chunkOffsetX;
+            int32 chunkY = chunkP.ChunkY + chunkOffsetY;
+            int32 chunkZ = chunkP.ChunkZ;
             
             // TODO: look into wang hashing here
             random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
-            v2 center = ToV2((real32)chunkOffsetX * drawBuffer->Width, (real32)chunkOffsetY * drawBuffer->Height);
+            v2 center = ToV2((real32)chunkOffsetX * width, (real32)chunkOffsetY * height);
 
-            for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
+            for (uint32 grassIndex=0; grassIndex < 20; grassIndex++)
             {
                 loaded_bitmap *bitmap;
                 
                 bitmap = gameState->GroundBitmaps + RandomChoice(&series, ArrayCount(gameState->GroundBitmaps));
 
-                v2 offset = {
-                    width * RandomUnilateral(&series), height * RandomUnilateral(&series)
-                };
-                v2 grassCenter = center + offset;
+                v2 grassCenter = center + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
-                PushBitmap(renderGroup, bitmap, 1.0f, ToV3(grassCenter));
+                PushBitmap(renderGroup, bitmap, 4.0f, ToV3(grassCenter));
             }
         }
     }
@@ -424,27 +430,27 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
              ++chunkOffsetY)
         {
         
-            int32 chunkX = chunkP->ChunkX + chunkOffsetX;
-            int32 chunkY = chunkP->ChunkY + chunkOffsetY;
-            int32 chunkZ = chunkP->ChunkZ;
+            int32 chunkX = chunkP.ChunkX + chunkOffsetX;
+            int32 chunkY = chunkP.ChunkY + chunkOffsetY;
+            int32 chunkZ = chunkP.ChunkZ;
             
             // TODO: look into wang hashing here
             random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
-            v2 center = ToV2((real32)chunkOffsetX * drawBuffer->Width, (real32)chunkOffsetY * drawBuffer->Height);
+            v2 center = ToV2((real32)chunkOffsetX * width, (real32)chunkOffsetY * height);
 
-            for (uint32 grassIndex=0; grassIndex < 40; grassIndex++)
+            for (uint32 grassIndex=0; grassIndex < 20; grassIndex++)
             {
                 loaded_bitmap *bitmap;
                 
                 bitmap = gameState->GrassBitmaps + RandomChoice(&series, ArrayCount(gameState->GrassBitmaps));
 
                 v2 offset = {
-                    width * RandomUnilateral(&series), height * RandomUnilateral(&series)
+                    
                 };
-                v2 grassCenter = center + offset;
+                v2 grassCenter = center + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
-                PushBitmap(renderGroup, bitmap, 1.0f, ToV3(grassCenter));
+                PushBitmap(renderGroup, bitmap, 4.0f, ToV3(grassCenter));
             }
         }
     }
@@ -466,7 +472,7 @@ ClearBitmap(loaded_bitmap *bmp)
 }
 
 internal loaded_bitmap
-MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, bool32 clearToZero=true, int32 alignX=0, int32 alignY=0)
+MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, int32 alignX, int32 alignY, bool32 clearToZero=true)
 {
     loaded_bitmap result;
 
@@ -486,6 +492,17 @@ MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, bool32 clearToZe
     if (clearToZero) {
         ClearBitmap(&result);
     }
+
+    return result;
+}
+
+internal loaded_bitmap
+MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, bool32 clearToZero=true)
+{
+    loaded_bitmap result = MakeEmptyBitmap(arena, width, height, 0, 0, clearToZero);
+
+    result.WidthOverHeight = SafeRatio_1((real32)result.Width, (real32)result.Height);;
+    result.AlignPercent = ToV2(0.5f, 0.5f);
 
     return result;
 }
@@ -729,10 +746,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->SwordDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/sword_demo.bmp", 12, 60);
         gameState->StairwayBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/Stairway2.bmp", 0, 0);
 
-        gameState->GrassBitmaps[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass001.bmp", 0,0);
-        gameState->GrassBitmaps[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass002.bmp", 0,0);
-        gameState->GroundBitmaps[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground001.bmp", 0, 0);
-        gameState->GroundBitmaps[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground002.bmp", 0, 0);
+        gameState->GrassBitmaps[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass001.bmp");
+        gameState->GrassBitmaps[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass002.bmp");
+        gameState->GroundBitmaps[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground001.bmp");
+        gameState->GroundBitmaps[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground002.bmp");
         
         gameState->HeroBitmaps[0].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_right.bmp", 60, 195);
         gameState->HeroBitmaps[1].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_up.bmp", 60, 185);
@@ -965,10 +982,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         // NOTE: make square for now
         int32 diffuseWidth = 128;
         int32 diffuseHeight = 128;
-        gameState->TestDiffuse = MakeEmptyBitmap(&gameState->WorldArena, diffuseWidth, diffuseHeight, false, diffuseWidth / 2, diffuseHeight / 2);
+        gameState->TestDiffuse = MakeEmptyBitmap(&gameState->WorldArena, diffuseWidth, diffuseHeight, diffuseWidth / 2, diffuseHeight / 2, false);
         MakeSphereDiffuseMap(&gameState->TestDiffuse);
         //RenderRectangle(&gameState->TestDiffuse, 0,0, (real32)gameState->TestDiffuse.Width, (real32)gameState->TestDiffuse.Height, V4(0.2f, 0.2f, 0.2f, 1.0f));
-        gameState->TestNormal = MakeEmptyBitmap(&gameState->WorldArena, gameState->TestDiffuse.Width, gameState->TestDiffuse.Height, false, diffuseWidth / 2, diffuseHeight / 2);
+        gameState->TestNormal = MakeEmptyBitmap(&gameState->WorldArena, gameState->TestDiffuse.Width, gameState->TestDiffuse.Height, diffuseWidth / 2, diffuseHeight / 2, false);
         MakeSphereNormalMap(&gameState->TestNormal, 0.0f);
 
         // MakePyramidNormalMap(&gameState->TestNormal, 0.0f);
@@ -985,7 +1002,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
              groundBufferIndex++)
         {
             ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
-            buf->Bitmap = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight, false, groundBufferWidth / 2, groundBufferHeight / 2);
+            buf->Bitmap = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight, false);
             buf->P = NullPosition();
         }
         
@@ -1002,7 +1019,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             uint32 width = tranState->EnvMapWidth;
             uint32 height = tranState->EnvMapHeight;
             for (uint32 j=0; j < ArrayCount(map->LevelsOfDetails); j++) {
-                map->LevelsOfDetails[j] = MakeEmptyBitmap(&tranState->TransientArena, width, height, false, width / 2, height / 2);
+                map->LevelsOfDetails[j] = MakeEmptyBitmap(&tranState->TransientArena, width, height, false);
                 width >>= 1;
                 height >>= 1;
             }
@@ -1022,7 +1039,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
              groundBufferIndex++)
         {
             ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
-            buf->Bitmap = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight, true, groundBufferWidth / 2, groundBufferHeight / 2);
+            buf->Bitmap = MakeEmptyBitmap(&tranState->TransientArena, groundBufferWidth, groundBufferHeight, true);
             buf->P = NullPosition();
         }
         
@@ -1130,13 +1147,37 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     real32 pixelsToMeters = 1.0f / 32.0f;
 
     rectangle2 screenBounds = GetCameraRectangleAtTarget(renderGroup);
-    rectangle3 cameraBoundsInMeters = RectCenterDim(ToV3(screenBounds.Min), ToV3(screenBounds.Max));
+    rectangle3 cameraBoundsInMeters = RectCenterHalfDim(ToV3(0,0,0), ToV3(screenBounds.Max, 1));
+
+    v4 chunkColor = {1.0f,1.0f,0.0f, 1.0f};
+    for (uint32 groundBufferIndex=0;
+         groundBufferIndex < tranState->GroundBufferCount;
+         groundBufferIndex++)
+    {
+        ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
+        if (IsValid(buf->P)) {
+            loaded_bitmap *bmp = &buf->Bitmap;
+            v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
+
+            render_basis *basis = PushStruct(&tranState->TransientArena, render_basis);
+            renderGroup->DefaultBasis = basis;
+            basis->P = groundDelta;
+
+            if (groundDelta.z > -1 && groundDelta.z < 1) {
+#if 1
+            PushPieceRectOutline(renderGroup, ToV3(0,0,0), gameState->World->ChunkDimInMeters.xy, chunkColor);
+#endif
+
+            PushBitmap(renderGroup, bmp, 8.0f, ToV3(0,0,0));
+                
+            }
+
+        }
+    }
     
     {
         world_position minChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMinCorner(cameraBoundsInMeters));
         world_position maxChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMaxCorner(cameraBoundsInMeters));
-
-        v2 chunkDimPixels = 0.5f * (1.0f / pixelsToMeters) * gameState->World->ChunkDimInMeters.xy;
 
         for (int32 chunkZ=minChunkP.ChunkZ;
              chunkZ <= maxChunkP.ChunkZ;
@@ -1185,32 +1226,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                     if (furtherstBuffer)
                     {
-                        FillGroundChunk(tranState, gameState, furtherstBuffer, &chunkCenter);
+                        FillGroundChunk(tranState, gameState, furtherstBuffer, chunkCenter);
                     }
                 }
             }
-        }
-    }
-
-    v4 chunkColor = {1.0f,1.0f,0.0f, 1.0f};
-    for (uint32 groundBufferIndex=0;
-         groundBufferIndex < tranState->GroundBufferCount;
-         groundBufferIndex++)
-    {
-        ground_buffer *buf = tranState->GroundBuffers + groundBufferIndex;
-        if (IsValid(buf->P)) {
-            loaded_bitmap *bmp = &buf->Bitmap;
-            v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
-
-            render_basis *basis = PushStruct(&tranState->TransientArena, render_basis);
-            renderGroup->DefaultBasis = basis;
-            basis->P = groundDelta;
-
-#if 1
-            PushPieceRectOutline(renderGroup, ToV3(0,0,0), ToV2(3.0f, 3.0f), chunkColor);
-#endif
-            
-            PushBitmap(renderGroup, bmp, 1.0f, ToV3(0,0,0));
         }
     }
 
