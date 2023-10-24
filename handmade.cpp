@@ -1127,21 +1127,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     real32 pixelsToMeters = 1.0f / 32.0f;
 
     rectangle2 screenBounds = GetCameraRectangleAtTarget(renderGroup);
-
-    PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(screenBounds), ToV4(1.0f, 1.0f, 0, 0.0f));
-
-    /*
-    real32 screenWidthInMeters = buffer->Width * pixelsToMeters; // 34.0f
-    real32 screenHeightInMeters = buffer->Height * pixelsToMeters; // 18.0f
-    */
-
     rectangle3 cameraBoundsInMeters = RectCenterDim(ToV3(screenBounds.Min), ToV3(screenBounds.Max));
     
     {
         world_position minChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMinCorner(cameraBoundsInMeters));
         world_position maxChunkP = MapIntoChunkSpace(gameState->World, gameState->CameraPosition, GetMaxCorner(cameraBoundsInMeters));
 
-        v4 chunkColor = {1.0f,1.0f,0.0f,0.0f};
+        v4 chunkColor = {1.0f,1.0f,0.0f, 1.0f};
         v2 chunkDimPixels = 0.5f * (1.0f / pixelsToMeters) * gameState->World->ChunkDimInMeters.xy;
 
         for (int32 chunkZ=minChunkP.ChunkZ;
@@ -1215,7 +1207,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
 
     // TODO: fix meters
-    v3 simBoundsExpansion = ToV3(15.0f, 15.0f, 2.0f * gameState->TypicalFloorHeight);
+    v3 simBoundsExpansion = ToV3(8.0f, 8.0f, 2.0f * gameState->TypicalFloorHeight);
     rectangle3 simBounds = AddRadiusTo(cameraBoundsInMeters, simBoundsExpansion);
 
     temporary_memory simMemory = BeginTemporaryMemory(&tranState->TransientArena);
@@ -1223,7 +1215,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     sim_region *simRegion = BeginSim(&tranState->TransientArena, gameState, gameState->World, gameState->CameraPosition, simBounds, input->DtForFrame);
 
     v3 cameraPosition = Subtract(gameState->World, &gameState->CameraPosition, &simCenterP);
-    
+
+    PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(screenBounds), ToV4(0.2f, 0.0f, 0.2f, 1.0f));
+    PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(simRegion->Bounds).xy, ToV4(0.4f, 0.0f, 0.4f, 1.0f));
+    PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(simRegion->UpdatableBounds).xy, ToV4(1.0f, 0.0f, 1.0f, 1.0f));
     
     sim_entity *simEntity = simRegion->Entities;
     for (uint32 entityIndex = 0;
@@ -1314,7 +1309,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 PushBitmap(renderGroup, &heroBitmaps->Character, 3.0f, ToV3(0, 0, 0));
 
                 sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
-                PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 0));
+                PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 1.0f));
 
                 DrawHitpoints(renderGroup, simEntity);
             } break;
@@ -1387,7 +1382,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 for (uint32 volumeIndex=0; volumeIndex < simEntity->Collision->VolumeCount; volumeIndex++)
                 {
                     sim_entity_collision_volume *volume = simEntity->Collision->Volumes + volumeIndex;
-                    PushPieceRectOutline(renderGroup, volume->Offset - ToV3(0, 0, 0.5f * volume->Dim.z), volume->Dim.xy, ToV4(0,1,1,0));
+                    PushPieceRectOutline(renderGroup, volume->Offset - ToV3(0, 0, 0.5f * volume->Dim.z), volume->Dim.xy, ToV4(0.0f, 1.0f,1.0f, 1.0f));
                 }
             } break;
             }

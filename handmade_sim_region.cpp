@@ -192,8 +192,6 @@ AddEntity(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, low
     return dest;
 }
 
-
-
 internal sim_region*
 BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_position regionCenter, rectangle3 regionBounds, real32 dt)
 {
@@ -215,7 +213,7 @@ BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_posi
     simRegion->World = world;
     simRegion->Origin = regionCenter;
     simRegion->UpdatableBounds = AddRadiusTo(regionBounds, ToV3(simRegion->MaxEntityRadius, simRegion->MaxEntityRadius, 0.0f));
-    simRegion->Bounds = AddRadiusTo(simRegion->UpdatableBounds, ToV3(updateSafetyMargin, updateSafetyMargin, updateSafetyMarginZ));;
+    simRegion->Bounds = AddRadiusTo(simRegion->UpdatableBounds, ToV3(updateSafetyMargin, updateSafetyMargin, updateSafetyMarginZ));
 
     world_position minChunkP = MapIntoChunkSpace(simRegion->World, simRegion->Origin, GetMinCorner(simRegion->Bounds));
     world_position maxChunkP = MapIntoChunkSpace(simRegion->World, simRegion->Origin, GetMaxCorner(simRegion->Bounds));

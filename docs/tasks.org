@@ -1,4 +1,4 @@
-* to be done [2/590]
+* to be done [3/590]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -13,8 +13,19 @@
 Работа по удалению pixelsToMeters. Сейчас очень мало мест в которых
 оно вообще используется.
 
-** TODO Handmade Hero Day 110 - Unprojecting Screen Boundaries
+** DONE Handmade Hero Day 110 - Unprojecting Screen Boundaries
 - [[https://www.youtube.com/watch?v=s-eL7riOnwc]]
+
+Добавлен коцепт камеры, поправлены расчеты, так чтобы добиться
+указания "реальных" параметров для расстояния до монитора.
+
+Я сделал рефактор - разбил всю логику V2, V3, V4, rectangle2,
+rectangle3 на разные файлы + ToVX стандартизация. Думал добавить
+функции типа V2Zero но в итоге решил этого не делать - лучше писать
+явно нули, чтобы потом играться с параметрами.
+
+Есть баги с выбором сущностей для обновления. Почему они проивходят -
+пока что не понятно.
 
 ** TODO Handmade Hero Day 111 - Resolution-Independent Ground Chunks
 - [[https://www.youtube.com/watch?v=qDE7_6K2pyY]]
