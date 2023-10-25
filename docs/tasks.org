@@ -1,4 +1,4 @@
-* to be done [6/590]
+* to be done [7/590]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -64,8 +64,12 @@ overdraw (перерисовка) - эффективность рендера - 
 Добавлен простейщий механизм для сбора метрики по функцииям и вывод в
 output.
 
-** TODO Handmade Hero Day 114 - Preparing a Function for Optimization
+** DONE Handmade Hero Day 114 - Preparing a Function for Optimization
 - [[https://www.youtube.com/watch?v=_vkI9BedvKA]]
+
+Функция переписана чтобы не использовать v4. Все функции были заменены
+на простейшие операции, которые будут в последующем переписаны на
+SIMD.
 
 ** TODO Handmade Hero Day 115 - SIMD Basics
 - [[https://www.youtube.com/watch?v=YnnTb0AQgYM]]
