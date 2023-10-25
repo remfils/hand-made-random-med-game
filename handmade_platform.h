@@ -2,6 +2,10 @@
 #include <limits.h>
 #include <float.h>
 
+#if _MSC_VER
+#include <intrin.h>
+#endif
+
 #define internal static
 #define local_persist static
 #define global_variable static
@@ -34,6 +38,33 @@ typedef double real64;
 
 #if HANDMADE_SLOW
 #define Assert(expression) if (!(expression)) {*(int *)0 = 0;}
+
+enum
+{
+    DebugCounter_GameUpdateAndRender,
+    DebugCounter_RenderGroupToOutput,
+    DebugCounter_RenderRectangleSlowly,
+    DebugCounter_Slowly_TestPixel,
+    DebugCounter_Slowly_FillPixel,
+    // NOTE: MUST BE LAST
+    DebugCounter_Count
+};
+
+typedef struct debug_cycle_counter
+{
+    uint64 CycleCount;
+    uint32 HitCount;
+} debug_cycle_counter;
+
+extern struct game_memory *DebugGlobalMemory;
+
+#if _MSC_VER
+#define BEGIN_TIMED_BLOCK(ID) uint64 startCycleCount##ID = __rdtsc();
+#define END_TIMED_BLOCK(ID) DebugGlobalMemory->DebugCounters[DebugCounter_##ID].CycleCount += __rdtsc() - startCycleCount##ID; DebugGlobalMemory->DebugCounters[DebugCounter_##ID].HitCount++;
+#else
+#define BEGIN_TIMED_BLOCK(ID)
+#define END_TIMED_BLOCK(ID)
+#endif
 #else
 #define Assert(expression)
 #endif
@@ -152,6 +183,10 @@ struct game_memory
     debug_platform_free_file_memory *DEBUG_PlatformFreeFileMemory;
     debug_platform_read_entire_file *DEBUG_PlatformReadEntireFile;
     debug_platform_write_entire_file *DEBUG_PlatformWriteEntireFile;
+
+#if HANDMADE_SLOW
+    debug_cycle_counter DebugCounters[DebugCounter_Count];
+#endif
 };
 
 

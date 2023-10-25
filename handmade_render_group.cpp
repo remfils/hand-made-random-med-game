@@ -220,6 +220,8 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                       render_environment_map *top, render_environment_map *middle, render_environment_map *bottom,
                       real32 pixelsToMeters)
 {
+    BEGIN_TIMED_BLOCK(RenderRectangleSlowly);
+    
     // color.rgb *= color.a;
 
     int32 widthMax = drawBuffer->Width - 1;
@@ -274,6 +276,8 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
         
         for (int32 x = minX; x <= maxX; ++x)
         {
+            BEGIN_TIMED_BLOCK(Slowly_TestPixel);
+            
             v2 pixelP = V2i(x, y);
             v2 d = pixelP - origin;
 
@@ -291,6 +295,8 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                 && edge3 < 0
                 )
             {
+                BEGIN_TIMED_BLOCK(Slowly_FillPixel);
+                
                 v2 screenSpaceUV = {
                     (real32)x * invWidthMax, fixedCastY
                 };
@@ -398,11 +404,17 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                         | ((uint32)(blended.g + 0.5f) << 8)
                         | ((uint32)(blended.b + 0.5f) << 0)
                         );
+
+                END_TIMED_BLOCK(Slowly_FillPixel);
             }
             pixel++;
+
+            END_TIMED_BLOCK(Slowly_TestPixel);
         }
         row += drawBuffer->Pitch;
     }
+
+    END_TIMED_BLOCK(RenderRectangleSlowly);
 }
 
 internal void
@@ -820,6 +832,9 @@ GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenDim, render_en
 internal void
 RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 {
+    BEGIN_TIMED_BLOCK(RenderGroupToOutput);
+
+    
     real32 pixelsToMeters = 1.0f / renderGroup->MetersToPixels;// TODO: this WILL produce bug in ground
 
     v2 screenDim = V2i(outputTarget->Width, outputTarget->Height);
@@ -910,6 +925,8 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 
         }
     }
+
+    END_TIMED_BLOCK(RenderGroupToOutput);
 }
 
 inline v2

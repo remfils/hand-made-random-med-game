@@ -385,7 +385,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
     groundBuffer->P = chunkP;
     
     PushDefaultColorFill(renderGroup, ToV4(0,1,0,1));
-    #if 1
+    #if 0
 
     real32 width = gameState->World->ChunkDimInMeters.x;
     real32 height = gameState->World->ChunkDimInMeters.y;
@@ -693,8 +693,19 @@ MakeSphereDiffuseMap(loaded_bitmap *bitmap)
     }
 }
 
+#if HANDMADE_SLOW
+game_memory *DebugGlobalMemory;
+#endif
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
+
+    #if HANDMADE_SLOW
+    DebugGlobalMemory = memory;
+    #endif
+    
+    BEGIN_TIMED_BLOCK(GameUpdateAndRender);
+    
     Assert(sizeof(game_state) <= memory->PermanentStorageSize);
     
     game_state *gameState = (game_state *)memory->PermanentStorage;
@@ -1650,6 +1661,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     EndTemporaryMemory(renderMemory);
     CheckArena(&gameState->WorldArena);
     CheckArena(&tranState->TransientArena);
+
+    
+    END_TIMED_BLOCK(GameUpdateAndRender);
 }
 
 

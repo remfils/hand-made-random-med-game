@@ -18,14 +18,14 @@
  */
 #include <stdint.h>
 
-#include "handmade_platform.h"
-#include "handmade_platform.cpp"
-
 #include <malloc.h>
 #include <windows.h>
 #include <xinput.h>
 #include <dsound.h>
 #include <stdio.h>
+
+#include "handmade_platform.h"
+#include "handmade_platform.cpp"
 
 #include "win32_handmade.h"
 #include "remfils_tracker.cpp"
@@ -981,6 +981,34 @@ Win32SetEXERootPath(win32_state *winState)
     }
 }
 
+
+internal void
+HandleDebugCycleCounter(game_memory *memory)
+{
+#if HANDMADE_SLOW
+
+    OutputDebugStringA("DEBUG CYCLES\n");
+    
+    for (int32 debugIndex=0;
+         debugIndex < ArrayCount(memory->DebugCounters);
+         debugIndex++)
+    {
+        debug_cycle_counter *counter = memory->DebugCounters + debugIndex;
+
+        if (counter->HitCount > 0){
+            char buffer[256];
+            sprintf_s(buffer, 256, "\t%d: %I64u hits: %u\n", debugIndex, counter->CycleCount, counter->HitCount);
+
+            OutputDebugStringA(buffer);
+
+            counter->CycleCount = 0;
+            counter->HitCount = 0;
+        }
+    }
+#endif
+}
+
+
 int CALLBACK WinMain(
     HINSTANCE instance,
     HINSTANCE prevInstance,
@@ -1362,7 +1390,10 @@ int CALLBACK WinMain(
                 
                 if (game.UpdateAndRender)
                 {
+                    // TODO: clear 
                     game.UpdateAndRender(&thread, &gameMemory, &buf, newInput);
+
+                    HandleDebugCycleCounter(&gameMemory);
                 }
 
 
