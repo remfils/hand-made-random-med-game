@@ -159,7 +159,7 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
             intG = _mm_slli_epi32(intG, 8);
             intA = _mm_slli_epi32(intA, 24);
 
-            __m128i argb = _mm_or_epi32(_mm_or_epi32(_mm_or_epi32(_mm_or_epi32(intB, intR), intB), intG), intA);
+            __m128i argb = _mm_or_epi32(_mm_or_epi32(intB, intR), _mm_or_epi32(intG, intA));
             // is needed for alignment
             _mm_storeu_si128((__m128i *)pixel, argb);
             pixel += 4;
