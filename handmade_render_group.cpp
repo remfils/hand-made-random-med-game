@@ -1,3 +1,5 @@
+#define MM(a, i) ((float *)&a)[i]
+
 inline uint32
 GetUintColor(v4 color)
 {
@@ -80,39 +82,92 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
         maxY = drawBuffer->Height;
     }
 
+    // TODO: this is horrible
+    maxX = (int32)((real32)maxX / 4.0f) * 4 - 3;
+
     color.rgb *= color.a;
+
+    real32 val255 = 255.0f;
+    real32 inv255 = 1.0f / val255;
+    __m128 inv255_4x = _mm_set1_ps(inv255);
+    __m128 val255_4x = _mm_set1_ps(val255);
+
+    __m128 one_4x = _mm_set1_ps(1.0f);
+
+    __m128 colorR_4x = _mm_set1_ps(color.r);
+    __m128 colorG_4x = _mm_set1_ps(color.g);
+    __m128 colorB_4x = _mm_set1_ps(color.b);
+    __m128 colorA_4x = _mm_set1_ps(color.a);
+
+
+    BEGIN_TIMED_BLOCK(RenderRectangle);
+
+    __m128 zero_4x = _mm_set1_ps(0.0f);
     
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
     for (int y = minY; y < maxY; ++y)
     {
         uint32 *pixel = (uint32 *)row;
         
-        for (int x = minX; x < maxX; ++x)
+        for (int x = minX; x < maxX; x+=4)
         {
-            v4 destPixel = Unpack4x8(*pixel);
-            destPixel = SRGB255_ToLinear1(destPixel);
+            __m128 destR = zero_4x;
+            __m128 destG = zero_4x;
+            __m128 destB = zero_4x;
+            __m128 destA = zero_4x;
 
-            real32 inv_sa = (1.0f - color.a);
+            for (int p=0; p< 4; p++) {
+                MM(destR, p) = (real32)((*(pixel + p) >> 16) & 0xff);
+                MM(destG, p) = (real32)((*(pixel + p) >> 8) & 0xff);
+                MM(destB, p) = (real32)((*(pixel + p) >> 0) & 0xff);
+                MM(destA, p) = (real32)((*(pixel + p) >> 24) & 0xff);
+            }
 
-            v4 blended = {
-                (inv_sa * destPixel.r + color.r),
-                (inv_sa * destPixel.g + color.g),
-                (inv_sa * destPixel.b + color.b),
-                (color.a + destPixel.a - destPixel.a * color.a)
-            };
+            // destPixel = SRGB255_ToLinear1(destPixel);
+            
+            destR = _mm_mul_ps(destR, inv255_4x);
+            destR = _mm_mul_ps(destR, destR);
+            
+            destG = _mm_mul_ps(destG, inv255_4x);
+            destG = _mm_mul_ps(destG, destG);
+            
+            destB = _mm_mul_ps(destB, inv255_4x);
+            destB = _mm_mul_ps(destB, destB);
+            
+            destA = _mm_mul_ps(destA, inv255_4x);
 
-            blended = Linear_1_ToSRGB255(blended);
+            // real32 inv_sa = (1.0f - color.a);
+            __m128 inv_sa = _mm_sub_ps(one_4x, colorA_4x);
 
-            *pixel = (
-                      ((uint32)(blended.a + 0.5f) << 24)
-                      | ((uint32)(blended.r + 0.5f) << 16)
-                      | ((uint32)(blended.g + 0.5f) << 8)
-                      | ((uint32)(blended.b + 0.5f) << 0)
-                      );
-            pixel++;
+            destR = _mm_add_ps(_mm_mul_ps(inv_sa, destR), colorR_4x);
+            destG = _mm_add_ps(_mm_mul_ps(inv_sa, destG), colorG_4x);
+            destB = _mm_add_ps(_mm_mul_ps(inv_sa, destB), colorB_4x);
+            destA = _mm_add_ps(_mm_mul_ps(inv_sa, destA), colorA_4x);            
+
+            // blended = Linear_1_ToSRGB255(blended);
+            destR = _mm_mul_ps(_mm_sqrt_ps(destR), val255_4x);
+            destG = _mm_mul_ps(_mm_sqrt_ps(destG), val255_4x);
+            destB = _mm_mul_ps(_mm_sqrt_ps(destB), val255_4x);
+            destA = _mm_mul_ps(destA, val255_4x);
+
+            __m128i intR = _mm_cvtps_epi32(destR);
+            __m128i intB = _mm_cvtps_epi32(destB);
+            __m128i intG = _mm_cvtps_epi32(destG);
+            __m128i intA = _mm_cvtps_epi32(destA);
+
+            intR = _mm_slli_epi32(intR, 16);
+            intG = _mm_slli_epi32(intG, 8);
+            intA = _mm_slli_epi32(intA, 24);
+
+            __m128i argb = _mm_or_epi32(_mm_or_epi32(_mm_or_epi32(_mm_or_epi32(intB, intR), intB), intG), intA);
+            // is needed for alignment
+            _mm_storeu_si128((__m128i *)pixel, argb);
+            pixel += 4;
         }
         row += drawBuffer->Pitch;
     }
+
+    END_TIMED_BLOCK(RenderRectangle);
 }
 
 inline v4
@@ -496,8 +551,6 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
     
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
 
-#define MM(a, i) ((float *)&a)[i]
-
 
     BEGIN_TIMED_BLOCK(Slowly_TestPixel);
     for (int32 y = minY; y <= maxY; ++y)
@@ -691,9 +744,50 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
             destb = _mm_mul_ps(_mm_sqrt_ps(destb), val255_4x);
             desta = _mm_mul_ps(desta, val255_4x);
 
+            // output to frame buffer
+            // TODO: set rounding mode...
+            __m128i intB = _mm_cvtps_epi32(destb);
+            __m128i intR = _mm_cvtps_epi32(destr);
+            __m128i intG = _mm_cvtps_epi32(destg);
+            __m128i intA = _mm_cvtps_epi32(desta);
+            
+            intR = _mm_slli_epi32(intR, 16);
+            intG = _mm_slli_epi32(intG, 8);
+            intA = _mm_slli_epi32(intA, 24);
+            __m128i argb = _mm_or_epi32(_mm_or_epi32(_mm_or_epi32(_mm_or_epi32(intB, intR), intB), intG), intA);
+
+            _mm_storeu_si128((__m128i *)pixel, argb);
+            pixel += 4;
+
+            /*            
+#if 1
+            uint32 Rs[] = {0x50505050, 0x51515151, 0x52525252, 0x53535353};
+            uint32 Gs[] = {0x80808080, 0x81818181, 0x82828282, 0x83838383};
+            uint32 Bs[] = {0xB0B0B0B0, 0xB1B1B1B1, 0xB2B2B2B2, 0xB3B3B3B3};
+            uint32 As[] = {0xA0A0A0A0, 0xA1A1A1A1, 0xA2A2A2A2, 0xA3A3A3A3};
+            
+            destg = *(__m128 *)&Gs;
+            destb = *(__m128 *)&Bs;
+            desta = *(__m128 *)&As;
+            destr = *(__m128 *)&Rs;
+#endif
+
+            __m128i R1B1R0B0 = _mm_unpacklo_epi32(_mm_castps_si128(destb), _mm_castps_si128(destr));
+            __m128i R3B3R2B2 = _mm_unpackhi_epi32(_mm_castps_si128(destb), _mm_castps_si128(destr));
+            __m128i G1A1G0A0 = _mm_unpacklo_epi32(_mm_castps_si128(destg), _mm_castps_si128(desta));
+            __m128i G3A3G2A2 = _mm_unpackhi_epi32(_mm_castps_si128(destg), _mm_castps_si128(desta));
+
+            __m128i ARGB0 = _mm_unpacklo_epi32(R1B1R0B0, G1A1G0A0);
+            __m128i ARGB1 = _mm_unpackhi_epi32(R1B1R0B0, G1A1G0A0);
+            __m128i ARGB2 = _mm_unpacklo_epi32(R3B3R2B2, G3A3G2A2);
+            __m128i ARGB3 = _mm_unpackhi_epi32(R3B3R2B2, G3A3G2A2);
+            */
+
+            /*
             for (int32 pIndex = 0; pIndex<4; pIndex++)
             {
-                if (shouldFill[pIndex]) {
+                //if (shouldFill[pIndex])
+                {
                     *pixel = (
                               ((uint32)(MM(desta, pIndex) + 0.5f) << 24)
                               | ((uint32)(MM(destr, pIndex) + 0.5f) << 16)
@@ -704,6 +798,7 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
 
                 pixel++;
             }
+            */
         }
         row += drawBuffer->Pitch;
     }

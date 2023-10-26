@@ -47,6 +47,7 @@ enum
     DebugCounter_Slowly_TestPixel,
     DebugCounter_Slowly_FillPixel,
     DebugCounter_RenderRectangleHopefullyQuickly,
+    DebugCounter_RenderRectangle,
     // NOTE: MUST BE LAST
     DebugCounter_Count
 };

@@ -1,4 +1,4 @@
-* to be done [9/590]
+* to be done [10/590]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -106,8 +106,11 @@ https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-t
 работает игра работает достаточно быстро но может еще лучше. Уборка
 v2i из цикла сократило колво циклов на пиксель на 50, как у Кейси.
 
-** TODO Handmade Hero Day 117 - Packing Pixels for the Framebuffer
+** DONE Handmade Hero Day 117 - Packing Pixels for the Framebuffer
 - [[https://www.youtube.com/watch?v=90eSF6jLzvQ]]
+
+Сделана упаковка + показан вариант упаковки на дробных числах (этот
+путь закоменчен). Код сейчас отрабатывает без маски
 
 ** TODO Handmade Hero Day 118 - Wide Unpacking and Masking
 - [[https://www.youtube.com/watch?v=-_X0UYCGaVA]]
