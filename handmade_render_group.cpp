@@ -535,6 +535,7 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
     __m128 val255_4x = _mm_set1_ps(val255);
 
     __m128 one_4x = _mm_set1_ps(1.0f);
+    __m128 half_4x = _mm_set1_ps(0.5f);
     __m128 zero_4x = _mm_set1_ps(0.0f);
 
     __m128 colorR_4x =  _mm_set1_ps(color.r);
@@ -745,11 +746,10 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
             desta = _mm_mul_ps(desta, val255_4x);
 
             // output to frame buffer
-            // TODO: set rounding mode...
-            __m128i intB = _mm_cvtps_epi32(destb);
-            __m128i intR = _mm_cvtps_epi32(destr);
-            __m128i intG = _mm_cvtps_epi32(destg);
-            __m128i intA = _mm_cvtps_epi32(desta);
+            __m128i intB = _mm_cvttps_epi32(_mm_add_ps(destb, half_4x));
+            __m128i intR = _mm_cvttps_epi32(_mm_add_ps(destr, half_4x));
+            __m128i intG = _mm_cvttps_epi32(_mm_add_ps(destg, half_4x));
+            __m128i intA = _mm_cvttps_epi32(_mm_add_ps(desta, half_4x));
             
             intR = _mm_slli_epi32(intR, 16);
             intG = _mm_slli_epi32(intG, 8);
