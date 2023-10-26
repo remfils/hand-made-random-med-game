@@ -1179,7 +1179,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             PushPieceRectOutline(renderGroup, ToV3(0,0,0), gameState->World->ChunkDimInMeters.xy, chunkColor);
 #endif
 
+            #if 0
             PushBitmap(renderGroup, bmp, 8.0f, ToV3(0,0,0));
+            #endif
                 
             }
 

@@ -1,4 +1,4 @@
-* to be done [7/590]
+* to be done [8/590]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -71,8 +71,33 @@ output.
 на простейшие операции, которые будут в последующем переписаны на
 SIMD.
 
-** TODO Handmade Hero Day 115 - SIMD Basics
+** DONE Handmade Hero Day 115 - SIMD Basics
 - [[https://www.youtube.com/watch?v=YnnTb0AQgYM]]
+
+SOA vs AOS - Structure of arrays vs array of structures
+
+в си лучше создавать массивы структур но для SIMD нужны структуры массивов
+
+#+begin_src с++
+__m128 a = _mm_set_ps(1.0f, 2.0f, 3.0f, 4.0f);
+__m128 b = _mm_set_ps(10.0f, 20.0f, 30.0f, 40.0f);
+__m128 result = _mm_add_ps(a, b);
+#+end_src
+
+Итерация цикла пикселя разбита на три секции получение данных +
+операции + выгрузка данных. Итерация происходит по 4 пикселя (но очень
+плохо).
+
+что почитать по теме работы с дробными числами
+
+- Numerical Methods that Work (https://www.amazon.com/Numerical-Methods-that-Work-Spectrum/dp/0883854503)
+
+как смотреть инструкции
+intel intinsicts guide
+
+где смотреть производительность для стима - что можно использовать
+
+https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam
 
 ** TODO Handmade Hero Day 116 - Converting Math Operations to SIMD
 - [[https://www.youtube.com/watch?v=1CVmlnhgT3g]]
