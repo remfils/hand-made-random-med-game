@@ -384,7 +384,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 
     groundBuffer->P = chunkP;
     
-    PushDefaultColorFill(renderGroup, ToV4(0,1,0,1));
+    PushDefaultColorFill(renderGroup, ToV4(0,0.3f,0,1));
     #if 0
 
     real32 width = gameState->World->ChunkDimInMeters.x;
@@ -1179,7 +1179,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             PushPieceRectOutline(renderGroup, ToV3(0,0,0), gameState->World->ChunkDimInMeters.xy, chunkColor);
 #endif
 
-            #if 0
+            #if 1
             PushBitmap(renderGroup, bmp, 8.0f, ToV3(0,0,0));
             #endif
                 
@@ -1349,7 +1349,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     }
                 }
 
-                PushBitmap(renderGroup, &heroBitmaps->Character, 3.0f, ToV3(0, 0, 0));
+                PushBitmap(renderGroup, &heroBitmaps->Character, 5.0f, ToV3(0, 0, 0));
 
                 sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
                 PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 1.0f));

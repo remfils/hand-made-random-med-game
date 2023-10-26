@@ -474,57 +474,86 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
     v2 nXAxis = invXLengthSq * xAxis;
     v2 nYAxis = invYLengthSq * yAxis;
     real32 inv255 = 1.0f / 255.0f;
+    __m128 inv255_4x = _mm_set1_ps(inv255);
+    
     real32 val255 = 255.0f;
+    __m128 val255_4x = _mm_set1_ps(val255);
+
+    __m128 one_4x = _mm_set1_ps(1.0f);
+    __m128 zero_4x = _mm_set1_ps(0.0f);
+
+    __m128 colorR_4x =  _mm_set1_ps(color.r);
+    __m128 colorG_4x =  _mm_set1_ps(color.g);
+    __m128 colorB_4x =  _mm_set1_ps(color.b);
+    __m128 colorA_4x =  _mm_set1_ps(color.a);
+
+    __m128 originX_4x = _mm_set1_ps(origin.x);
+    __m128 originY_4x = _mm_set1_ps(origin.y);
+    __m128 nXAxisx_4x = _mm_set1_ps(nXAxis.x);
+    __m128 nXAxisy_4x = _mm_set1_ps(nXAxis.y);
+    __m128 nYAxisx_4x = _mm_set1_ps(nYAxis.x);
+    __m128 nYAxisy_4x = _mm_set1_ps(nYAxis.y);
     
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
+
+#define MM(a, i) ((float *)&a)[i]
+
+
+    BEGIN_TIMED_BLOCK(Slowly_TestPixel);
     for (int32 y = minY; y <= maxY; ++y)
     {
         uint32 *pixel = (uint32 *)row;
+        __m128 pixelPy = _mm_set1_ps((real32)y);
         
         for (int32 xI = minX; xI <= maxX; xI+=4)
         {
 
-            real32 texelAr[4];
-            real32 texelAg[4];
-            real32 texelAb[4];
-            real32 texelAa[4];
+            __m128 texelAr = zero_4x;
+            __m128 texelAg = zero_4x;
+            __m128 texelAb = zero_4x;
+            __m128 texelAa = zero_4x;
+            __m128 texelBr = zero_4x;
+            __m128 texelBg = zero_4x;
+            __m128 texelBb = zero_4x;
+            __m128 texelBa = zero_4x;
+            __m128 texelCr = zero_4x;
+            __m128 texelCg = zero_4x;
+            __m128 texelCb = zero_4x;
+            __m128 texelCa = zero_4x;
+            __m128 texelDr = zero_4x;
+            __m128 texelDg = zero_4x;
+            __m128 texelDb = zero_4x;
+            __m128 texelDa = zero_4x;
             
-            real32 texelBr[4];
-            real32 texelBg[4];
-            real32 texelBb[4];
-            real32 texelBa[4];
+            __m128 destr = zero_4x;
+            __m128 destg = zero_4x;
+            __m128 destb = zero_4x;
+            __m128 desta = zero_4x;
 
-            real32 texelCr[4];
-            real32 texelCg[4];
-            real32 texelCb[4];
-            real32 texelCa[4];
-
-            real32 texelDr[4];
-            real32 texelDg[4];
-            real32 texelDb[4];
-            real32 texelDa[4];
-
-            real32 destr[4];
-            real32 destg[4];
-            real32 destb[4];
-            real32 desta[4];
-
-            real32 fX[4];
-            real32 fY[4];
+            __m128 fX = zero_4x;
+            __m128 fY = zero_4x;
 
             bool32 shouldFill[4];
+
+            // NOTE: ORDER IS CORRECT
+            __m128 pixelPx = _mm_set_ps(
+                                        (real32)(xI + 3),
+                                        (real32)(xI + 2),
+                                        (real32)(xI + 1),
+                                        (real32)(xI + 0)
+                                        );
+
+            __m128 dx = _mm_sub_ps(pixelPx, originX_4x);
+            __m128 dy = _mm_sub_ps(pixelPy, originY_4x);
+
+            __m128 u_4x = _mm_add_ps(_mm_mul_ps(dx, nXAxisx_4x), _mm_mul_ps(dy, nXAxisy_4x));
+            __m128 v_4x = _mm_add_ps(_mm_mul_ps(dx, nYAxisx_4x), _mm_mul_ps(dy, nYAxisy_4x));
             
             for (int32 pIndex = 0; pIndex<4; pIndex++)
             {
-                v2 pixelP = V2i(xI + pIndex, y);
-                v2 d = pixelP - origin;
-
-                // TODO: perpinner
-                // TODO: simpler origin calcs
-            
-                real32 u = Inner(d, nXAxis);
-                real32 v = Inner(d, nYAxis);
-
+                real32 u = MM(u_4x, pIndex);
+                real32 v = MM(v_4x, pIndex);
+                
                 shouldFill[pIndex] = u >= 0.0f
                     && u < 1.0f
                     && v >= 0.0f
@@ -540,8 +569,8 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
                     int32 imgX = (int32)tX;
                     int32 imgY = (int32)tY;
 
-                    fX[pIndex] = tX - (real32)imgX;
-                    fY[pIndex] = tY - (real32)imgY;
+                    MM(fX, pIndex) = tX - (real32)imgX;
+                    MM(fY, pIndex) = tY - (real32)imgY;
 
                     // bilinear_sample texelSamples = BilinearSample(texture, imgX, imgY);
 
@@ -555,133 +584,130 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
                     // v4 texel = SRGBBilinearBlend(texelSamples, fX, fY);
 
                     // v4 texelA = Unpack4x8(sampleA);
-                    texelAr[pIndex] = (real32)((sampleA >> 16) & 0xff);
-                    texelAg[pIndex] = (real32)((sampleA >> 8) & 0xff);
-                    texelAb[pIndex] = (real32)((sampleA >> 0) & 0xff);
-                    texelAa[pIndex] = (real32)((sampleA >> 24) & 0xff);
+                    
+                    MM(texelAr, pIndex) = (real32)((sampleA >> 16) & 0xff);
+                    MM(texelAg,pIndex) = (real32)((sampleA >> 8) & 0xff);
+                    MM(texelAb,pIndex) = (real32)((sampleA >> 0) & 0xff);
+                    MM(texelAa,pIndex) = (real32)((sampleA >> 24) & 0xff);
                 
                     // v4 texelB = Unpack4x8(sampleB);
-                    texelBr[pIndex] = (real32)((sampleB >> 16) & 0xff);
-                    texelBg[pIndex] = (real32)((sampleB >> 8) & 0xff);
-                    texelBb[pIndex] = (real32)((sampleB >> 0) & 0xff);
-                    texelBa[pIndex] = (real32)((sampleB >> 24) & 0xff);
+                    MM(texelBr, pIndex) = (real32)((sampleB >> 16) & 0xff);
+                    MM(texelBg, pIndex) = (real32)((sampleB >> 8) & 0xff);
+                    MM(texelBb, pIndex) = (real32)((sampleB >> 0) & 0xff);
+                    MM(texelBa, pIndex) = (real32)((sampleB >> 24) & 0xff);
                 
                     // v4 texelC = Unpack4x8(sampleC);
-                    texelCr[pIndex] = (real32)((sampleC >> 16) & 0xff);
-                    texelCg[pIndex] = (real32)((sampleC >> 8) & 0xff);
-                    texelCb[pIndex] = (real32)((sampleC >> 0) & 0xff);
-                    texelCa[pIndex] = (real32)((sampleC >> 24) & 0xff);
-                
+                    MM(texelCr, pIndex) = (real32)((sampleC >> 16) & 0xff);
+                    MM(texelCg, pIndex) = (real32)((sampleC >> 8) & 0xff);
+                    MM(texelCb, pIndex) = (real32)((sampleC >> 0) & 0xff);
+                    MM(texelCa, pIndex) = (real32)((sampleC >> 24) & 0xff);
+                    
                     // v4 texelD = Unpack4x8(sampleD);
-                    texelDr[pIndex] = (real32)((sampleD >> 16) & 0xff);
-                    texelDg[pIndex] = (real32)((sampleD >> 8) & 0xff);
-                    texelDb[pIndex] = (real32)((sampleD >> 0) & 0xff);
-                    texelDa[pIndex] = (real32)((sampleD >> 24) & 0xff);
+                    MM(texelDr, pIndex) = (real32)((sampleD >> 16) & 0xff);
+                    MM(texelDg, pIndex) = (real32)((sampleD >> 8) & 0xff);
+                    MM(texelDb, pIndex) = (real32)((sampleD >> 0) & 0xff);
+                    MM(texelDa, pIndex) = (real32)((sampleD >> 24) & 0xff);
 
                     // v4 destPixel = Unpack4x8(*pixel);
-                    destr[pIndex] = (real32)((*(pixel + pIndex) >> 16) & 0xff);
-                    destg[pIndex] = (real32)((*(pixel + pIndex) >> 8) & 0xff);
-                    destb[pIndex] = (real32)((*(pixel + pIndex) >> 0) & 0xff);
-                    desta[pIndex] = (real32)((*(pixel + pIndex) >> 24) & 0xff);
+                    MM(destr, pIndex) = (real32)((*(pixel + pIndex) >> 16) & 0xff);
+                    MM(destg, pIndex) = (real32)((*(pixel + pIndex) >> 8) & 0xff);
+                    MM(destb, pIndex) = (real32)((*(pixel + pIndex) >> 0) & 0xff);
+                    MM(desta, pIndex) = (real32)((*(pixel + pIndex) >> 24) & 0xff);
                 }
             }
 
-            for (int32 pIndex = 0; pIndex<4; pIndex++)
-            {
-                if (shouldFill[pIndex])
-                {
-                    
-                    // texelA = SRGB255_ToLinear1(texelA);
-                    texelAr[pIndex] = Square(texelAr[pIndex] * inv255);
-                    texelAg[pIndex] = Square(texelAg[pIndex] * inv255);
-                    texelAb[pIndex] = Square(texelAb[pIndex] * inv255);
-                    texelAa[pIndex] = texelAa[pIndex] * inv255;
-                
-                    //texelB = SRGB255_ToLinear1(texelB);
-                    texelBr[pIndex] = Square(texelBr[pIndex] * inv255);
-                    texelBg[pIndex] = Square(texelBg[pIndex] * inv255);
-                    texelBb[pIndex] = Square(texelBb[pIndex] * inv255);
-                    texelBa[pIndex] = texelBa[pIndex] * inv255;
-                
-                    // texelC = SRGB255_ToLinear1(texelC);
-                    texelCr[pIndex] = Square(texelCr[pIndex] * inv255);
-                    texelCg[pIndex] = Square(texelCg[pIndex] * inv255);
-                    texelCb[pIndex] = Square(texelCb[pIndex] * inv255);
-                    texelCa[pIndex] = texelCa[pIndex] * inv255;
-                
-                    // texelD = SRGB255_ToLinear1(texelD);
-                    texelDr[pIndex] = Square(texelDr[pIndex] * inv255);
-                    texelDg[pIndex] = Square(texelDg[pIndex] * inv255);
-                    texelDb[pIndex] = Square(texelDb[pIndex] * inv255);
-                    texelDa[pIndex] = texelDa[pIndex] * inv255;
+            texelAr = _mm_mul_ps(texelAr, inv255_4x);
+            texelAr = _mm_mul_ps(texelAr, texelAr);
+            texelAg = _mm_mul_ps(texelAg, inv255_4x);
+            texelAg = _mm_mul_ps(texelAg, texelAg);
+            texelAb = _mm_mul_ps(texelAb, inv255_4x);
+            texelAb = _mm_mul_ps(texelAb, texelAb);
+            texelAa = _mm_mul_ps(texelAa, inv255_4x);
+            
+            texelBr = _mm_mul_ps(texelBr, inv255_4x);
+            texelBr = _mm_mul_ps(texelBr, texelBr);
+            texelBg = _mm_mul_ps(texelBg, inv255_4x);
+            texelBg = _mm_mul_ps(texelBg, texelBg);
+            texelBb = _mm_mul_ps(texelBb, inv255_4x);
+            texelBb = _mm_mul_ps(texelBb, texelBb);
+            texelBa = _mm_mul_ps(texelBa, inv255_4x);
+            
+            texelCr = _mm_mul_ps(texelCr, inv255_4x);
+            texelCr = _mm_mul_ps(texelCr, texelCr);
+            texelCg = _mm_mul_ps(texelCg, inv255_4x);
+            texelCg = _mm_mul_ps(texelCg, texelCg);
+            texelCb = _mm_mul_ps(texelCb, inv255_4x);
+            texelCb = _mm_mul_ps(texelCb, texelCb);
+            texelCa = _mm_mul_ps(texelCa, inv255_4x);
+            
+            texelDr = _mm_mul_ps(texelDr, inv255_4x);
+            texelDr = _mm_mul_ps(texelDr, texelDr);
+            texelDg = _mm_mul_ps(texelDg, inv255_4x);
+            texelDg = _mm_mul_ps(texelDg, texelDg);
+            texelDb = _mm_mul_ps(texelDb, inv255_4x);
+            texelDb = _mm_mul_ps(texelDb, texelDb);
+            texelDa = _mm_mul_ps(texelDa, inv255_4x);
 
-                    // v4 texel = Lerp(Lerp(texelA, fX, texelB), fY, Lerp(texelC, fX, texelD));
-                    real32 ifX = 1.0f - fX[pIndex];
-                    real32 ifY = 1.0f - fY[pIndex];
-                    real32 l_0 = ifY * ifX;
-                    real32 l_1 = ifY * fX[pIndex];
-                    real32 l_2 = fY[pIndex] * ifX;
-                    real32 l_3 = fY[pIndex] * fX[pIndex];
-                
-                    real32 texelr = l_0 * texelAr[pIndex] + l_1 * texelBr[pIndex] + l_2 * texelCr[pIndex] + l_3 * texelDr[pIndex];
-                    real32 texelg = l_0 * texelAg[pIndex] + l_1 * texelBg[pIndex] + l_2 * texelCg[pIndex] + l_3 * texelDg[pIndex];
-                    real32 texelb = l_0 * texelAb[pIndex] + l_1 * texelBb[pIndex] + l_2 * texelCb[pIndex] + l_3 * texelDb[pIndex];
-                    real32 texela = l_0 * texelAa[pIndex] + l_1 * texelBa[pIndex] + l_2 * texelCa[pIndex] + l_3 * texelDa[pIndex];
+            __m128 ifX = _mm_sub_ps(one_4x, fX);
+            __m128 ifY = _mm_sub_ps(one_4x, fY);
+            __m128 l_0 = _mm_mul_ps(ifX, ifY);
+            __m128 l_1 = _mm_mul_ps(ifY, fX);
+            __m128 l_2 = _mm_mul_ps(fY, ifX);
+            __m128 l_3 = _mm_mul_ps(fY, fX);
 
-                    texela = texela * color.a;
-                    texelr = texelr * color.r * texela;
-                    texelg = texelg * color.g * texela;
-                    texelb = texelb * color.b * texela;
+            // real32 texelr = l_0 * MM(texelAr, pIndex) + l_1 * MM(texelBr, pIndex) + l_2 * MM(texelCr, pIndex) + l_3 * MM(texelDr, pIndex);
+            __m128 texelr = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l_0, texelAr), _mm_mul_ps(l_1, texelBr)), _mm_mul_ps(l_2, texelCr)), _mm_mul_ps(l_3, texelDr));
+            __m128 texelg = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l_0, texelAg), _mm_mul_ps(l_1, texelBg)), _mm_mul_ps(l_2, texelCg)), _mm_mul_ps(l_3, texelDg));
+            __m128 texelb = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l_0, texelAb), _mm_mul_ps(l_1, texelBb)), _mm_mul_ps(l_2, texelCb)), _mm_mul_ps(l_3, texelDb));
+            __m128 texela = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l_0, texelAa), _mm_mul_ps(l_1, texelBa)), _mm_mul_ps(l_2, texelCa)), _mm_mul_ps(l_3, texelDa));
 
-                    /*
-                      texel.a = texel.a * color.a;
-                      texel.rgb = texel.rgb * texel.a;
+            texela = _mm_mul_ps(texela, colorA_4x);
+            texelr = _mm_mul_ps(_mm_mul_ps(texelr, colorR_4x), texela);
+            texelg = _mm_mul_ps(_mm_mul_ps(texelg, colorG_4x), texela);
+            texelb = _mm_mul_ps(_mm_mul_ps(texelb, colorB_4x), texela);
 
-                      texel.rgb = Hadamard(texel.rgb, color.rgb);
-                      texel.r = Clamp01(texel.r);
-                      texel.b = Clamp01(texel.b);
-                      texel.g = Clamp01(texel.g);
-                    */
+            __m128 inv_sa = _mm_sub_ps(one_4x, texela);
 
+            texela = _mm_min_ps(_mm_max_ps(texela, zero_4x), one_4x);
+            texelg = _mm_min_ps(_mm_max_ps(texelg, zero_4x), one_4x);
+            texelb = _mm_min_ps(_mm_max_ps(texelb, zero_4x), one_4x);
 
-                    // to liniar space
-                    destr[pIndex] = Square(destr[pIndex] * inv255);
-                    destg[pIndex] = Square(destg[pIndex] * inv255);
-                    destb[pIndex] = Square(destb[pIndex] * inv255);
-                    desta[pIndex] = desta[pIndex] * inv255;
+            destr = _mm_mul_ps(destr, inv255_4x);
+            destr = _mm_mul_ps(destr, destr);
+            destg = _mm_mul_ps(destg, inv255_4x);
+            destg = _mm_mul_ps(destg, destg);
+            destb = _mm_mul_ps(destb, inv255_4x);
+            destb = _mm_mul_ps(destb, destb);
+            desta = _mm_mul_ps(desta, inv255_4x);
+            desta = _mm_mul_ps(desta, desta);
+            
+            destr = _mm_add_ps(_mm_mul_ps(inv_sa, destr), texelr);
+            destg = _mm_add_ps(_mm_mul_ps(inv_sa, destg), texelg);
+            destb = _mm_add_ps(_mm_mul_ps(inv_sa, destb), texelb);
+            desta = _mm_add_ps(_mm_mul_ps(inv_sa, desta), texela);
 
-                    real32 inv_sa = (1.0f - texela);
-
-                    destr[pIndex] = (inv_sa * destr[pIndex] + texelr);
-                    destg[pIndex] = (inv_sa * destg[pIndex] + texelg);
-                    destb[pIndex] = (inv_sa * destb[pIndex] + texelb);
-                    desta[pIndex] = (inv_sa * desta[pIndex] + texela);
-
-                    // blended = Linear_1_ToSRGB255(blended);
-                    destr[pIndex] = SquareRoot(destr[pIndex]) * val255;
-                    destg[pIndex] = SquareRoot(destg[pIndex]) * val255;
-                    destb[pIndex] = SquareRoot(destb[pIndex]) * val255;
-                    desta[pIndex] = desta[pIndex] * val255;
-                }
-            }
+            destr = _mm_mul_ps(_mm_sqrt_ps(destr), val255_4x);
+            destg = _mm_mul_ps(_mm_sqrt_ps(destg), val255_4x);
+            destb = _mm_mul_ps(_mm_sqrt_ps(destb), val255_4x);
+            desta = _mm_mul_ps(desta, val255_4x);
 
             for (int32 pIndex = 0; pIndex<4; pIndex++)
             {
                 if (shouldFill[pIndex]) {
                     *pixel = (
-                              ((uint32)(desta[pIndex] + 0.5f) << 24)
-                              | ((uint32)(destr[pIndex] + 0.5f) << 16)
-                              | ((uint32)(destg[pIndex] + 0.5f) << 8)
-                              | ((uint32)(destb[pIndex] + 0.5f) << 0)
+                              ((uint32)(MM(desta, pIndex) + 0.5f) << 24)
+                              | ((uint32)(MM(destr, pIndex) + 0.5f) << 16)
+                              | ((uint32)(MM(destg, pIndex) + 0.5f) << 8)
+                              | ((uint32)(MM(destb, pIndex) + 0.5f) << 0)
                               );
                 }
 
                 pixel++;
             }
-
         }
         row += drawBuffer->Pitch;
     }
+    END_TIMED_BLOCK_COUNTED(Slowly_TestPixel, (maxX - minX) * (maxY - minY));
 
     END_TIMED_BLOCK(RenderRectangleHopefullyQuickly);
 }

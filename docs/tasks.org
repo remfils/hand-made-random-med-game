@@ -1,4 +1,4 @@
-* to be done [8/590]
+* to be done [9/590]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -99,8 +99,12 @@ intel intinsicts guide
 
 https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam
 
-** TODO Handmade Hero Day 116 - Converting Math Operations to SIMD
+** DONE Handmade Hero Day 116 - Converting Math Operations to SIMD
 - [[https://www.youtube.com/watch?v=1CVmlnhgT3g]]
+
+простое конвертирование матеметических операций в SIMD формат. В итоге
+работает игра работает достаточно быстро но может еще лучше. Уборка
+v2i из цикла сократило колво циклов на пиксель на 50, как у Кейси.
 
 ** TODO Handmade Hero Day 117 - Packing Pixels for the Framebuffer
 - [[https://www.youtube.com/watch?v=90eSF6jLzvQ]]

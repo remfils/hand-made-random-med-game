@@ -997,7 +997,7 @@ HandleDebugCycleCounter(game_memory *memory)
 
         if (counter->HitCount > 0){
             char buffer[256];
-            sprintf_s(buffer, 256, "\t%d: %I64u hits: %u\n", debugIndex, counter->CycleCount, counter->HitCount);
+            sprintf_s(buffer, 256, "\t%d: %I64u hits: %u, cycles per hit: %u\n", debugIndex, counter->CycleCount, counter->HitCount, counter->CycleCount / counter->HitCount);
 
             OutputDebugStringA(buffer);
 
