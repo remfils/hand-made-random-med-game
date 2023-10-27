@@ -1853,38 +1853,38 @@ v2i из цикла сократило колво циклов на пиксел
 
 ** TODO Handmade Hero Chat 020 - Assembly Analysis and Front-end Register Clears
 - [[https://www.youtube.com/watch?v=R5tBY9Zyw6o]]
-* done [60/73]
-** TODO Handmade Hero - Announcement Trailer
+* done [121/121]
+** DONE Handmade Hero - Announcement Trailer
 - [[yt:A2dxjOjWHxQ]]
 
-** TODO Intro to C on Windows - Day 1
+** DONE Intro to C on Windows - Day 1
 - [[yt:F3ntGDm6hOs]]
 
-** TODO Intro to C on Windows - Day 1 Q&A
+** DONE Intro to C on Windows - Day 1 Q&A
 - [[yt:I5fNrmQYeuI]]
 
-** TODO Intro to C on Windows - Day 2
+** DONE Intro to C on Windows - Day 2
 - [[yt:KF29ePTqWa4]]
 
-** TODO Intro to C on Windows - Day 2 Q&A
+** DONE Intro to C on Windows - Day 2 Q&A
 - [[yt:FVDEIXdGBYo]]
 
-** TODO Intro to C on Windows - Day 3
+** DONE Intro to C on Windows - Day 3
 - [[yt:T4CjOB0y9nI&t=1153s]]
 
-** TODO Intro to C on Windows - Day 3 Q&A
+** DONE Intro to C on Windows - Day 3 Q&A
 - [[yt:20LmZk1hakA&t=1015s]]
 
-** TODO Intro to C on Windows - Day 4
+** DONE Intro to C on Windows - Day 4
 - [[yt:0CB1mYS5wBc]]
 
-** TODO Intro to C on Windows - Day 4 Q&A
+** DONE Intro to C on Windows - Day 4 Q&A
 - [[yt:Bf3LiCd1O9c]]
 
-** TODO Intro to C on Windows - Day 5
+** DONE Intro to C on Windows - Day 5
 - [[yt:Pb19uCFU2EA]]
 
-** TODO Intro to C on Windows - Day 5 Q&A
+** DONE Intro to C on Windows - Day 5 Q&A
 - [[yt:rFA1SzRCRWc&t=9s]]
 
 ** DONE Handmade Hero Day 001 - Setting Up the Windows Build
@@ -1912,7 +1912,7 @@ set - показать все переменные среды
 По итогу есть структура проекта с парой батников, которые позволяют
 собирать проект
 
-** TODO Handmade Hero Day 001 - Q&A
+** DONE Handmade Hero Day 001 - Q&A
 - [[yt:uxbJo5DDpWY]]
 
 ** DONE Handmade Hero Day 002 - Opening a Win32 Window
@@ -1935,7 +1935,7 @@ set - показать все переменные среды
 - OutputDebugStringA("WM_ACTIVATEAPP\n"); - вывод сообщения в консоль
 - DefWindowProc(window, message, wParam, lParam)
 
-** TODO Handmade Hero Day 002 - Q&A
+** DONE Handmade Hero Day 002 - Q&A
 - [[yt:d003_D-9EnY]]
 
 ** DONE Handmade Hero Day 003 - Allocating a Backbuffer
