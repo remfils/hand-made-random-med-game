@@ -104,6 +104,7 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     BEGIN_TIMED_BLOCK(RenderRectangle);
 
     __m128 zero_4x = _mm_set1_ps(0.0f);
+    __m128i maskFF_4x = _mm_set1_epi32(0xff);
     
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
     for (int y = minY; y < maxY; ++y)
@@ -112,6 +113,7 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
         
         for (int x = minX; x < maxX; x+=4)
         {
+            #if 0
             __m128 destR = zero_4x;
             __m128 destG = zero_4x;
             __m128 destB = zero_4x;
@@ -123,6 +125,14 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
                 MM(destB, p) = (real32)((*(pixel + p) >> 0) & 0xff);
                 MM(destA, p) = (real32)((*(pixel + p) >> 24) & 0xff);
             }
+            #else
+
+            __m128i originalDest = _mm_loadu_si128((__m128i *)pixel);
+            __m128 destR = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 16), maskFF_4x));
+            __m128 destG = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 8), maskFF_4x));
+            __m128 destB = _mm_cvtepi32_ps(_mm_and_si128(originalDest, maskFF_4x));
+            __m128 destA = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 24), maskFF_4x));
+            #endif
 
             // destPixel = SRGB255_ToLinear1(destPixel);
             
@@ -558,8 +568,7 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     __m128i maskFF_4x = _mm_set1_epi32(0xff);
     
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
-
-
+  
     BEGIN_TIMED_BLOCK(Slowly_TestPixel);
     for (int32 y = minY; y <= maxY; ++y)
     {
@@ -583,7 +592,7 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
 
             // NOTE: ORDER IS CORRECT
     
-            __m128 u_4x = _mm_add_ps(_mm_mul_ps(pixelPx, nXAxisx_4x), );
+            __m128 u_4x = _mm_add_ps(_mm_mul_ps(pixelPx, nXAxisx_4x), _mm_mul_ps(pixelPy, nXAxisy_4x));
             __m128 v_4x = _mm_add_ps(_mm_mul_ps(pixelPx, nYAxisx_4x), _mm_mul_ps(pixelPy, nYAxisy_4x));
 
             __m128i writeMask =_mm_castps_si128(_mm_and_ps(

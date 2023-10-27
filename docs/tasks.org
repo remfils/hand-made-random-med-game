@@ -45,7 +45,7 @@
 - [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
 
 
-* to be done [11/561]
+* to be done [12/561]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -164,8 +164,12 @@ v2i из цикла сократило колво циклов на пиксел
 
 Сделана праспаковка - итоговая производительность отличная. Маска работает хорошо.
 
-** TODO Handmade Hero Day 119 - Counting Intrinsics
+** DONE Handmade Hero Day 119 - Counting Intrinsics
 - [[https://www.youtube.com/watch?v=NPDL1OENYio]]
+
+
+через #define делается подсчет SIMD инструкций и анализ, сколько
+циклов вообще должно проходить по чесному.
 
 ** TODO Handmade Hero Day 120 - Measuring Port Usage with IACA
 - [[https://www.youtube.com/watch?v=-c-0s6KiPSw]]
