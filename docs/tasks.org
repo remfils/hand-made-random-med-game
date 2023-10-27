@@ -1,4 +1,51 @@
-* to be done [11/590]
+* random
+** TODO Career Stories 1
+- [[https://www.youtube.com/watch?v=cywcRMdCKJA]]
+
+** TODO Career Stories 2
+- [[https://www.youtube.com/watch?v=zHKwrMc_6As]]
+
+** TODO Career Stories 3
+- [[https://www.youtube.com/watch?v=ccpbKE8j144]]
+
+** TODO Plots Illustrated - The Rise of Skywalker, Part 1
+- [[https://www.youtube.com/watch?v=mfx3nl_Q_jk]]
+
+** TODO Meow the Infinite - Timelapse 1
+- [[https://www.youtube.com/watch?v=LeWOJbDEvdQ]]
+
+** TODO Meow the Infinite - Timelapse 2
+- [[https://www.youtube.com/watch?v=NxvRA36KptU]]
+
+** TODO Photoshop Prime Pussify Script Demo
+- [[https://www.youtube.com/watch?v=3KP-kp1Z8jE]]
+
+** TODO Prepress Part 1 - RGB, Color Calibration, and CMY
+- [[https://www.youtube.com/watch?v=D7CBcFlR3Ms]]
+
+** TODO Prepress Part 2 - CMYK
+- [[https://www.youtube.com/watch?v=d1wGI-B4ljM&t=74s]]
+
+** TODO Prepress Part 3 - Interior
+- [[https://www.youtube.com/watch?v=5Em1DbCYAlw]]
+
+** TODO Prepress Part 4 - Cover
+- [[https://www.youtube.com/watch?v=oyiGBp8OAfw]]
+
+** TODO Prepress Part 5 - PDF Preview
+- [[https://www.youtube.com/watch?v=tXslsH79Uhk]]
+
+** TODO Prepress Part 6 - Dimensions and Bleed
+- [[https://www.youtube.com/watch?v=Kqqaa8s-XUI]]
+
+** TODO Prepress Part 7 - Selecting A Printer
+- [[https://www.youtube.com/watch?v=_liqf9uoLbA]]
+
+** TODO Prepress Rant - #PrintersDeserveCredit!!
+- [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
+
+
+* to be done [11/561]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -870,15 +917,6 @@ v2i из цикла сократило колво циклов на пиксел
 ** TODO Handmade Hero Day 351 - Optimizing Multithreaded Simulation Regions
 - [[https://www.youtube.com/watch?v=6mTkcOlaUUc]]
 
-** TODO Career Stories 1
-- [[https://www.youtube.com/watch?v=cywcRMdCKJA]]
-
-** TODO Career Stories 2
-- [[https://www.youtube.com/watch?v=zHKwrMc_6As]]
-
-** TODO Career Stories 3
-- [[https://www.youtube.com/watch?v=ccpbKE8j144]]
-
 ** TODO Handmade Hero Day 352 - Isolating the Camera Update Code
 - [[https://www.youtube.com/watch?v=m6yAMBpk7Bg]]
 
@@ -1500,9 +1538,6 @@ v2i из цикла сократило колво циклов на пиксел
 ** TODO Handmade Hero Day 534 - Heuristic Alpha Testing for Multi-Tile Import
 - [[https://www.youtube.com/watch?v=w5uW0yWSsng]]
 
-** TODO Anna Draws It Episode 1 - Aboleth, Behir, and Cloaker
-- [[https://www.youtube.com/watch?v=lI6-cCAR2yY]]
-
 ** TODO Handmade Hero Day 535 - Minor Art Update, Reenabling Particles, Glove Fixes
 - [[https://www.youtube.com/watch?v=Ba8W1dpqaRU]]
 
@@ -1692,32 +1727,11 @@ v2i из цикла сократило колво циклов на пиксел
 ** TODO Twitter and Visual Studio Rant
 - [[https://www.youtube.com/watch?v=GC-0tCy4P1U]]
 
-** TODO Meow the Infinite: Book One - Kickstarter Trailer
-- [[https://www.youtube.com/watch?v=F_qOTcnbWyo]]
-
-** TODO Meow the Infinite - Timelapse 1
-- [[https://www.youtube.com/watch?v=LeWOJbDEvdQ]]
-
 ** TODO Handmade Hero Day 592 - Capturing the Entire Lighting Data
 - [[https://www.youtube.com/watch?v=YTIz_eV_BsE&t=408s]]
 
-** TODO Plots Illustrated - The Rise of Skywalker, Part 1
-- [[https://www.youtube.com/watch?v=mfx3nl_Q_jk]]
-
 ** TODO Handmade Hero Day 593 - Debugging Lighting Validation
 - [[https://www.youtube.com/watch?v=uoVm_59w03o]]
-
-** TODO Meow the Infinite - Timelapse 2
-- [[https://www.youtube.com/watch?v=NxvRA36KptU]]
-
-** TODO Anna Draws It - 1935 Cookie Monster
-- [[https://www.youtube.com/watch?v=WE7XuZ1x4jw]]
-
-** TODO Anna Draws It - Kobold
-- [[https://www.youtube.com/watch?v=Lum_9mslDWE]]
-
-** TODO Photoshop Prime Pussify Script Demo
-- [[https://www.youtube.com/watch?v=3KP-kp1Z8jE]]
 
 ** TODO Handmade Hero Day 594 - Switching from Center-Radius to Min-Max
 - [[https://www.youtube.com/watch?v=TzoW0CjmPl8]]
@@ -1725,71 +1739,17 @@ v2i из цикла сократило колво циклов на пиксел
 ** TODO Handmade Hero Day 595 - Sketching Out A K-d Tree Loop
 - [[https://www.youtube.com/watch?v=3vWqM96zT-w]]
 
-** TODO Anna Draws It - Barbaracle
-- [[https://www.youtube.com/watch?v=UjBt2KEP6s4]]
-
-** TODO Anna Draws It - Fury
-- [[https://www.youtube.com/watch?v=IdvetkVBqt0]]
-
-** TODO Princesses - Timelapse 1 (Snow White)
-- [[https://www.youtube.com/watch?v=DrArb3IXdFM]]
-
-** TODO Prepress Part 1 - RGB, Color Calibration, and CMY
-- [[https://www.youtube.com/watch?v=D7CBcFlR3Ms]]
-
-** TODO Prepress Part 2 - CMYK
-- [[https://www.youtube.com/watch?v=d1wGI-B4ljM&t=74s]]
-
-** TODO Prepress Part 3 - Interior
-- [[https://www.youtube.com/watch?v=5Em1DbCYAlw]]
-
-** TODO Prepress Part 4 - Cover
-- [[https://www.youtube.com/watch?v=oyiGBp8OAfw]]
-
-** TODO Prepress Part 5 - PDF Preview
-- [[https://www.youtube.com/watch?v=tXslsH79Uhk]]
-
-** TODO Prepress Part 6 - Dimensions and Bleed
-- [[https://www.youtube.com/watch?v=Kqqaa8s-XUI]]
-
-** TODO Prepress Part 7 - Selecting A Printer
-- [[https://www.youtube.com/watch?v=_liqf9uoLbA]]
-
-** TODO Prepress Rant - #PrintersDeserveCredit!!
-- [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
-
 ** TODO Handmade Hero Day 596 - Fleshing Out Kd-Tree Traversal
 - [[https://www.youtube.com/watch?v=uD7bL5VUy0c]]
 
 ** TODO Handmade Hero Day 597 - Basic Kd-tree Construction
 - [[https://www.youtube.com/watch?v=OzoG0cuV5_A]]
 
-** TODO Princesses - Timelapse 2 (Cinderella)
-- [[https://www.youtube.com/watch?v=fIgqqyTEzFc]]
-
-** TODO Anna Draws It - Funghoul
-- [[https://www.youtube.com/watch?v=C87SIAjGqMQ]]
-
-** TODO Anna Draws It - Mind Flayer
-- [[https://www.youtube.com/watch?v=kb_2QT28XsM]]
-
 ** TODO Handmade Hero Day 598 - Exploring Voxel Partitions for Raycasting
 - [[https://www.youtube.com/watch?v=gHAH9h_WVyM]]
 
 ** TODO Handmade Hero Day 599 - Implementing the Grid Raycast Postamble
 - [[https://www.youtube.com/watch?v=HN5IP9q4pWE]]
-
-** TODO Anna Draws It - Bull Charger Demon
-- [[https://www.youtube.com/watch?v=q1y3IcjDVc0]]
-
-** TODO Anna Draws It - Kenku
-- [[https://www.youtube.com/watch?v=mBMZd0_cDYI]]
-
-** TODO Anna Draws It - Overweight Werewolf Trying a Kickflip
-- [[https://www.youtube.com/watch?v=J3JvvrEGiiI&t=38s]]
-
-** TODO Anna Draws It - Ashisogi Jizō
-- [[https://www.youtube.com/watch?v=faB6kZEN73U]]
 
 ** TODO Handmade Hero Day 600 - Better AABB Normal Derivation
 - [[https://www.youtube.com/watch?v=l05e2eBPREI]]
