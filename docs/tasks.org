@@ -45,7 +45,7 @@
 - [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
 
 
-* to be done [12/561]
+* to be done [13/561]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -171,8 +171,15 @@ v2i из цикла сократило колво циклов на пиксел
 через #define делается подсчет SIMD инструкций и анализ, сколько
 циклов вообще должно проходить по чесному.
 
-** TODO Handmade Hero Day 120 - Measuring Port Usage with IACA
+** DONE Handmade Hero Day 120 - Measuring Port Usage with IACA
 - [[https://www.youtube.com/watch?v=-c-0s6KiPSw]]
+
+Показано как можно мерить производительность инструментом от интела
+(эта программа больше не поддерживается интелом). Сделаны некоторые
+простые рефакторы (убраны лишние умножения) производительность сильно
+выросла.
+
+ВСЕГДА НУЖНО УЛУЧШАТЬ ПРОИЗВОДИТЕЛЬНОСТЬ С ВЫВОДОМ РЕЗУЛЬТАТОВ
 
 ** TODO Handmade Hero Day 121 - Rendering in Tiles (Marathon)
 - [[https://www.youtube.com/watch?v=kZlPYka1T0g]]
