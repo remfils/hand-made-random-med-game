@@ -722,9 +722,9 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 destb = _mm_add_ps(_mm_mul_ps(inv_sa, destb), texelb);
                 desta = _mm_add_ps(_mm_mul_ps(inv_sa, desta), texela);
 
-                destr = _mm_sqrt_ps(destr);
-                destg = _mm_sqrt_ps(destg);
-                destb = _mm_sqrt_ps(destb);
+                destr = _mm_mul_ps(destr, _mm_rsqrt_ps(destr));
+                destg = _mm_mul_ps(destg, _mm_rsqrt_ps(destg));
+                destb = _mm_mul_ps(destb, _mm_rsqrt_ps(destb));
                 desta = _mm_mul_ps(desta, val255_4x);
 
                 // output to frame buffer

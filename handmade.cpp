@@ -1005,7 +1005,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         uint32 groundBufferWidth = 256;
         uint32 groundBufferHeight = 256;
         // tranState->GroundBufferCount = 128;
-        tranState->GroundBufferCount = 64;
+        tranState->GroundBufferCount = 128;
         tranState->GroundBuffers = PushArray(&tranState->TransientArena, tranState->GroundBufferCount, ground_buffer);
         
         for (uint32 groundBufferIndex=0;
