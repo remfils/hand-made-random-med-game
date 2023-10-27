@@ -541,15 +541,19 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     v2 nYAxis = invYLengthSq * yAxis;
     real32 inv255 = 1.0f / 255.0f;
     __m128 inv255_4x = _mm_set1_ps(inv255);
+
+    __m128 inv255255_4x = _mm_set1_ps(inv255 * inv255);
     
     real32 val255 = 255.0f;
     __m128 val255_4x = _mm_set1_ps(val255);
+    __m128 val255255_4x  = _mm_set1_ps(val255 * val255);
 
     __m128 zero_4x = _mm_set1_ps(0.0f);
     __m128 half_4x = _mm_set1_ps(0.5f);
     __m128 one_4x = _mm_set1_ps(1.0f);
     __m128 four_4x = _mm_set1_ps(4.0f);
 
+    // color is multiplied by inversion to normalize after bilinear blend
     __m128 colorR_4x =  _mm_set1_ps(color.r);
     __m128 colorG_4x =  _mm_set1_ps(color.g);
     __m128 colorB_4x =  _mm_set1_ps(color.b);
@@ -664,37 +668,21 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 __m128 destb = _mm_cvtepi32_ps(_mm_and_si128(originalDest, maskFF_4x));
                 __m128 desta = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 24), maskFF_4x));
 
-                texelAr = _mm_mul_ps(texelAr, inv255_4x);
                 texelAr = _mm_mul_ps(texelAr, texelAr);
-                texelAg = _mm_mul_ps(texelAg, inv255_4x);
                 texelAg = _mm_mul_ps(texelAg, texelAg);
-                texelAb = _mm_mul_ps(texelAb, inv255_4x);
                 texelAb = _mm_mul_ps(texelAb, texelAb);
-                texelAa = _mm_mul_ps(texelAa, inv255_4x);
             
-                texelBr = _mm_mul_ps(texelBr, inv255_4x);
                 texelBr = _mm_mul_ps(texelBr, texelBr);
-                texelBg = _mm_mul_ps(texelBg, inv255_4x);
                 texelBg = _mm_mul_ps(texelBg, texelBg);
-                texelBb = _mm_mul_ps(texelBb, inv255_4x);
                 texelBb = _mm_mul_ps(texelBb, texelBb);
-                texelBa = _mm_mul_ps(texelBa, inv255_4x);
             
-                texelCr = _mm_mul_ps(texelCr, inv255_4x);
                 texelCr = _mm_mul_ps(texelCr, texelCr);
-                texelCg = _mm_mul_ps(texelCg, inv255_4x);
                 texelCg = _mm_mul_ps(texelCg, texelCg);
-                texelCb = _mm_mul_ps(texelCb, inv255_4x);
                 texelCb = _mm_mul_ps(texelCb, texelCb);
-                texelCa = _mm_mul_ps(texelCa, inv255_4x);
             
-                texelDr = _mm_mul_ps(texelDr, inv255_4x);
                 texelDr = _mm_mul_ps(texelDr, texelDr);
-                texelDg = _mm_mul_ps(texelDg, inv255_4x);
                 texelDg = _mm_mul_ps(texelDg, texelDg);
-                texelDb = _mm_mul_ps(texelDb, inv255_4x);
                 texelDb = _mm_mul_ps(texelDb, texelDb);
-                texelDa = _mm_mul_ps(texelDa, inv255_4x);
 
                 __m128 ifX = _mm_sub_ps(one_4x, fX);
                 __m128 ifY = _mm_sub_ps(one_4x, fY);
@@ -709,34 +697,31 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 __m128 texelb = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l_0, texelAb), _mm_mul_ps(l_1, texelBb)), _mm_mul_ps(l_2, texelCb)), _mm_mul_ps(l_3, texelDb));
                 __m128 texela = _mm_add_ps(_mm_add_ps(_mm_add_ps(_mm_mul_ps(l_0, texelAa), _mm_mul_ps(l_1, texelBa)), _mm_mul_ps(l_2, texelCa)), _mm_mul_ps(l_3, texelDa));
 
-                texela = _mm_mul_ps(texela, colorA_4x);
+                // NOTE(vlad): colorA_4x was multiplied by texel alpha
+                texela = _mm_mul_ps(_mm_mul_ps(texela, colorA_4x), inv255_4x);
                 texelr = _mm_mul_ps(_mm_mul_ps(texelr, colorR_4x), texela);
                 texelg = _mm_mul_ps(_mm_mul_ps(texelg, colorG_4x), texela);
                 texelb = _mm_mul_ps(_mm_mul_ps(texelb, colorB_4x), texela);
 
-                __m128 inv_sa = _mm_sub_ps(one_4x, texela);
+                texela = _mm_min_ps(_mm_max_ps(texela, zero_4x), val255255_4x);
+                texelg = _mm_min_ps(_mm_max_ps(texelg, zero_4x), val255255_4x);
+                texelb = _mm_min_ps(_mm_max_ps(texelb, zero_4x), val255255_4x);
 
-                texela = _mm_min_ps(_mm_max_ps(texela, zero_4x), one_4x);
-                texelg = _mm_min_ps(_mm_max_ps(texelg, zero_4x), one_4x);
-                texelb = _mm_min_ps(_mm_max_ps(texelb, zero_4x), one_4x);
-
-                destr = _mm_mul_ps(destr, inv255_4x);
                 destr = _mm_mul_ps(destr, destr);
-                destg = _mm_mul_ps(destg, inv255_4x);
                 destg = _mm_mul_ps(destg, destg);
-                destb = _mm_mul_ps(destb, inv255_4x);
                 destb = _mm_mul_ps(destb, destb);
                 desta = _mm_mul_ps(desta, inv255_4x);
-                desta = _mm_mul_ps(desta, desta);
             
+                __m128 inv_sa = _mm_sub_ps(one_4x, texela);
+
                 destr = _mm_add_ps(_mm_mul_ps(inv_sa, destr), texelr);
                 destg = _mm_add_ps(_mm_mul_ps(inv_sa, destg), texelg);
                 destb = _mm_add_ps(_mm_mul_ps(inv_sa, destb), texelb);
                 desta = _mm_add_ps(_mm_mul_ps(inv_sa, desta), texela);
 
-                destr = _mm_mul_ps(_mm_sqrt_ps(destr), val255_4x);
-                destg = _mm_mul_ps(_mm_sqrt_ps(destg), val255_4x);
-                destb = _mm_mul_ps(_mm_sqrt_ps(destb), val255_4x);
+                destr = _mm_sqrt_ps(destr);
+                destg = _mm_sqrt_ps(destg);
+                destb = _mm_sqrt_ps(destb);
                 desta = _mm_mul_ps(desta, val255_4x);
 
                 // output to frame buffer
