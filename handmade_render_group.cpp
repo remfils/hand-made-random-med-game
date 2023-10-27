@@ -474,7 +474,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 }
 
 internal void
-RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture)
+RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture)
 {
     BEGIN_TIMED_BLOCK(RenderRectangleHopefullyQuickly);
     
@@ -535,9 +535,10 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
     real32 val255 = 255.0f;
     __m128 val255_4x = _mm_set1_ps(val255);
 
-    __m128 one_4x = _mm_set1_ps(1.0f);
-    __m128 half_4x = _mm_set1_ps(0.5f);
     __m128 zero_4x = _mm_set1_ps(0.0f);
+    __m128 half_4x = _mm_set1_ps(0.5f);
+    __m128 one_4x = _mm_set1_ps(1.0f);
+    __m128 four_4x = _mm_set1_ps(4.0f);
 
     __m128 colorR_4x =  _mm_set1_ps(color.r);
     __m128 colorG_4x =  _mm_set1_ps(color.g);
@@ -563,25 +564,27 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
     for (int32 y = minY; y <= maxY; ++y)
     {
         uint32 *pixel = (uint32 *)row;
+        
         __m128 pixelPy = _mm_set1_ps((real32)y);
+        pixelPy = _mm_sub_ps(pixelPy, originY_4x);
+        
+        __m128 pixelPx = _mm_set_ps(
+                                    (real32)(minX + 3),
+                                    (real32)(minX + 2),
+                                    (real32)(minX + 1),
+                                    (real32)(minX + 0)
+                                    );
+        pixelPx = _mm_sub_ps(pixelPx, originX_4x);
+        
         
         for (int32 xI = minX; xI <= maxX; xI+=4)
         {
             __m128i originalDest = _mm_loadu_si128((__m128i *)pixel);
 
             // NOTE: ORDER IS CORRECT
-            __m128 pixelPx = _mm_set_ps(
-                                        (real32)(xI + 3),
-                                        (real32)(xI + 2),
-                                        (real32)(xI + 1),
-                                        (real32)(xI + 0)
-                                        );
-
-            __m128 dx = _mm_sub_ps(pixelPx, originX_4x);
-            __m128 dy = _mm_sub_ps(pixelPy, originY_4x);
-
-            __m128 u_4x = _mm_add_ps(_mm_mul_ps(dx, nXAxisx_4x), _mm_mul_ps(dy, nXAxisy_4x));
-            __m128 v_4x = _mm_add_ps(_mm_mul_ps(dx, nYAxisx_4x), _mm_mul_ps(dy, nYAxisy_4x));
+    
+            __m128 u_4x = _mm_add_ps(_mm_mul_ps(pixelPx, nXAxisx_4x), );
+            __m128 v_4x = _mm_add_ps(_mm_mul_ps(pixelPx, nYAxisx_4x), _mm_mul_ps(pixelPy, nYAxisy_4x));
 
             __m128i writeMask =_mm_castps_si128(_mm_and_ps(
                 _mm_and_ps(_mm_cmpge_ps(u_4x, zero_4x), _mm_cmple_ps(u_4x, one_4x))
@@ -747,6 +750,7 @@ RenderRectangleHopefullyQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v
             }
 
             pixel += 4;
+            pixelPx = _mm_add_ps(pixelPx, four_4x);
         }
         row += drawBuffer->Pitch;
     }
@@ -1216,7 +1220,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
                                       );
 
                 #else
-                RenderRectangleHopefullyQuickly(
+                RenderRectangleQuickly(
                                                 outputTarget,
                                       basisResult.P, basisResult.Scale * ToV2(entry->Size.x,0), basisResult.Scale * ToV2(0, entry->Size.y), entry->Color,
                                       entry->Bitmap);
