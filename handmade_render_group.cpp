@@ -570,6 +570,9 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     __m128 height_4x = _mm_set1_ps((real32(texture->Height - 2)));
 
     __m128i maskFF_4x = _mm_set1_epi32(0xff);
+
+    void* textureMemory = texture->Memory;
+    uint32 texturePitch = texture->Pitch;
     
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
   
@@ -631,7 +634,7 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
 
                     // bilinear_sample texelSamples = BilinearSample(texture, imgX, imgY);
 
-                    uint8 *texelPtr = (uint8 *)texture->Memory + imgY * texture->Pitch + imgX * sizeof(uint32);
+                    uint8 *texelPtr = (uint8 *)textureMemory + imgY * texturePitch + imgX * sizeof(uint32);
 
                     MMi(sampleA, pIndex) = *(uint32 *)texelPtr;
                     MMi(sampleB, pIndex) = *(uint32 *)(texelPtr + sizeof(uint32));
