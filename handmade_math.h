@@ -53,6 +53,14 @@ struct rectangle2
     v2 Max;
 };
 
+struct rectangle2i
+{
+    int32 MinX;
+    int32 MinY;
+    int32 MaxX;
+    int32 MaxY;
+};
+
 struct rectangle3
 {
     v3 Min;

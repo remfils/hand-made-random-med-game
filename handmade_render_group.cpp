@@ -1,18 +1,6 @@
 #define MM(a, i) ((float *)&a)[i]
 #define MMi(a, i) ((int *)&a)[i]
 
-inline uint32
-GetUintColor(v4 color)
-{
-    uint32 uColor = (uint32)(
-                             (RoundReal32ToInt32(color.a * 255.0f) << 24) |
-                             (RoundReal32ToInt32(color.r * 255.0f) << 16) |
-                             (RoundReal32ToInt32(color.g * 255.0f) << 8) |
-                             (RoundReal32ToInt32(color.b * 255.0f) << 0)
-                             );
-    
-    return uColor;
-}
 
 inline v4
 SRGB255_ToLinear1(v4 color)
@@ -58,7 +46,7 @@ Unpack4x8(uint32 packed)
 
 
 internal void
-RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color)
+RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color, rectangle2i clipRect, bool32 even)
 {
     int32 minX = RoundReal32ToInt32(realMinX);
     int32 minY = RoundReal32ToInt32(realMinY);
@@ -84,7 +72,37 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     }
 
     // TODO: this is horrible
-    maxX = (int32)((real32)maxX / 4.0f) * 4 - 3;
+    rectangle2i fillRect = {minX, minY, maxX, maxY};
+    fillRect = Intersect(fillRect, clipRect);
+
+    if (!HasArea(fillRect)) {
+        return;
+    }
+
+    if (!even == (fillRect.MinY % 2)) {
+        fillRect.MinY += 1;
+    }
+
+    __m128i startupClipMask = _mm_set1_epi8(-1);
+    int32 fillWidth = fillRect.MaxX - fillRect.MinX;
+    int32 fillWidthAlign = fillWidth % 3;
+    if (fillWidthAlign > 0) {
+        int32 adjust = (4 - fillWidthAlign);
+        fillWidth += adjust;
+
+        switch (adjust) {
+        case 1: startupClipMask = _mm_slli_si128(startupClipMask, 1 * 4); break; // shift is in bytes 
+        case 2: startupClipMask = _mm_slli_si128(startupClipMask, 2 * 4); break; // shift is in bytes 
+        case 3: startupClipMask = _mm_slli_si128(startupClipMask, 3 * 4); break; // shift is in bytes 
+        }
+        
+    }
+    fillRect.MinX = fillRect.MaxX - fillWidth;
+
+    minX = fillRect.MinX;
+    minY = fillRect.MinY;
+    maxX = fillRect.MaxX;
+    maxY = fillRect.MaxY;
 
     color.rgb *= color.a;
 
@@ -100,6 +118,8 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     __m128 colorB_4x = _mm_set1_ps(color.b);
     __m128 colorA_4x = _mm_set1_ps(color.a);
 
+    uint32 rowPitch = 2 * drawBuffer->Pitch;
+
 
     BEGIN_TIMED_BLOCK(RenderRectangle);
 
@@ -107,32 +127,19 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     __m128i maskFF_4x = _mm_set1_epi32(0xff);
     
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
-    for (int y = minY; y < maxY; ++y)
+    for (int y = minY; y < maxY; y+=2)
     {
         uint32 *pixel = (uint32 *)row;
+
+        __m128i clipMask = startupClipMask;
         
         for (int x = minX; x < maxX; x+=4)
         {
-            #if 0
-            __m128 destR = zero_4x;
-            __m128 destG = zero_4x;
-            __m128 destB = zero_4x;
-            __m128 destA = zero_4x;
-
-            for (int p=0; p< 4; p++) {
-                MM(destR, p) = (real32)((*(pixel + p) >> 16) & 0xff);
-                MM(destG, p) = (real32)((*(pixel + p) >> 8) & 0xff);
-                MM(destB, p) = (real32)((*(pixel + p) >> 0) & 0xff);
-                MM(destA, p) = (real32)((*(pixel + p) >> 24) & 0xff);
-            }
-            #else
-
             __m128i originalDest = _mm_loadu_si128((__m128i *)pixel);
             __m128 destR = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 16), maskFF_4x));
             __m128 destG = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 8), maskFF_4x));
             __m128 destB = _mm_cvtepi32_ps(_mm_and_si128(originalDest, maskFF_4x));
             __m128 destA = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 24), maskFF_4x));
-            #endif
 
             // destPixel = SRGB255_ToLinear1(destPixel);
             
@@ -171,11 +178,18 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
             intA = _mm_slli_epi32(intA, 24);
 
             __m128i argb = _mm_or_epi32(_mm_or_epi32(intB, intR), _mm_or_epi32(intG, intA));
+
+            __m128i maskedOut = _mm_or_si128(
+                                             _mm_and_si128(clipMask, argb),
+                                             _mm_andnot_si128(clipMask, originalDest)
+                                             );
             // is needed for alignment
-            _mm_storeu_si128((__m128i *)pixel, argb);
+            _mm_storeu_si128((__m128i *)pixel, maskedOut);
             pixel += 4;
+
+            clipMask = _mm_set1_epi32(-1);
         }
-        row += drawBuffer->Pitch;
+        row += rowPitch;
     }
 
     END_TIMED_BLOCK(RenderRectangle);
@@ -484,18 +498,11 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 }
 
 internal void
-RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture)
+RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture, rectangle2i clipRect, bool32 even)
 {
     BEGIN_TIMED_BLOCK(RenderRectangleHopefullyQuickly);
     
     // color.rgb *= color.a;
-
-    // TODO: stop doing this
-    int32 widthMax = drawBuffer->Width - 3;
-    int32 heightMax = drawBuffer->Height - 3;
-
-    real32 invWidthMax = 1.0f / (real32)widthMax;
-    real32 invHeightMax = 1.0f / (real32)heightMax;
 
     real32 xAxisLen = Length(xAxis);
     real32 yAxisLen = Length(yAxis);
@@ -510,32 +517,53 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
 
     real32 originZ = 0.0f;
     real32 originY = (origin + 0.5f *xAxis + 0.5f * yAxis).y;
-    real32 fixedCastY = invHeightMax * originY; // TODO: specify this as param separatly
     
-    int32 minX = widthMax;
-    int32 maxX = 0;
-    int32 minY = heightMax;
-    int32 maxY = 0;
+    rectangle2i fillRect = InvertedInfinityRectangle();
 
     v2 p[4] = {origin, origin + xAxis, origin + xAxis + yAxis, origin + yAxis};
     for (int pIndex=0; pIndex < ArrayCount(p); pIndex++)
     {
         v2 testP = p[pIndex];
         int32 floorX = FloorReal32ToInt32(testP.x);
-        int32 ceilX = CeilReal32ToInt32(testP.x);
+        int32 ceilX = CeilReal32ToInt32(testP.x) + 1;
         int32 floorY = FloorReal32ToInt32(testP.y);
-        int32 ceilY = CeilReal32ToInt32(testP.y);
+        int32 ceilY = CeilReal32ToInt32(testP.y) + 1;
 
-        if (minY > floorY) { minY = floorY; }
-        if (minX > floorX) { minX = floorX; }
-        if (maxX < ceilX) { maxX = ceilX; }
-        if (maxY < ceilY) { maxY = ceilY; }
+        if (fillRect.MinX > floorX) { fillRect.MinX = floorX; }
+        if (fillRect.MaxX < ceilX) { fillRect.MaxX = ceilX; }
+        if (fillRect.MinY > floorY) { fillRect.MinY = floorY; }
+        if (fillRect.MaxY < ceilY) { fillRect.MaxY = ceilY; }
     }
 
-    if (minX < 0) minX = 0;
-    if (minY < 0) minY = 0;
-    if (maxX > widthMax) maxX = widthMax;
-    if (maxY > heightMax) maxY = heightMax;
+    fillRect = Intersect(fillRect, clipRect);
+
+    if (!even == (fillRect.MinY % 2)) {
+        fillRect.MinY += 1;
+    }
+
+    __m128i startupClipMask = _mm_set1_epi8(-1);
+    int32 fillWidth = fillRect.MaxX - fillRect.MinX;
+    int32 fillWidthAlign = fillWidth % 3;
+    if (fillWidthAlign > 0) {
+        int32 adjust = (4 - fillWidthAlign);
+        fillWidth += adjust;
+
+        switch (adjust) {
+        case 1: startupClipMask = _mm_slli_si128(startupClipMask, 1 * 4); break; // shift is in bytes 
+        case 2: startupClipMask = _mm_slli_si128(startupClipMask, 2 * 4); break; // shift is in bytes 
+        case 3: startupClipMask = _mm_slli_si128(startupClipMask, 3 * 4); break; // shift is in bytes 
+        }
+        
+    }
+    fillRect.MinX = fillRect.MaxX - fillWidth;
+
+    if (!HasArea(fillRect))
+    {
+        return;
+    }
+    
+
+    uint32 rowPitch = 2 * drawBuffer->Pitch;
 
     v2 nXAxis = invXLengthSq * xAxis;
     v2 nYAxis = invYLengthSq * yAxis;
@@ -559,8 +587,6 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     __m128 colorB_4x =  _mm_set1_ps(color.b);
     __m128 colorA_4x =  _mm_set1_ps(color.a);
 
-    __m128 originX_4x = _mm_set1_ps(origin.x);
-    __m128 originY_4x = _mm_set1_ps(origin.y);
     __m128 nXAxisx_4x = _mm_set1_ps(nXAxis.x);
     __m128 nXAxisy_4x = _mm_set1_ps(nXAxis.y);
     __m128 nYAxisx_4x = _mm_set1_ps(nYAxis.x);
@@ -574,26 +600,34 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     void* textureMemory = texture->Memory;
     uint32 texturePitch = texture->Pitch;
     
-    uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
-  
+    __m128i sizeuint32_x4  = _mm_set1_epi32(sizeof(uint32));
+    __m128i texturePitch_x4 = _mm_set1_epi32(texturePitch);
+
+    uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * fillRect.MinY + fillRect.MinX * BITMAP_BYTES_PER_PIXEL;
+
+    __m128 pixelPxRow = _mm_setr_ps(
+                                     (real32)(fillRect.MinX + 0 - origin.x),
+                                     (real32)(fillRect.MinX + 1 - origin.x),
+                                     (real32)(fillRect.MinX + 2 - origin.x),
+                                     (real32)(fillRect.MinX + 3 - origin.x)
+                                    );
+
+    int32 minX = fillRect.MinX;
+    int32 minY = fillRect.MinY;
+    int32 maxX = fillRect.MaxX;
+    int32 maxY = fillRect.MaxY;
+
     BEGIN_TIMED_BLOCK(Slowly_TestPixel);
-    for (int32 y = minY; y <= maxY; ++y)
+    for (int32 y = minY; y < maxY; y+=2)
     {
         uint32 *pixel = (uint32 *)row;
         
-        __m128 pixelPy = _mm_set1_ps((real32)y);
-        pixelPy = _mm_sub_ps(pixelPy, originY_4x);
+        __m128 pixelPy = _mm_set1_ps((real32)y - origin.y);
+        __m128 pixelPx = pixelPxRow;
+
+        __m128i clipMask = startupClipMask;
         
-        __m128 pixelPx = _mm_set_ps(
-                                    (real32)(minX + 3),
-                                    (real32)(minX + 2),
-                                    (real32)(minX + 1),
-                                    (real32)(minX + 0)
-                                    );
-        pixelPx = _mm_sub_ps(pixelPx, originX_4x);
-        
-        
-        for (int32 xI = minX; xI <= maxX; xI+=4)
+        for (int32 xI = minX; xI < maxX; xI+=4)
         {
             __m128i originalDest = _mm_loadu_si128((__m128i *)pixel);
 
@@ -607,6 +641,8 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 ,
                 _mm_and_ps(_mm_cmpge_ps(v_4x, zero_4x), _mm_cmple_ps(v_4x, one_4x))
             ));
+
+            writeMask = _mm_and_si128(writeMask, clipMask);
 
             if (_mm_movemask_epi8(writeMask))
             {
@@ -622,25 +658,42 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 __m128 fX = _mm_sub_ps(tx_4x, _mm_cvtepi32_ps(imgX_4x));
                 __m128 fY = _mm_sub_ps(ty_4x, _mm_cvtepi32_ps(imgY_4x));
 
-                __m128i sampleA;
-                __m128i sampleB;
-                __m128i sampleC;
-                __m128i sampleD;
+                imgX_4x = _mm_slli_epi32(imgX_4x, 2); // NOTE: add sizeof(uint32)
+                imgY_4x = _mm_mullo_epi32(imgY_4x, texturePitch_x4); // NOTE: we ignore high bits
+                __m128i fetch_4x = _mm_add_epi32(imgX_4x, imgY_4x);
 
-                for (int32 pIndex = 0; pIndex<4; pIndex++)
-                {
-                    int32 imgX = MMi(imgX_4x, pIndex);
-                    int32 imgY = MMi(imgY_4x, pIndex);
+                // int32 imgX = MMi(imgX_4x, pIndex);
+                // int32 imgY = MMi(imgY_4x, pIndex);
+                int32 fetch0 = MMi(fetch_4x, 0);
+                int32 fetch1 = MMi(fetch_4x, 1);
+                int32 fetch2 = MMi(fetch_4x, 2);
+                int32 fetch3 = MMi(fetch_4x, 3);
 
-                    // bilinear_sample texelSamples = BilinearSample(texture, imgX, imgY);
+                uint8 *texelPtr0 = (uint8 *)textureMemory + fetch0;
+                uint8 *texelPtr1 = (uint8 *)textureMemory + fetch1;
+                uint8 *texelPtr2 = (uint8 *)textureMemory + fetch2;
+                uint8 *texelPtr3 = (uint8 *)textureMemory + fetch3;
 
-                    uint8 *texelPtr = (uint8 *)textureMemory + imgY * texturePitch + imgX * sizeof(uint32);
+                __m128i sampleA = _mm_setr_epi32(*(uint32 *)texelPtr0,
+                                                 *(uint32 *)texelPtr1,
+                                                 *(uint32 *)texelPtr2,
+                                                 *(uint32 *)texelPtr3);
+                
+                __m128i sampleB = _mm_setr_epi32(*(uint32 *)(texelPtr0 + sizeof(uint32)),
+                                                 *(uint32 *)(texelPtr1 + sizeof(uint32)),
+                                                 *(uint32 *)(texelPtr2 + sizeof(uint32)),
+                                                 *(uint32 *)(texelPtr3 + sizeof(uint32)));
+                
+                __m128i sampleC = _mm_setr_epi32(*(uint32 *)(texelPtr0 + texturePitch),
+                                                 *(uint32 *)(texelPtr1 + texturePitch),
+                                                 *(uint32 *)(texelPtr2 + texturePitch),
+                                                 *(uint32 *)(texelPtr3 + texturePitch));
+                
+                __m128i sampleD = _mm_setr_epi32(*(uint32 *)(texelPtr0 + texturePitch + sizeof(uint32)),
+                                                 *(uint32 *)(texelPtr1 + texturePitch + sizeof(uint32)),
+                                                 *(uint32 *)(texelPtr2 + texturePitch + sizeof(uint32)),
+                                                 *(uint32 *)(texelPtr3 + texturePitch + sizeof(uint32)));
 
-                    MMi(sampleA, pIndex) = *(uint32 *)texelPtr;
-                    MMi(sampleB, pIndex) = *(uint32 *)(texelPtr + sizeof(uint32));
-                    MMi(sampleC, pIndex) = *(uint32 *)(texelPtr + texture->Pitch);
-                    MMi(sampleD, pIndex) = *(uint32 *)(texelPtr + texture->Pitch + sizeof(uint32));
-                }
 
                 __m128 texelAr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(sampleA, 16), maskFF_4x));
                 __m128 texelAg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(sampleA, 8), maskFF_4x));
@@ -748,10 +801,12 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
 
             pixel += 4;
             pixelPx = _mm_add_ps(pixelPx, four_4x);
+
+            clipMask = _mm_set1_epi8(-1);
         }
-        row += drawBuffer->Pitch;
+        row += rowPitch;
     }
-    END_TIMED_BLOCK_COUNTED(Slowly_TestPixel, (maxX - minX) * (maxY - minY));
+    END_TIMED_BLOCK_COUNTED(Slowly_TestPixel, (maxX - minX) * (maxY - minY) / 2);
 
     END_TIMED_BLOCK(RenderRectangleHopefullyQuickly);
 }
@@ -921,14 +976,14 @@ RenderGradient(game_offscreen_buffer *buffer, int xOffset, int yOffset)
 internal void
 RenderSquareDot(loaded_bitmap *drawBuffer, real32 dotPositionX, real32 dotPositionY, real32 squareHalfWidth, v4 color)
 {
-    RenderRectangle(drawBuffer, dotPositionX - squareHalfWidth, dotPositionY - squareHalfWidth, dotPositionX + squareHalfWidth, dotPositionY + squareHalfWidth, color);
+    //RenderRectangle(drawBuffer, dotPositionX - squareHalfWidth, dotPositionY - squareHalfWidth, dotPositionX + squareHalfWidth, dotPositionY + squareHalfWidth, color);
 }
 
 void
 ClearRenderBuffer(loaded_bitmap *drawBuffer)
 {
     v4 bgColor = {0.0f, 0.0f, 0.0f, 0.0f};
-    RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
+    // RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
 }
 
 
@@ -1169,10 +1224,9 @@ GetTopLeftPointForEntityBasis(render_group *renderGroup, v2 screenDim, render_en
 }
 
 internal void
-RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
+RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i clipRect, bool32 even)
 {
     BEGIN_TIMED_BLOCK(RenderGroupToOutput);
-
     
     real32 pixelsToMeters = 1.0f / renderGroup->MetersToPixels;// TODO: this WILL produce bug in ground
 
@@ -1191,7 +1245,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
         case RenderEntryType_render_entry_clear: {
             render_entry_clear *entry = (render_entry_clear *) voidEntry;
 
-            RenderRectangle(outputTarget, 0, 0, (real32)outputTarget->Width, (real32)outputTarget->Height, entry->Color);
+            RenderRectangle(outputTarget, 0, 0, (real32)outputTarget->Width, (real32)outputTarget->Height, entry->Color, clipRect, even);
             
             baseAddress += sizeof(*entry);
         } break;
@@ -1220,7 +1274,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
                 RenderRectangleQuickly(
                                                 outputTarget,
                                       basisResult.P, basisResult.Scale * ToV2(entry->Size.x,0), basisResult.Scale * ToV2(0, entry->Size.y), entry->Color,
-                                      entry->Bitmap);
+                                                entry->Bitmap, clipRect, even);
                 #endif
             }
             #endif
@@ -1229,15 +1283,13 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
         } break;
         case RenderEntryType_render_entry_rectangle: {
             render_entry_rectangle *entry = (render_entry_rectangle *) voidEntry;
-            
 
             entity_basis_p_result basisResult = GetTopLeftPointForEntityBasis(renderGroup, screenDim, &entry->EntityBasis);
 
             if (basisResult.Valid) {
                 v2 center = basisResult.P;
-                RenderRectangle(outputTarget, center.x, center.y, center.x + basisResult.Scale * entry->Dim.x, center.y + basisResult.Scale * entry->Dim.y, entry->Color);
+                RenderRectangle(outputTarget, center.x, center.y, center.x + basisResult.Scale * entry->Dim.x, center.y + basisResult.Scale * entry->Dim.y, entry->Color, clipRect, even);
             }
-            
             baseAddress += sizeof(*entry);
         } break;
         case RenderEntryType_render_entry_screen_dot: {
@@ -1275,6 +1327,41 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
     }
 
     END_TIMED_BLOCK(RenderGroupToOutput);
+}
+
+internal void
+TiledRenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
+{
+    // TODO: fix this
+    int32 padd = 8;
+
+
+    int tileCountX = 5;
+    int tileCountY = 5;
+
+    // TODO: width rounding
+    // TODO: round to 4
+    int tileWidth = outputTarget->Width / tileCountX;
+    int tileHeight = outputTarget->Height / tileCountY;
+
+    for (int tileY =0;
+         tileY < tileCountY;
+         tileY++)
+    {
+        for (int tileX =0;
+             tileX < tileCountX;
+             tileX++)
+        {
+            rectangle2i clipRect;
+            clipRect.MinX = tileX * tileWidth + padd;
+            clipRect.MinY = tileY * tileHeight + padd;
+            clipRect.MaxX = tileX * tileWidth + tileWidth - padd;
+            clipRect.MaxY = tileY * tileHeight + tileHeight - padd;
+            
+            RenderGroup(outputTarget, renderGroup, clipRect, true);
+            RenderGroup(outputTarget, renderGroup, clipRect, false);
+        }
+    }
 }
 
 inline v2

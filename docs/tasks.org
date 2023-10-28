@@ -1,51 +1,4 @@
-* random
-** TODO Career Stories 1
-- [[https://www.youtube.com/watch?v=cywcRMdCKJA]]
-
-** TODO Career Stories 2
-- [[https://www.youtube.com/watch?v=zHKwrMc_6As]]
-
-** TODO Career Stories 3
-- [[https://www.youtube.com/watch?v=ccpbKE8j144]]
-
-** TODO Plots Illustrated - The Rise of Skywalker, Part 1
-- [[https://www.youtube.com/watch?v=mfx3nl_Q_jk]]
-
-** TODO Meow the Infinite - Timelapse 1
-- [[https://www.youtube.com/watch?v=LeWOJbDEvdQ]]
-
-** TODO Meow the Infinite - Timelapse 2
-- [[https://www.youtube.com/watch?v=NxvRA36KptU]]
-
-** TODO Photoshop Prime Pussify Script Demo
-- [[https://www.youtube.com/watch?v=3KP-kp1Z8jE]]
-
-** TODO Prepress Part 1 - RGB, Color Calibration, and CMY
-- [[https://www.youtube.com/watch?v=D7CBcFlR3Ms]]
-
-** TODO Prepress Part 2 - CMYK
-- [[https://www.youtube.com/watch?v=d1wGI-B4ljM&t=74s]]
-
-** TODO Prepress Part 3 - Interior
-- [[https://www.youtube.com/watch?v=5Em1DbCYAlw]]
-
-** TODO Prepress Part 4 - Cover
-- [[https://www.youtube.com/watch?v=oyiGBp8OAfw]]
-
-** TODO Prepress Part 5 - PDF Preview
-- [[https://www.youtube.com/watch?v=tXslsH79Uhk]]
-
-** TODO Prepress Part 6 - Dimensions and Bleed
-- [[https://www.youtube.com/watch?v=Kqqaa8s-XUI]]
-
-** TODO Prepress Part 7 - Selecting A Printer
-- [[https://www.youtube.com/watch?v=_liqf9uoLbA]]
-
-** TODO Prepress Rant - #PrintersDeserveCredit!!
-- [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
-
-
-* to be done [13/561]
+* to be done [14/560]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -181,11 +134,12 @@ v2i из цикла сократило колво циклов на пиксел
 
 ВСЕГДА НУЖНО УЛУЧШАТЬ ПРОИЗВОДИТЕЛЬНОСТЬ С ВЫВОДОМ РЕЗУЛЬТАТОВ
 
-** TODO Handmade Hero Day 121 - Rendering in Tiles (Marathon)
+** DONE Handmade Hero Day 121 - Rendering in Tiles (Marathon)
 - [[https://www.youtube.com/watch?v=kZlPYka1T0g]]
 
-** TODO The Terminator Gene (30 minute version)
-- [[https://www.youtube.com/watch?v=biuRt_qdcIg]]
+Большая работа (4 часа) по разделению отрисовки группы на
+куски. Делается подготовка для того, чтобы каждый кусок отрисовывался
+в отдельном потоке.
 
 ** TODO Handmade Hero Day 122 - Introduction to Multithreading
 - [[https://www.youtube.com/watch?v=qkugPXGeX58]]
@@ -1824,6 +1778,56 @@ v2i из цикла сократило колво циклов на пиксел
 
 ** TODO Handmade Hero Chat 020 - Assembly Analysis and Front-end Register Clears
 - [[https://www.youtube.com/watch?v=R5tBY9Zyw6o]]
+* random
+** TODO The Terminator Gene (30 minute version)
+- [[https://www.youtube.com/watch?v=biuRt_qdcIg]]
+
+** TODO Career Stories 1
+- [[https://www.youtube.com/watch?v=cywcRMdCKJA]]
+
+** TODO Career Stories 2
+- [[https://www.youtube.com/watch?v=zHKwrMc_6As]]
+
+** TODO Career Stories 3
+- [[https://www.youtube.com/watch?v=ccpbKE8j144]]
+
+** TODO Plots Illustrated - The Rise of Skywalker, Part 1
+- [[https://www.youtube.com/watch?v=mfx3nl_Q_jk]]
+
+** TODO Meow the Infinite - Timelapse 1
+- [[https://www.youtube.com/watch?v=LeWOJbDEvdQ]]
+
+** TODO Meow the Infinite - Timelapse 2
+- [[https://www.youtube.com/watch?v=NxvRA36KptU]]
+
+** TODO Photoshop Prime Pussify Script Demo
+- [[https://www.youtube.com/watch?v=3KP-kp1Z8jE]]
+
+** TODO Prepress Part 1 - RGB, Color Calibration, and CMY
+- [[https://www.youtube.com/watch?v=D7CBcFlR3Ms]]
+
+** TODO Prepress Part 2 - CMYK
+- [[https://www.youtube.com/watch?v=d1wGI-B4ljM&t=74s]]
+
+** TODO Prepress Part 3 - Interior
+- [[https://www.youtube.com/watch?v=5Em1DbCYAlw]]
+
+** TODO Prepress Part 4 - Cover
+- [[https://www.youtube.com/watch?v=oyiGBp8OAfw]]
+
+** TODO Prepress Part 5 - PDF Preview
+- [[https://www.youtube.com/watch?v=tXslsH79Uhk]]
+
+** TODO Prepress Part 6 - Dimensions and Bleed
+- [[https://www.youtube.com/watch?v=Kqqaa8s-XUI]]
+
+** TODO Prepress Part 7 - Selecting A Printer
+- [[https://www.youtube.com/watch?v=_liqf9uoLbA]]
+
+** TODO Prepress Rant - #PrintersDeserveCredit!!
+- [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
+
+
 * done [121/121]
 ** DONE Handmade Hero - Announcement Trailer
 - [[yt:A2dxjOjWHxQ]]

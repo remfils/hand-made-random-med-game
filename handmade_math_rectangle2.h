@@ -108,3 +108,47 @@ Clamp01(v2 value)
     result.y = Clamp01(value.y);
     return result;
 }
+
+inline rectangle2i
+Intersect(rectangle2i A, rectangle2i B)
+{
+    rectangle2i result;
+
+    result.MinX = (A.MinX < B.MinX) ? B.MinX : A.MinX;
+    result.MinY = (A.MinY < B.MinY) ? B.MinY : A.MinY;
+    result.MaxX = (A.MaxX > B.MaxX) ? B.MaxX : A.MaxX;
+    result.MaxY = (A.MaxY > B.MaxY) ? B.MaxY : A.MaxY;
+    
+    return result;
+}
+
+inline rectangle2i
+Union(rectangle2i A, rectangle2i B)
+{
+    rectangle2i result;
+
+    result.MinX = (A.MinX < B.MinX) ? A.MinX : B.MinX;
+    result.MinY = (A.MinY < B.MinY) ? A.MinY : B.MinY;
+    result.MaxX = (A.MaxX > B.MaxX) ? A.MaxX : B.MaxX;
+    result.MaxY = (A.MaxY > B.MaxY) ? A.MaxY : B.MaxY;
+    
+    return result;
+}
+
+inline bool32
+HasArea(rectangle2i a)
+{
+    bool32 result = (a.MinX < a.MaxX) && (a.MinY < a.MaxY);
+    return result;
+}
+
+inline rectangle2i
+InvertedInfinityRectangle(void)
+{
+    rectangle2i result;
+
+    result.MinX = result.MinY = INT_MAX;
+    result.MaxX = result.MaxY = -INT_MAX;
+
+    return result;
+}

@@ -112,7 +112,6 @@ DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireF
 
                 texel = SRGB255_ToLinear1(texel);
                 texel.rgb *= texel.a;
-
                 texel = Linear_1_ToSRGB255(texel);
 
                 *srcDest++ = ((uint32)(texel.a + 0.5f) << alphaShiftUp)
@@ -457,7 +456,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 
     #endif
 
-    RenderGroup(drawBuffer, renderGroup);
+    TiledRenderGroup(drawBuffer, renderGroup);
 
     EndTemporaryMemory(renderMemory);
 }
@@ -1587,7 +1586,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 v2 min = {x * checkerDim.x, y * checkerDim.y};
                 v2 max = min + checkerDim;
 
-                RenderRectangle(level, min.x, min.y, max.x, max.y, checkOn ? blackColor : envColor);
+                //RenderRectangle(level, min.x, min.y, max.x, max.y, checkOn ? blackColor : envColor);
                 checkOn = !checkOn;
             }
             rowCheckerOn = !rowCheckerOn;
@@ -1655,7 +1654,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // PushSaturationFilter(renderGroup, (1.0f + Cos(4.0f * angle) * 0.5f));
     // PushSaturationFilter(renderGroup, 0.5f + Cos(2.0f * angle) * 0.5f);
 
-    RenderGroup(drawBuffer, renderGroup);
+    TiledRenderGroup(drawBuffer, renderGroup);
 
     EndSim(simRegion, gameState);
 
