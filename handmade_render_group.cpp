@@ -592,8 +592,8 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     __m128 nYAxisx_4x = _mm_set1_ps(nYAxis.x);
     __m128 nYAxisy_4x = _mm_set1_ps(nYAxis.y);
 
-    __m128 width_4x = _mm_set1_ps((real32(texture->Width - 2)));
-    __m128 height_4x = _mm_set1_ps((real32(texture->Height - 2)));
+    __m128 width_4x = _mm_set1_ps((real32(texture->Width)));
+    __m128 height_4x = _mm_set1_ps((real32(texture->Height)));
 
     __m128i maskFF_4x = _mm_set1_epi32(0xff);
 
@@ -1333,11 +1333,11 @@ internal void
 TiledRenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
 {
     // TODO: fix this
-    int32 padd = 8;
+    int32 padd = 4;
 
 
-    int tileCountX = 5;
-    int tileCountY = 5;
+    int tileCountX = 4;
+    int tileCountY = 4;
 
     // TODO: width rounding
     // TODO: round to 4
