@@ -1122,8 +1122,6 @@ int CALLBACK WinMain(
     PushString("String A 9\n", semaphore);
     PushString("String A 10\n", semaphore);
 
-    Sleep(5000);
-
     PushString("String B 0\n", semaphore);
     PushString("String B 1\n", semaphore);
     PushString("String B 2\n", semaphore);

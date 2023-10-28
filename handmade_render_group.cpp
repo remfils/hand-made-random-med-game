@@ -186,7 +186,6 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
             // is needed for alignment
             _mm_storeu_si128((__m128i *)pixel, maskedOut);
             pixel += 4;
-
             clipMask = _mm_set1_epi32(-1);
         }
         row += rowPitch;
@@ -1353,10 +1352,28 @@ TiledRenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
              tileX++)
         {
             rectangle2i clipRect;
-            clipRect.MinX = tileX * tileWidth + padd;
-            clipRect.MinY = tileY * tileHeight + padd;
-            clipRect.MaxX = tileX * tileWidth + tileWidth - padd;
-            clipRect.MaxY = tileY * tileHeight + tileHeight - padd;
+            clipRect.MinX = tileX * tileWidth;
+            clipRect.MinY = tileY * tileHeight;
+            clipRect.MaxX = tileX * tileWidth + tileWidth;
+            clipRect.MaxY = tileY * tileHeight + tileHeight;
+
+            if (tileX == 0)
+            {
+                clipRect.MinX += padd;
+            }
+            else if (tileX == tileCountX - 1)
+            {
+                clipRect.MaxX -= padd;
+            }
+            
+            if (tileY == 0)
+            {
+                clipRect.MinY += padd;
+            }
+            else if (tileY == tileCountY - 1)
+            {
+                clipRect.MaxY -= padd;
+            }
             
             RenderGroup(outputTarget, renderGroup, clipRect, true);
             RenderGroup(outputTarget, renderGroup, clipRect, false);

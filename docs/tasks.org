@@ -186,6 +186,8 @@ v2i из цикла сократило колво циклов на пиксел
 InterlockedIncrement(LONG volatile *)
 #+end_src
 
+MESI - modified exclusive shared invalid
+
 ** TODO Handmade Hero Day 125 - Abstracting the Work Queue
 - [[https://www.youtube.com/watch?v=ZAZV_PGlQ0s]]
 
