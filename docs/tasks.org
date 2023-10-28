@@ -1,4 +1,4 @@
-* to be done [16/560]
+* to be done [17/560]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -152,8 +152,39 @@ v2i из цикла сократило колво циклов на пиксел
 Добавлен код который демонстрирует простейшие проблемы работы с
 потоками. Код отправляется в репозиторий.
 
-** TODO Handmade Hero Day 124 - Memory Barriers and Semaphores
+** DONE Handmade Hero Day 124 - Memory Barriers and Semaphores
 - [[https://www.youtube.com/watch?v=W_szrzjYuvs]]
+
+Показана работа семафоров и что нужно делать, чтобы компилятор не
+сильно менял порядок операций таким образом, что они получаться
+
+создать поток
+#+begin_src c++
+  CreateThread(
+               0,// inherit attributes from main thread
+               0, // inherit stack size from main thread
+               ThreadProc, // function to call
+               info, // pointer to variable that will be passed as argument to function
+               0, // run thread immedatly
+               0 // don't write out thread id
+               );
+#+end_src
+
+вот эти макросы добавлены чтобы устанавливать барьеры, чтобы порядок
+операций для записи не менялся при компиляции/отправки на процессор.
+
+#+begin_src с++
+#define CompletePastWritesBeforeFutureWrites _WriteBarrier(); _mm_sfence()
+#define CompletePastWritesBeforeFutureReads _ReadBarrier()
+#+end_src
+
+*volatile* - подсказать компилятору что переменная может меняться в
+любой момент
+
+увеличить на один
+#+begin_src с++
+InterlockedIncrement(LONG volatile *)
+#+end_src
 
 ** TODO Handmade Hero Day 125 - Abstracting the Work Queue
 - [[https://www.youtube.com/watch?v=ZAZV_PGlQ0s]]

@@ -1013,23 +1013,33 @@ struct work_queue_entry
     char *StringToPrint;
 };
 
-global_variable uint32 entryCount;
-global_variable uint32 nextEntryToDo;
+global_variable uint32 volatile entryCompletionCount;
+global_variable uint32 volatile entryCount;
+global_variable uint32 volatile nextEntryToDo;
 work_queue_entry workEntries[256];
 
 struct win32_thread_info
 {
     int LogicalThreadIndex;
+    HANDLE SemaphoreHandle;
 };
 
-void
-PushString(char *str)
-{
-    // TODO: writes MUST BE IN ORDER!!! first increment, then change
-    work_queue_entry *e = workEntries + entryCount++;
-    e->StringToPrint = str;
-}
+#define CompletePastWritesBeforeFutureWrites _WriteBarrier(); _mm_sfence()
+#define CompletePastWritesBeforeFutureReads _ReadBarrier()
 
+void
+PushString(char *str, HANDLE semaphore)
+{
+    work_queue_entry *e = workEntries + entryCount;
+    e->StringToPrint = str;
+
+    CompletePastWritesBeforeFutureWrites;
+
+    ++entryCount;
+
+    // wake up threads
+    ReleaseSemaphore(semaphore, 1, 0);
+}
 
 DWORD WINAPI
 ThreadProc(LPVOID lpParameter)
@@ -1039,18 +1049,23 @@ ThreadProc(LPVOID lpParameter)
 
     for (;;)
     {
-        if (nextEntryToDo < entryCount) {
-            work_queue_entry *entry = workEntries + nextEntryToDo;
+        if (nextEntryToDo < entryCount)
+        {
+            int entryIndex = InterlockedIncrement((LONG volatile *)&nextEntryToDo) - 1;
+            CompletePastWritesBeforeFutureReads;
+            
+            work_queue_entry *entry = workEntries + entryIndex;
 
             char buf[256];
             wsprintf(buf, "Thread %u: %s\n", threadInfo->LogicalThreadIndex, entry->StringToPrint);
             OutputDebugStringA(buf);
 
-            // TODO: update should be in interlocked
-            nextEntryToDo++;
+            InterlockedIncrement((LONG volatile *)&entryCompletionCount);
         }
-        
-        Sleep(1000);
+        else
+        {
+            WaitForSingleObjectEx(threadInfo->SemaphoreHandle, INFINITE, false);
+        }
     }
     //return 0;
 }
@@ -1081,26 +1096,47 @@ int CALLBACK WinMain(
 
     char *param = "thread started";
 
-    win32_thread_info infos[15];
+    win32_thread_info infos[8];
 
-    for (int threadI = 0; threadI<15; threadI++) {
+    uint32 initialCount = 0;
+    uint32 threadCount = ArrayCount(infos);
+    HANDLE semaphore = CreateSemaphoreExA(0, initialCount, threadCount, 0, 0, SEMAPHORE_ALL_ACCESS);
+
+    for (uint32 threadI = 0; threadI < threadCount; threadI++) {
         win32_thread_info *info = infos + threadI;
         info->LogicalThreadIndex = threadI;
+        info->SemaphoreHandle = semaphore;
         HANDLE threadHandle = CreateThread(0, 0, ThreadProc, info, 0, 0);
         CloseHandle(threadHandle);
     }
 
-    PushString("String 0\n");
-    PushString("String 1\n");
-    PushString("String 2\n");
-    PushString("String 3\n");
-    PushString("String 4\n");
-    PushString("String 5\n");
-    PushString("String 6\n");
-    PushString("String 7\n");
-    PushString("String 8\n");
-    PushString("String 9\n");
-    PushString("String 10\n");
+    PushString("String A 0\n", semaphore);
+    PushString("String A 1\n", semaphore);
+    PushString("String A 2\n", semaphore);
+    PushString("String A 3\n", semaphore);
+    PushString("String A 4\n", semaphore);
+    PushString("String A 5\n", semaphore);
+    PushString("String A 6\n", semaphore);
+    PushString("String A 7\n", semaphore);
+    PushString("String A 8\n", semaphore);
+    PushString("String A 9\n", semaphore);
+    PushString("String A 10\n", semaphore);
+
+    Sleep(5000);
+
+    PushString("String B 0\n", semaphore);
+    PushString("String B 1\n", semaphore);
+    PushString("String B 2\n", semaphore);
+    PushString("String B 3\n", semaphore);
+    PushString("String B 4\n", semaphore);
+    PushString("String B 5\n", semaphore);
+    PushString("String B 6\n", semaphore);
+    PushString("String B 7\n", semaphore);
+    PushString("String B 8\n", semaphore);
+    PushString("String B 9\n", semaphore);
+    PushString("String B 10\n", semaphore);
+
+    while(entryCompletionCount < entryCount);
     
     LARGE_INTEGER perfCounterFrequencyResult;
     QueryPerformanceFrequency(&perfCounterFrequencyResult);
