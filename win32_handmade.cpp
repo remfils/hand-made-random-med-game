@@ -1008,6 +1008,14 @@ HandleDebugCycleCounter(game_memory *memory)
 #endif
 }
 
+DWORD WINAPI
+ThreadProc(LPVOID lpParameter)
+{
+    char *stringToPrint = (char *)lpParameter;
+    OutputDebugString(stringToPrint);
+    return 0;
+}
+
 
 int CALLBACK WinMain(
     HINSTANCE instance,
@@ -1029,6 +1037,12 @@ int CALLBACK WinMain(
 
     Win32ResizeDIBSection(&globalBackbuffer, 1088, 576);
     // Win32ResizeDIBSection(&globalBackbuffer, 1920, 1080);
+
+
+    char *param = "thread started";
+    HANDLE threadHandle = CreateThread(0, 0, ThreadProc, param, 0, 0);
+    
+    
 
     LARGE_INTEGER perfCounterFrequencyResult;
     QueryPerformanceFrequency(&perfCounterFrequencyResult);

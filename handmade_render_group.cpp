@@ -1336,8 +1336,8 @@ TiledRenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
     int32 padd = 4;
 
 
-    int tileCountX = 4;
-    int tileCountY = 4;
+    int tileCountX = 2;
+    int tileCountY = 2;
 
     // TODO: width rounding
     // TODO: round to 4
