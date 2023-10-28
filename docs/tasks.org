@@ -1,4 +1,4 @@
-* to be done [15/560]
+* to be done [16/560]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -146,8 +146,11 @@ v2i из цикла сократило колво циклов на пиксел
 
 добавлен код для простейшего создания потока в win32_handmade
 
-** TODO Handmade Hero Day 123 - Interlocked Operations
+** DONE Handmade Hero Day 123 - Interlocked Operations
 - [[https://www.youtube.com/watch?v=_olNhuuRYxo]]
+
+Добавлен код который демонстрирует простейшие проблемы работы с
+потоками. Код отправляется в репозиторий.
 
 ** TODO Handmade Hero Day 124 - Memory Barriers and Semaphores
 - [[https://www.youtube.com/watch?v=W_szrzjYuvs]]

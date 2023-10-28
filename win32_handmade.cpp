@@ -997,7 +997,7 @@ HandleDebugCycleCounter(game_memory *memory)
 
         if (counter->HitCount > 0){
             char buffer[256];
-            sprintf_s(buffer, 256, "\t%d: %I64u hits: %u, cycles per hit: %u\n", debugIndex, counter->CycleCount, counter->HitCount, counter->CycleCount / counter->HitCount);
+            sprintf_s(buffer, 256, "\t%d: %I64u hits: %u, cycles per hit: %I64u\n", debugIndex, counter->CycleCount, counter->HitCount, counter->CycleCount / counter->HitCount);
 
             OutputDebugStringA(buffer);
 
@@ -1008,13 +1008,53 @@ HandleDebugCycleCounter(game_memory *memory)
 #endif
 }
 
+struct work_queue_entry
+{
+    char *StringToPrint;
+};
+
+global_variable uint32 entryCount;
+global_variable uint32 nextEntryToDo;
+work_queue_entry workEntries[256];
+
+struct win32_thread_info
+{
+    int LogicalThreadIndex;
+};
+
+void
+PushString(char *str)
+{
+    // TODO: writes MUST BE IN ORDER!!! first increment, then change
+    work_queue_entry *e = workEntries + entryCount++;
+    e->StringToPrint = str;
+}
+
+
 DWORD WINAPI
 ThreadProc(LPVOID lpParameter)
 {
-    char *stringToPrint = (char *)lpParameter;
-    OutputDebugString(stringToPrint);
-    return 0;
+    win32_thread_info *threadInfo = (win32_thread_info *)lpParameter;
+    OutputDebugStringA("starting thread\n");
+
+    for (;;)
+    {
+        if (nextEntryToDo < entryCount) {
+            work_queue_entry *entry = workEntries + nextEntryToDo;
+
+            char buf[256];
+            wsprintf(buf, "Thread %u: %s\n", threadInfo->LogicalThreadIndex, entry->StringToPrint);
+            OutputDebugStringA(buf);
+
+            // TODO: update should be in interlocked
+            nextEntryToDo++;
+        }
+        
+        Sleep(1000);
+    }
+    //return 0;
 }
+
 
 
 int CALLBACK WinMain(
@@ -1040,10 +1080,28 @@ int CALLBACK WinMain(
 
 
     char *param = "thread started";
-    HANDLE threadHandle = CreateThread(0, 0, ThreadProc, param, 0, 0);
-    
-    
 
+    win32_thread_info infos[15];
+
+    for (int threadI = 0; threadI<15; threadI++) {
+        win32_thread_info *info = infos + threadI;
+        info->LogicalThreadIndex = threadI;
+        HANDLE threadHandle = CreateThread(0, 0, ThreadProc, info, 0, 0);
+        CloseHandle(threadHandle);
+    }
+
+    PushString("String 0\n");
+    PushString("String 1\n");
+    PushString("String 2\n");
+    PushString("String 3\n");
+    PushString("String 4\n");
+    PushString("String 5\n");
+    PushString("String 6\n");
+    PushString("String 7\n");
+    PushString("String 8\n");
+    PushString("String 9\n");
+    PushString("String 10\n");
+    
     LARGE_INTEGER perfCounterFrequencyResult;
     QueryPerformanceFrequency(&perfCounterFrequencyResult);
     GlobalPerfCounterFrequency = perfCounterFrequencyResult.QuadPart;
