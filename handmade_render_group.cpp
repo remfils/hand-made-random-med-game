@@ -982,7 +982,7 @@ void
 ClearRenderBuffer(loaded_bitmap *drawBuffer)
 {
     v4 bgColor = {0.0f, 0.0f, 0.0f, 0.0f};
-    // RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
+    //RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
 }
 
 
