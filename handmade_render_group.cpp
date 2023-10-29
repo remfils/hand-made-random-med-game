@@ -1328,21 +1328,38 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i 
     END_TIMED_BLOCK(RenderGroupToOutput);
 }
 
+struct tile_render_work
+{
+    render_group *RenderGroup;
+    loaded_bitmap *OutputTarget;
+    rectangle2i ClipRect;
+};
+
+DoTiledRenderWork(void *data)
+{
+    tile_render_work *work = (tile_render_work *)data;
+
+    RenderGroup(work->OutputTarget, work->RenderGroup, work->ClipRect, true);
+    RenderGroup(work->OutputTarget, work->RenderGroup, work->ClipRect, false);
+}
+
 internal void
-TiledRenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
+TiledRenderGroup(platform_work_queue *renderQueue, loaded_bitmap *outputTarget, render_group *renderGroup)
 {
     // TODO: fix this
     int32 padd = 4;
 
-
-    int tileCountX = 2;
-    int tileCountY = 2;
+    int32 const tileCountX = 2;
+    int32 const tileCountY = 2;
+    tile_render_work workArray[tileCountX*tileCountY];
 
     // TODO: width rounding
     // TODO: round to 4
     int tileWidth = outputTarget->Width / tileCountX;
     int tileHeight = outputTarget->Height / tileCountY;
 
+
+    int32 workIndex = 0;
     for (int tileY =0;
          tileY < tileCountY;
          tileY++)
@@ -1375,10 +1392,17 @@ TiledRenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
                 clipRect.MaxY -= padd;
             }
             
-            RenderGroup(outputTarget, renderGroup, clipRect, true);
-            RenderGroup(outputTarget, renderGroup, clipRect, false);
+            tile_render_work *workItem = workArray + workIndex++;
+            workItem.ClipRect = clipRect;
+            workItem.RenderGroup = renderGroup;
+            workItem.OutputTarget = outputTarget;
+
+
+            renderQueue->AddWorkEntry(DoTiledRenderWork , workItem);
         }
     }
+
+    renderQueue->CompleAllWork();
 }
 
 inline v2

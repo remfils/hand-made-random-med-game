@@ -1,4 +1,4 @@
-* to be done [17/560]
+* to be done [18/560]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -188,7 +188,7 @@ InterlockedIncrement(LONG volatile *)
 
 MESI - modified exclusive shared invalid
 
-** TODO Handmade Hero Day 125 - Abstracting the Work Queue
+** DONE Handmade Hero Day 125 - Abstracting the Work Queue
 - [[https://www.youtube.com/watch?v=ZAZV_PGlQ0s]]
 
 ** TODO Handmade Hero Day 126 - Circular FIFO Work Queue
