@@ -1,4 +1,4 @@
-* to be done [18/560]
+* to be done [19/560]
 
 ** DONE Handmade Hero Day 108 - Perspective Projection
 - [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
@@ -191,8 +191,15 @@ MESI - modified exclusive shared invalid
 ** DONE Handmade Hero Day 125 - Abstracting the Work Queue
 - [[https://www.youtube.com/watch?v=ZAZV_PGlQ0s]]
 
-** TODO Handmade Hero Day 126 - Circular FIFO Work Queue
+Код не компилируется, т.к. не успели закончить движок рендера.
+
+** DONE Handmade Hero Day 126 - Circular FIFO Work Queue
 - [[https://www.youtube.com/watch?v=0jfDwujUY4Y]]
+
+Закончена работа по работе с рендерингом. Софтверный рендеринг
+работает на 1920х1080 в 8 потоков.
+
+У меня криво отрисовываются области пересечения.
 
 ** TODO Handmade Hero Day 127 - Aligning Rendering Memory
 - [[https://www.youtube.com/watch?v=blcNbU70I9o]]

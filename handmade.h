@@ -258,6 +258,8 @@ struct transient_state
     uint32 EnvMapWidth;
     uint32 EnvMapHeight;
     render_environment_map EnvMaps[3];
+
+    platform_work_queue *RenderQueue;
 };
 
 

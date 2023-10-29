@@ -165,7 +165,14 @@ struct game_input
     game_controller_input Controllers[5];
 };
 
+struct platform_work_queue;
+typedef void platform_work_queue_callback(platform_work_queue *queue, void *data);
+typedef void platform_add_entry(platform_work_queue *queue, platform_work_queue_callback *callback, void *data);
+typedef void platform_complete_all_work(platform_work_queue *queue);
 
+
+#define PLATFORM_WORK_QUEUE_CALLBACK(name) void name(platform_work_queue *queue, void *data)
+typedef PLATFORM_WORK_QUEUE_CALLBACK(platform_work_queue_callback);
 
 
 #define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(thread_context *thread, void *memory)
@@ -178,11 +185,20 @@ typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 
 
+platform_work_queue *RenderQueue;
+global_variable platform_add_entry *PlatformAddEntry;
+global_variable platform_complete_all_work *PlatformCompleteAllWork;
+
+
 struct game_memory
 {
     bool32 IsInitialized;
     uint64 PermanentStorageSize;
     void *PermanentStorage; // should be initialized to zero
+
+    platform_work_queue *RenderQueue;
+    platform_add_entry *PlatformAddEntry;
+    platform_complete_all_work *PlatformCompleteAllWork;
 
     uint64 TransientStorageSize;
     void *TransientStorage; // should be initialized to zero

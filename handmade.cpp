@@ -456,7 +456,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 
     #endif
 
-    TiledRenderGroup(drawBuffer, renderGroup);
+    TiledRenderGroup(tranState->RenderQueue, drawBuffer, renderGroup);
 
     EndTemporaryMemory(renderMemory);
 }
@@ -713,6 +713,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     if (!memory->IsInitialized)
     {
+        PlatformAddEntry = memory->PlatformAddEntry;
+        PlatformCompleteAllWork = memory->PlatformCompleteAllWork;
+        
         uint32 groundBufferWidth = 256;
         uint32 groundBufferHeight = 256;
 
@@ -987,6 +990,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     transient_state *tranState = (transient_state *)memory->TransientStorage;
     if (!tranState->IsInitialized) {
         InitializeArena(&tranState->TransientArena, memory->TransientStorageSize-sizeof(transient_state), (uint8 *)memory->TransientStorage + sizeof(transient_state));
+
+        tranState->RenderQueue = memory->RenderQueue;
 
 
         // NOTE: make square for now
@@ -1654,7 +1659,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // PushSaturationFilter(renderGroup, (1.0f + Cos(4.0f * angle) * 0.5f));
     // PushSaturationFilter(renderGroup, 0.5f + Cos(2.0f * angle) * 0.5f);
 
-    TiledRenderGroup(drawBuffer, renderGroup);
+    TiledRenderGroup(tranState->RenderQueue, drawBuffer, renderGroup);
 
     EndSim(simRegion, gameState);
 
