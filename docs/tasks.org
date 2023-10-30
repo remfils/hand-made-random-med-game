@@ -1,205 +1,4 @@
-* to be done [19/560]
-
-** DONE Handmade Hero Day 108 - Perspective Projection
-- [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
-
-Доработана логика маштаба - ZFudge заменен на коэффициент, который
-ближе к реальности. Но по какой то причине все еще не используются
-реальзные цифры (30 см от монитора + 5 метров от земли до камеры).
-
-** DONE Handmade Hero Day 109 - Resolution-Independent Rendering
-- [[https://www.youtube.com/watch?v=e3d7kEtX6iw]]
-
-Работа по удалению pixelsToMeters. Сейчас очень мало мест в которых
-оно вообще используется.
-
-** DONE Handmade Hero Day 110 - Unprojecting Screen Boundaries
-- [[https://www.youtube.com/watch?v=s-eL7riOnwc]]
-
-Добавлен коцепт камеры, поправлены расчеты, так чтобы добиться
-указания "реальных" параметров для расстояния до монитора.
-
-Я сделал рефактор - разбил всю логику V2, V3, V4, rectangle2,
-rectangle3 на разные файлы + ToVX стандартизация. Думал добавить
-функции типа V2Zero но в итоге решил этого не делать - лучше писать
-явно нули, чтобы потом играться с параметрами.
-
-Есть баги с выбором сущностей для обновления. Почему они проивходят -
-пока что не понятно.
-
-** DONE Handmade Hero Day 111 - Resolution-Independent Ground Chunks
-- [[https://www.youtube.com/watch?v=qDE7_6K2pyY]]
-
-Включена отрисовка пола но она работает плоховастенько
-
-Нужно в рендер добавлять режим отрисовки ортографической проектции -
-без перспективы. Начинается цикл оптимизаций
-
-Я продолжаю думать, что у меня с коэффициентами что то не то - мои
-относительные высоты должны быть значительно больше, чтобы
-отрисовываться нормально.
-
-** DONE Handmade Hero Day 112 - A Mental Model of CPU Performance
-- [[https://www.youtube.com/watch?v=qin-Eps3U_E]]
-
-Лекция про то, что происходит в процессоре. Почему SIMD (single
-instruction multiple data) инструкции важны и почему оптимизация это
-очень сложно.
-
-** DONE Handmade Hero Day 113 - Simple Performance Counters
-- [[https://www.youtube.com/watch?v=QdTqYhv8tL0]]
-
-нужно
-- собрать статистику
-  - где медленно
-  - какие показатели
-- сделать естимейт - на сколько быстро оно может работать
-- проанализировать эффективность и производительность
-- кодирование
-
-overdraw (перерисовка) - эффективность рендера - как часто
-перерисовывается пиксель. Если очень часто - то нужно делать
-оптимизации
-
-Добавлен простейщий механизм для сбора метрики по функцииям и вывод в
-output.
-
-** DONE Handmade Hero Day 114 - Preparing a Function for Optimization
-- [[https://www.youtube.com/watch?v=_vkI9BedvKA]]
-
-Функция переписана чтобы не использовать v4. Все функции были заменены
-на простейшие операции, которые будут в последующем переписаны на
-SIMD.
-
-** DONE Handmade Hero Day 115 - SIMD Basics
-- [[https://www.youtube.com/watch?v=YnnTb0AQgYM]]
-
-SOA vs AOS - Structure of arrays vs array of structures
-
-в си лучше создавать массивы структур но для SIMD нужны структуры массивов
-
-#+begin_src с++
-__m128 a = _mm_set_ps(1.0f, 2.0f, 3.0f, 4.0f);
-__m128 b = _mm_set_ps(10.0f, 20.0f, 30.0f, 40.0f);
-__m128 result = _mm_add_ps(a, b);
-#+end_src
-
-Итерация цикла пикселя разбита на три секции получение данных +
-операции + выгрузка данных. Итерация происходит по 4 пикселя (но очень
-плохо).
-
-что почитать по теме работы с дробными числами
-
-- Numerical Methods that Work (https://www.amazon.com/Numerical-Methods-that-Work-Spectrum/dp/0883854503)
-
-как смотреть инструкции
-intel intinsicts guide
-
-где смотреть производительность для стима - что можно использовать
-
-https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam
-
-** DONE Handmade Hero Day 116 - Converting Math Operations to SIMD
-- [[https://www.youtube.com/watch?v=1CVmlnhgT3g]]
-
-простое конвертирование матеметических операций в SIMD формат. В итоге
-работает игра работает достаточно быстро но может еще лучше. Уборка
-v2i из цикла сократило колво циклов на пиксель на 50, как у Кейси.
-
-** DONE Handmade Hero Day 117 - Packing Pixels for the Framebuffer
-- [[https://www.youtube.com/watch?v=90eSF6jLzvQ]]
-
-Сделана упаковка + показан вариант упаковки на дробных числах (этот
-путь закоменчен). Код сейчас отрабатывает без маски
-
-** DONE Handmade Hero Day 118 - Wide Unpacking and Masking
-- [[https://www.youtube.com/watch?v=-_X0UYCGaVA]]
-
-Сделана праспаковка - итоговая производительность отличная. Маска работает хорошо.
-
-** DONE Handmade Hero Day 119 - Counting Intrinsics
-- [[https://www.youtube.com/watch?v=NPDL1OENYio]]
-
-
-через #define делается подсчет SIMD инструкций и анализ, сколько
-циклов вообще должно проходить по чесному.
-
-** DONE Handmade Hero Day 120 - Measuring Port Usage with IACA
-- [[https://www.youtube.com/watch?v=-c-0s6KiPSw]]
-
-Показано как можно мерить производительность инструментом от интела
-(эта программа больше не поддерживается интелом). Сделаны некоторые
-простые рефакторы (убраны лишние умножения) производительность сильно
-выросла.
-
-ВСЕГДА НУЖНО УЛУЧШАТЬ ПРОИЗВОДИТЕЛЬНОСТЬ С ВЫВОДОМ РЕЗУЛЬТАТОВ
-
-** DONE Handmade Hero Day 121 - Rendering in Tiles (Marathon)
-- [[https://www.youtube.com/watch?v=kZlPYka1T0g]]
-
-Большая работа (4 часа) по разделению отрисовки группы на
-куски. Делается подготовка для того, чтобы каждый кусок отрисовывался
-в отдельном потоке.
-
-** DONE Handmade Hero Day 122 - Introduction to Multithreading
-- [[https://www.youtube.com/watch?v=qkugPXGeX58]]
-
-добавлен код для простейшего создания потока в win32_handmade
-
-** DONE Handmade Hero Day 123 - Interlocked Operations
-- [[https://www.youtube.com/watch?v=_olNhuuRYxo]]
-
-Добавлен код который демонстрирует простейшие проблемы работы с
-потоками. Код отправляется в репозиторий.
-
-** DONE Handmade Hero Day 124 - Memory Barriers and Semaphores
-- [[https://www.youtube.com/watch?v=W_szrzjYuvs]]
-
-Показана работа семафоров и что нужно делать, чтобы компилятор не
-сильно менял порядок операций таким образом, что они получаться
-
-создать поток
-#+begin_src c++
-  CreateThread(
-               0,// inherit attributes from main thread
-               0, // inherit stack size from main thread
-               ThreadProc, // function to call
-               info, // pointer to variable that will be passed as argument to function
-               0, // run thread immedatly
-               0 // don't write out thread id
-               );
-#+end_src
-
-вот эти макросы добавлены чтобы устанавливать барьеры, чтобы порядок
-операций для записи не менялся при компиляции/отправки на процессор.
-
-#+begin_src с++
-#define CompletePastWritesBeforeFutureWrites _WriteBarrier(); _mm_sfence()
-#define CompletePastWritesBeforeFutureReads _ReadBarrier()
-#+end_src
-
-*volatile* - подсказать компилятору что переменная может меняться в
-любой момент
-
-увеличить на один
-#+begin_src с++
-InterlockedIncrement(LONG volatile *)
-#+end_src
-
-MESI - modified exclusive shared invalid
-
-** DONE Handmade Hero Day 125 - Abstracting the Work Queue
-- [[https://www.youtube.com/watch?v=ZAZV_PGlQ0s]]
-
-Код не компилируется, т.к. не успели закончить движок рендера.
-
-** DONE Handmade Hero Day 126 - Circular FIFO Work Queue
-- [[https://www.youtube.com/watch?v=0jfDwujUY4Y]]
-
-Закончена работа по работе с рендерингом. Софтверный рендеринг
-работает на 1920х1080 в 8 потоков.
-
-У меня криво отрисовываются области пересечения.
+* to be done [0/541]
 
 ** TODO Handmade Hero Day 127 - Aligning Rendering Memory
 - [[https://www.youtube.com/watch?v=blcNbU70I9o]]
@@ -2573,4 +2372,205 @@ https://fgiesen.wordpress.com/2011/07/09/a-trip-through-the-graphics-pipeline-20
 
 Добавлена штука при которой камера следит за персонажем на лестинце,
 получилось очень хорошо. Верхние и нижние этажи пропадают через alpha.
+
+** DONE Handmade Hero Day 108 - Perspective Projection
+- [[https://www.youtube.com/watch?v=xgnEOFS8wTw]]
+
+Доработана логика маштаба - ZFudge заменен на коэффициент, который
+ближе к реальности. Но по какой то причине все еще не используются
+реальзные цифры (30 см от монитора + 5 метров от земли до камеры).
+
+** DONE Handmade Hero Day 109 - Resolution-Independent Rendering
+- [[https://www.youtube.com/watch?v=e3d7kEtX6iw]]
+
+Работа по удалению pixelsToMeters. Сейчас очень мало мест в которых
+оно вообще используется.
+
+** DONE Handmade Hero Day 110 - Unprojecting Screen Boundaries
+- [[https://www.youtube.com/watch?v=s-eL7riOnwc]]
+
+Добавлен коцепт камеры, поправлены расчеты, так чтобы добиться
+указания "реальных" параметров для расстояния до монитора.
+
+Я сделал рефактор - разбил всю логику V2, V3, V4, rectangle2,
+rectangle3 на разные файлы + ToVX стандартизация. Думал добавить
+функции типа V2Zero но в итоге решил этого не делать - лучше писать
+явно нули, чтобы потом играться с параметрами.
+
+Есть баги с выбором сущностей для обновления. Почему они проивходят -
+пока что не понятно.
+
+** DONE Handmade Hero Day 111 - Resolution-Independent Ground Chunks
+- [[https://www.youtube.com/watch?v=qDE7_6K2pyY]]
+
+Включена отрисовка пола но она работает плоховастенько
+
+Нужно в рендер добавлять режим отрисовки ортографической проектции -
+без перспективы. Начинается цикл оптимизаций
+
+Я продолжаю думать, что у меня с коэффициентами что то не то - мои
+относительные высоты должны быть значительно больше, чтобы
+отрисовываться нормально.
+
+** DONE Handmade Hero Day 112 - A Mental Model of CPU Performance
+- [[https://www.youtube.com/watch?v=qin-Eps3U_E]]
+
+Лекция про то, что происходит в процессоре. Почему SIMD (single
+instruction multiple data) инструкции важны и почему оптимизация это
+очень сложно.
+
+** DONE Handmade Hero Day 113 - Simple Performance Counters
+- [[https://www.youtube.com/watch?v=QdTqYhv8tL0]]
+
+нужно
+- собрать статистику
+  - где медленно
+  - какие показатели
+- сделать естимейт - на сколько быстро оно может работать
+- проанализировать эффективность и производительность
+- кодирование
+
+overdraw (перерисовка) - эффективность рендера - как часто
+перерисовывается пиксель. Если очень часто - то нужно делать
+оптимизации
+
+Добавлен простейщий механизм для сбора метрики по функцииям и вывод в
+output.
+
+** DONE Handmade Hero Day 114 - Preparing a Function for Optimization
+- [[https://www.youtube.com/watch?v=_vkI9BedvKA]]
+
+Функция переписана чтобы не использовать v4. Все функции были заменены
+на простейшие операции, которые будут в последующем переписаны на
+SIMD.
+
+** DONE Handmade Hero Day 115 - SIMD Basics
+- [[https://www.youtube.com/watch?v=YnnTb0AQgYM]]
+
+SOA vs AOS - Structure of arrays vs array of structures
+
+в си лучше создавать массивы структур но для SIMD нужны структуры массивов
+
+#+begin_src с++
+__m128 a = _mm_set_ps(1.0f, 2.0f, 3.0f, 4.0f);
+__m128 b = _mm_set_ps(10.0f, 20.0f, 30.0f, 40.0f);
+__m128 result = _mm_add_ps(a, b);
+#+end_src
+
+Итерация цикла пикселя разбита на три секции получение данных +
+операции + выгрузка данных. Итерация происходит по 4 пикселя (но очень
+плохо).
+
+что почитать по теме работы с дробными числами
+
+- Numerical Methods that Work (https://www.amazon.com/Numerical-Methods-that-Work-Spectrum/dp/0883854503)
+
+как смотреть инструкции
+intel intinsicts guide
+
+где смотреть производительность для стима - что можно использовать
+
+https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam
+
+** DONE Handmade Hero Day 116 - Converting Math Operations to SIMD
+- [[https://www.youtube.com/watch?v=1CVmlnhgT3g]]
+
+простое конвертирование матеметических операций в SIMD формат. В итоге
+работает игра работает достаточно быстро но может еще лучше. Уборка
+v2i из цикла сократило колво циклов на пиксель на 50, как у Кейси.
+
+** DONE Handmade Hero Day 117 - Packing Pixels for the Framebuffer
+- [[https://www.youtube.com/watch?v=90eSF6jLzvQ]]
+
+Сделана упаковка + показан вариант упаковки на дробных числах (этот
+путь закоменчен). Код сейчас отрабатывает без маски
+
+** DONE Handmade Hero Day 118 - Wide Unpacking and Masking
+- [[https://www.youtube.com/watch?v=-_X0UYCGaVA]]
+
+Сделана праспаковка - итоговая производительность отличная. Маска работает хорошо.
+
+** DONE Handmade Hero Day 119 - Counting Intrinsics
+- [[https://www.youtube.com/watch?v=NPDL1OENYio]]
+
+
+через #define делается подсчет SIMD инструкций и анализ, сколько
+циклов вообще должно проходить по чесному.
+
+** DONE Handmade Hero Day 120 - Measuring Port Usage with IACA
+- [[https://www.youtube.com/watch?v=-c-0s6KiPSw]]
+
+Показано как можно мерить производительность инструментом от интела
+(эта программа больше не поддерживается интелом). Сделаны некоторые
+простые рефакторы (убраны лишние умножения) производительность сильно
+выросла.
+
+ВСЕГДА НУЖНО УЛУЧШАТЬ ПРОИЗВОДИТЕЛЬНОСТЬ С ВЫВОДОМ РЕЗУЛЬТАТОВ
+
+** DONE Handmade Hero Day 121 - Rendering in Tiles (Marathon)
+- [[https://www.youtube.com/watch?v=kZlPYka1T0g]]
+
+Большая работа (4 часа) по разделению отрисовки группы на
+куски. Делается подготовка для того, чтобы каждый кусок отрисовывался
+в отдельном потоке.
+
+** DONE Handmade Hero Day 122 - Introduction to Multithreading
+- [[https://www.youtube.com/watch?v=qkugPXGeX58]]
+
+добавлен код для простейшего создания потока в win32_handmade
+
+** DONE Handmade Hero Day 123 - Interlocked Operations
+- [[https://www.youtube.com/watch?v=_olNhuuRYxo]]
+
+Добавлен код который демонстрирует простейшие проблемы работы с
+потоками. Код отправляется в репозиторий.
+
+** DONE Handmade Hero Day 124 - Memory Barriers and Semaphores
+- [[https://www.youtube.com/watch?v=W_szrzjYuvs]]
+
+Показана работа семафоров и что нужно делать, чтобы компилятор не
+сильно менял порядок операций таким образом, что они получаться
+
+создать поток
+#+begin_src c++
+  CreateThread(
+               0,// inherit attributes from main thread
+               0, // inherit stack size from main thread
+               ThreadProc, // function to call
+               info, // pointer to variable that will be passed as argument to function
+               0, // run thread immedatly
+               0 // don't write out thread id
+               );
+#+end_src
+
+вот эти макросы добавлены чтобы устанавливать барьеры, чтобы порядок
+операций для записи не менялся при компиляции/отправки на процессор.
+
+#+begin_src с++
+#define CompletePastWritesBeforeFutureWrites _WriteBarrier(); _mm_sfence()
+#define CompletePastWritesBeforeFutureReads _ReadBarrier()
+#+end_src
+
+*volatile* - подсказать компилятору что переменная может меняться в
+любой момент
+
+увеличить на один
+#+begin_src с++
+InterlockedIncrement(LONG volatile *)
+#+end_src
+
+MESI - modified exclusive shared invalid
+
+** DONE Handmade Hero Day 125 - Abstracting the Work Queue
+- [[https://www.youtube.com/watch?v=ZAZV_PGlQ0s]]
+
+Код не компилируется, т.к. не успели закончить движок рендера.
+
+** DONE Handmade Hero Day 126 - Circular FIFO Work Queue
+- [[https://www.youtube.com/watch?v=0jfDwujUY4Y]]
+
+Закончена работа по работе с рендерингом. Софтверный рендеринг
+работает на 1920х1080 в 8 потоков.
+
+У меня криво отрисовываются области пересечения.
 
