@@ -554,14 +554,14 @@ internal real32
 RandomLateral(random_series *series)
 {
     uint32 randomIndex = series->Index;
-    real32 result = ((real32)NextRandomUInt32(series) - (real32)MIN_RANDOM_NUMBER) / (real32)MAX_RANDOM_NUMBER;
+    real32 result = ((real32)NextRandomUInt32(series) - (real32)MIN_RANDOM_NUMBER) / ((real32)MAX_RANDOM_NUMBER - (real32)MIN_RANDOM_NUMBER);
     return result;
 }
 
 internal real32
 RandomUnilateral(random_series *series)
 {
-    real32 result = ((real32)NextRandomUInt32(series) - (real32)MIN_RANDOM_NUMBER) * 2 / (real32)MAX_RANDOM_NUMBER - 1.0f;
+    real32 result = 2.0f * ((((real32)NextRandomUInt32(series) - (real32)MIN_RANDOM_NUMBER) / ((real32)MAX_RANDOM_NUMBER - (real32)MIN_RANDOM_NUMBER)) - 1.0f);
     return result;
 }
 

@@ -111,6 +111,8 @@ struct render_entry_bitmap
 
 struct render_transform
 {
+    bool32 Perspective;
+    
     real32 FocalLength;
     real32 DistanceToTarget;
 

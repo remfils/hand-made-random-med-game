@@ -777,9 +777,9 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
 
                 // NOTE(vlad): colorA_4x was multiplied by texel alpha
                 texela = _mm_mul_ps(_mm_mul_ps(texela, colorA_4x), inv255_4x);
-                texelr = _mm_mul_ps(_mm_mul_ps(texelr, colorR_4x), texela);
-                texelg = _mm_mul_ps(_mm_mul_ps(texelg, colorG_4x), texela);
-                texelb = _mm_mul_ps(_mm_mul_ps(texelb, colorB_4x), texela);
+                texelr = _mm_mul_ps(_mm_mul_ps(texelr, colorR_4x), colorA_4x);
+                texelg = _mm_mul_ps(_mm_mul_ps(texelg, colorG_4x), colorA_4x);
+                texelb = _mm_mul_ps(_mm_mul_ps(texelb, colorB_4x), colorA_4x);
 
                 texela = _mm_min_ps(_mm_max_ps(texela, zero_4x), val255255_4x);
                 texelg = _mm_min_ps(_mm_max_ps(texelg, zero_4x), val255255_4x);
@@ -1008,36 +1008,16 @@ RenderSquareDot(loaded_bitmap *drawBuffer, real32 dotPositionX, real32 dotPositi
     //RenderRectangle(drawBuffer, dotPositionX - squareHalfWidth, dotPositionY - squareHalfWidth, dotPositionX + squareHalfWidth, dotPositionY + squareHalfWidth, color);
 }
 
-void
-ClearRenderBuffer(loaded_bitmap *drawBuffer)
-{
-    v4 bgColor = {0.0f, 0.0f, 0.0f, 0.0f};
-    //RenderRectangle(drawBuffer, 0, 0, (real32)drawBuffer->Width, (real32)drawBuffer->Height, bgColor);
-}
 
-
-
-internal render_group *
+internal render_group*
 AllocateRenderGroup(memory_arena *arena, uint32 maxPushBufferSize, uint32 resolutionPixelX, uint32 resolutionPixelY)
 {
     render_group *result = PushStruct(arena, render_group);
 
     result->Transform = {};
     
-    result->Transform.FocalLength = 0.6f;
-    result->Transform.DistanceToTarget = 15.0f;
-
     result->Transform.OffsetP = ToV3(0,0,0);
     result->Transform.Scale = 1.0f;
-
-    real32 widthOfMonitorInMeters = 0.635f;
-    result->Transform.MetersToPixels = resolutionPixelX / widthOfMonitorInMeters;
-
-    real32 pixelsToMeters = 0.5f / result->Transform.MetersToPixels;
-
-    result->Transform.ScreenCenter = 0.5f * ToV2i(resolutionPixelX, resolutionPixelY);
-    
-    result->MonitorHalfDimInMeters = pixelsToMeters * ToV2i(resolutionPixelX, resolutionPixelY);
 
     result->PushBufferBase = (uint8 *)PushSize(arena, maxPushBufferSize);
     result->MaxPushBufferSize = maxPushBufferSize;
@@ -1047,6 +1027,36 @@ AllocateRenderGroup(memory_arena *arena, uint32 maxPushBufferSize, uint32 resolu
     result->GlobalAlpha = 1.0f;
 
     return result;
+}
+
+internal void
+MakePerspective(render_group *renderGroup, uint32 width, uint32 height, real32 focalLength, real32 distanceAboveTarget)
+{
+    renderGroup->Transform.Perspective = true;
+    
+    renderGroup->Transform.FocalLength = focalLength;
+    renderGroup->Transform.DistanceToTarget = distanceAboveTarget;
+    real32 widthOfMonitorInMeters = 0.635f;
+    renderGroup->Transform.MetersToPixels = width / widthOfMonitorInMeters;
+
+    real32 pixelsToMeters = 0.5f / renderGroup->Transform.MetersToPixels;
+    renderGroup->Transform.ScreenCenter = 0.5f * ToV2i(width, height);
+    renderGroup->MonitorHalfDimInMeters = pixelsToMeters * ToV2i(width, height);
+}
+
+internal void
+MakeOrthographic(render_group *renderGroup, uint32 pixelWidth, uint32 pixelHeight, real32 metersToPixels)
+{
+    real32 pixelsToMeters = 1.0f / metersToPixels;
+
+    renderGroup->Transform.Perspective = false;
+    
+    renderGroup->Transform.FocalLength = 1.0f;
+    renderGroup->Transform.DistanceToTarget = 1.0f;
+    renderGroup->Transform.MetersToPixels = metersToPixels;
+
+    renderGroup->Transform.ScreenCenter = 0.5f * ToV2i(pixelWidth, pixelHeight);
+    renderGroup->MonitorHalfDimInMeters = 0.5f * pixelsToMeters * ToV2i(pixelWidth, pixelHeight);
 }
 
 struct entity_basis_p_result
@@ -1062,14 +1072,23 @@ GetTopLeftPointForEntityBasis(render_transform *transform, v3 p)
 
     v3 entityBaseP = p + transform->OffsetP;
     
-    real32 distanceToPointZ = transform->DistanceToTarget - entityBaseP.z;
-    real32 nearClipPlane = 0.2f;
+    if (transform->Perspective)
+    {
+        real32 distanceToPointZ = transform->DistanceToTarget - entityBaseP.z;
+        real32 nearClipPlane = 0.2f;
 
-    if (distanceToPointZ > nearClipPlane) {
-        v3 projectedXY = ToV3(entityBaseP.xy, 1.0f) * (transform->FocalLength / distanceToPointZ) * transform->MetersToPixels;
-        result.P = transform->ScreenCenter + projectedXY.xy;
-        result.Scale = projectedXY.z;
+        if (distanceToPointZ > nearClipPlane) {
+            v3 projectedXY = ToV3(entityBaseP.xy, 1.0f) * (transform->FocalLength / distanceToPointZ) * transform->MetersToPixels;
+            result.P = transform->ScreenCenter + projectedXY.xy;
+            result.Scale = projectedXY.z;
+            result.IsValid = true;
+        }
+    }
+    else
+    {
+        result.P = transform->ScreenCenter + entityBaseP.xy * transform->MetersToPixels;
         result.IsValid = true;
+        result.Scale = transform->MetersToPixels;
     }
     
     return result;

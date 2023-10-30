@@ -378,18 +378,23 @@ internal void
 FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position chunkP)
 {
     // TODO: how to draw ground chunk res?
-    // TODO: set orthographic display mode here
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
     render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
 
+    real32 width = gameState->World->ChunkDimInMeters.x;
+    real32 height = gameState->World->ChunkDimInMeters.y;
+
+    MakeOrthographic(renderGroup, drawBuffer->Width, drawBuffer->Height, (real32)drawBuffer->Width / width);
+
+    //renderGroup->Transform.DistanceToTarget = 100.0f;
+
     groundBuffer->P = chunkP;
     
     PushDefaultColorFill(renderGroup, ToV4(0,0.3f,0,1));
-    #if 0
+#if 1
 
-    real32 width = gameState->World->ChunkDimInMeters.x;
-    real32 height = gameState->World->ChunkDimInMeters.y;
+    v2 halfDim = 0.5f * ToV2(width, height);
 
     for (int32 chunkOffsetX =  - 1;
          chunkOffsetX <= 1;
@@ -399,7 +404,6 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
              chunkOffsetY <= 1;
              ++chunkOffsetY)
         {
-        
             int32 chunkX = chunkP.ChunkX + chunkOffsetX;
             int32 chunkY = chunkP.ChunkY + chunkOffsetY;
             int32 chunkZ = chunkP.ChunkZ;
@@ -409,15 +413,15 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
     
             v2 center = ToV2((real32)chunkOffsetX * width, (real32)chunkOffsetY * height);
 
-            for (uint32 grassIndex=0; grassIndex < 20; grassIndex++)
+            for (uint32 grassIndex=0; grassIndex < 100; grassIndex++)
             {
                 loaded_bitmap *bitmap;
                 
                 bitmap = gameState->GroundBitmaps + RandomChoice(&series, ArrayCount(gameState->GroundBitmaps));
 
-                v2 grassCenter = center + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
+                v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
-                PushBitmap(renderGroup, bitmap, 4.0f, ToV3(grassCenter));
+                PushBitmap(renderGroup, bitmap, 1.0f, ToV3(grassCenter));
             }
         }
     }
@@ -440,18 +444,15 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
     
             v2 center = ToV2((real32)chunkOffsetX * width, (real32)chunkOffsetY * height);
 
-            for (uint32 grassIndex=0; grassIndex < 20; grassIndex++)
+            for (uint32 grassIndex=0; grassIndex < 50; grassIndex++)
             {
                 loaded_bitmap *bitmap;
                 
                 bitmap = gameState->GrassBitmaps + RandomChoice(&series, ArrayCount(gameState->GrassBitmaps));
 
-                v2 offset = {
-                    
-                };
-                v2 grassCenter = center + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
+                v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
-                PushBitmap(renderGroup, bitmap, 4.0f, ToV3(grassCenter));
+                PushBitmap(renderGroup, bitmap, 0.4f, ToV3(grassCenter));
             }
         }
     }
@@ -1148,6 +1149,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     // TODO: how much push buffer should be
     render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
+    //real32 metersToPixels = ;
+    real32 focalLength = 0.6f;
+    real32 distanceAboveTarget = 15.0f;
+    MakePerspective(renderGroup, drawBuffer->Width, drawBuffer->Height, focalLength, distanceAboveTarget);
 
     
     PushDefaultRenderClear(renderGroup);
@@ -1176,7 +1181,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 #endif
 
 #if 1
-                PushBitmap(renderGroup, bmp, 8.0f, groundDelta);
+                PushBitmap(renderGroup, bmp, gameState->World->ChunkDimInMeters.y, groundDelta);
 #endif
                 
             }

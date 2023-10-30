@@ -1,4 +1,4 @@
-* to be done [2/541]
+* to be done [3/541]
 
 ** DONE Handmade Hero Day 127 - Aligning Rendering Memory
 - [[https://www.youtube.com/watch?v=blcNbU70I9o]]
@@ -15,8 +15,10 @@
 не актуально
 +Сейчас понял, что не понимаю, как уменьшить величину тайла, чтобы поле не было на столько огромное.+
 
-** TODO Handmade Hero Day 129 - Adding Orthographic Projection
+** DONE Handmade Hero Day 129 - Adding Orthographic Projection
 - [[https://www.youtube.com/watch?v=8DX-DPsXvy4]]
+
+Добавлена ортографическая проэкция
 
 ** TODO Handmade Hero Day 130 - Seamless Bilinear Tiling
 - [[https://www.youtube.com/watch?v=odlnqAsclFo]]
