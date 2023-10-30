@@ -15,9 +15,22 @@
    TODO: 
 
    ARCHITECTURE EXPLORATION
-   - Z!
-     - how to go up and down and how to render it
-     - solve puzler from worl_position
+
+   - Rendering
+     - coordinates
+       - screen
+       - world
+       - texture
+     - particles
+     - lighting
+     - final optimisations
+   
+   - Audio
+     - sound effect triggers
+     - ambient sound
+     - music
+   - Asset streaming
+
    - Collision detection
      - detect entry/exit
      - shape defenition
@@ -30,6 +43,7 @@
      - diagrams
      - a little gui, but only a little
 
+   - Z!
 
    - Rudimentary world generation (just what is needed to be done)
      - placement of bg things
@@ -49,12 +63,6 @@
    - Animation, should lead into rendering
      - skeletal animation
      - particle systems
-
-   - Audio
-     - sound effect triggers
-     - ambient sound
-     - music
-   - Asset streaming
 
    PRODUCTION
    - Rendering

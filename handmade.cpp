@@ -9,6 +9,11 @@
 
 global_variable real32 tSine = 0;
 
+// TODO: remove these
+global_variable real32 tileSideInMeters = 1.3f;
+global_variable real32 tileDepthInMeters = 3.0f;
+
+
 #pragma pack(push, 1)
 struct bitmap_header {
     uint16 FileType;
@@ -196,9 +201,6 @@ inline world_position
 ChunkPositionFromTilePosition(world * world, int32 absTileX, int32 absTileY, int32 absTileZ, v3 additionalOffset=ToV3(0,0,0))
 {
     world_position basePosition = {};
-
-    real32 tileSideInMeters = 2.0f;
-    real32 tileDepthInMeters = 3.0f;
 
     v3 tileDim = ToV3(tileSideInMeters, tileSideInMeters, tileDepthInMeters);
     v3 offset = Hadamard(tileDim, ToV3((real32)absTileX, (real32)absTileY, (real32)absTileZ));
@@ -718,15 +720,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         // TODO: remove
         gameState->TypicalFloorHeight = 3.0f;
-
-        real32 tileSideInMeters = 2.0f;
-        real32 tileDepthInMeters = 3.0f;
         
         uint32 tilesPerScreenWidth = 17;
         uint32 tilesPerScreenHeight = 9;
 
         real32 pixelsToMeters = 1.0f / 32.0f;
-        v3 chunkDimInMeters = ToV3(groundBufferWidth * pixelsToMeters, groundBufferHeight * pixelsToMeters, gameState->TypicalFloorHeight);
+        v3 chunkDimInMeters = ToV3((real32)groundBufferWidth * pixelsToMeters, (real32)groundBufferHeight * pixelsToMeters, gameState->TypicalFloorHeight);
 
         
         // TODO: sub arena start partitioning memory space
@@ -741,9 +740,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->NullCollision = MakeNullCollision(gameState);
         gameState->SwordCollision = MakeSimpleGroundedCollision(gameState, 01.f, 0.1f, 0.1f);
         gameState->StairCollision = MakeSimpleGroundedCollision(gameState, tileSideInMeters, 2.0f * tileSideInMeters, 1.2f * gameState->TypicalFloorHeight);
-        gameState->PlayerCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.5f);
-        gameState->MonsterCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.5f);
-        gameState->FamiliarCollision = MakeSimpleGroundedCollision(gameState, 0.75f, 0.4f, 0.1f);
+        gameState->PlayerCollision = MakeSimpleGroundedCollision(gameState, 0.5f, 0.4f, 0.5f);
+        gameState->MonsterCollision = MakeSimpleGroundedCollision(gameState, 0.4f, 0.4f, 0.5f);
+        gameState->FamiliarCollision = MakeSimpleGroundedCollision(gameState, 0.4f, 0.4f, 0.1f);
         gameState->WallCollision = MakeSimpleGroundedCollision(gameState, tileSideInMeters, tileSideInMeters, tileDepthInMeters);
         gameState->StandardRoomCollision = MakeSimpleGroundedCollision(gameState, tilesPerScreenWidth * tileSideInMeters, tilesPerScreenHeight * tileSideInMeters, 0.9f * tileDepthInMeters);
 
@@ -1171,18 +1170,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             loaded_bitmap *bmp = &buf->Bitmap;
             v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
 
-            render_basis *basis = PushStruct(&tranState->TransientArena, render_basis);
-            renderGroup->DefaultBasis = basis;
-            basis->P = groundDelta;
-
             if (groundDelta.z > -1 && groundDelta.z < 1) {
 #if 1
-            PushPieceRectOutline(renderGroup, ToV3(0,0,0), gameState->World->ChunkDimInMeters.xy, chunkColor);
+                PushPieceRectOutline(renderGroup, groundDelta, gameState->World->ChunkDimInMeters.xy, chunkColor);
 #endif
 
-            #if 1
-            PushBitmap(renderGroup, bmp, 8.0f, ToV3(0,0,0));
-            #endif
+#if 1
+                PushBitmap(renderGroup, bmp, 8.0f, groundDelta);
+#endif
                 
             }
 
@@ -1257,9 +1252,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     v3 cameraPosition = Subtract(gameState->World, &gameState->CameraPosition, &simCenterP);
 
-    render_basis *cameraBasis = PushStruct(&tranState->TransientArena, render_basis);
-    renderGroup->DefaultBasis = cameraBasis;
-    cameraBasis->P = ToV3(0,0,0);
+    // render_basis *cameraBasis = PushStruct(&tranState->TransientArena, render_basis);
+    // renderGroup->DefaultBasis = cameraBasis;
+    // cameraBasis->P = ToV3(0,0,0);
     PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(screenBounds), ToV4(0.2f, 0.0f, 0.2f, 1.0f));
     PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(simRegion->Bounds).xy, ToV4(0.4f, 0.0f, 0.4f, 1.0f));
     PushPieceRectOutline(renderGroup, ToV3(0,0,0), GetDim(simRegion->UpdatableBounds).xy, ToV4(1.0f, 0.0f, 1.0f, 1.0f));
@@ -1280,8 +1275,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             move_spec moveSpec = DefaultMoveSpec();
             v3 ddp = {};
 
-            render_basis *basis = PushStruct(&tranState->TransientArena, render_basis);
-            renderGroup->DefaultBasis = basis;
+            //render_basis *basis = PushStruct(&tranState->TransientArena, render_basis);
+            //renderGroup->DefaultBasis = basis;
 
             v3 cameraRelativeGroundP = GetEntityGroundPoint(simEntity) - cameraPosition;
 
@@ -1299,17 +1294,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             {
                 renderGroup->GlobalAlpha = 1.0f - Clamp01MapToRange(fadeBottomStartZ, cameraRelativeGroundP.z, fadeBottomEndZ);
             }
+
+            ////////////////////////////////////////////////////////////////////////////////////////////////////
+            // pre physics entity work
+            ////////////////////////////////////////////////////////////////////////////////////////////////////
             
             switch (simEntity->Type) {
             case EntityType_Wall:
             {
-                v4 wallColor = {1,1,1,1};
-                // real32 halfDepth = simEntity->Collision->TotalVolume.Dim.z * 0.5f;
-                // if (simEntity->P.z < halfDepth && simEntity->P.z > -0.5f*halfDepth) {
-                //     wallColor.a = 1.0f;
-                // }
-                
-                PushBitmap(renderGroup, &gameState->WallDemoBitmap, 2.0f, ToV3(0,0, 0), wallColor);
             } break;
             case EntityType_Sword:
             {
@@ -1321,8 +1313,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     MakeEntityNonSpacial(simEntity);
                     ClearCollisionRulesFor(gameState, simEntity->StorageIndex);
                 }
-
-                PushBitmap(renderGroup, &gameState->SwordDemoBitmap, 0.5f, ToV3(0,0,0));
             } break;
             case EntityType_Hero:
             {
@@ -1332,8 +1322,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     if (conHero->StoreIndex == simEntity->StorageIndex)
                     {
                         moveSpec.UnitMaxAccelVector = true;
-                        moveSpec.Speed = 50.0f;
-                        moveSpec.Drag = 8.0f;
+                        moveSpec.Speed = 14.0f;
+                        moveSpec.Drag = 5.0f;
 
                         ddp = ToV3(conHero->ddPRequest);
 
@@ -1349,19 +1339,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         }
                     }
                 }
-
-                PushBitmap(renderGroup, &heroBitmaps->Character, 5.0f, ToV3(0, 0, 0));
-
-                sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
-                PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 1.0f));
-
-                DrawHitpoints(renderGroup, simEntity);
             } break;
             case EntityType_Monster:
             {
-                PushBitmap(renderGroup, &gameState->EnemyDemoBitmap, 4.0f, ToV3(0, 0, 0));
-
-                DrawHitpoints(renderGroup, simEntity);
             } break;
             case EntityType_Familiar:
             {
@@ -1402,24 +1382,74 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 {
                     simEntity->TBobing -= 2.0f * Pi32;
                 }
+            } break;
+            case EntityType_Stairwell:
+            {
+            } break;
+            case EntityType_Space:
+            {
+            } break;
+            }
 
+            if (!IsSet(simEntity, EntityFlag_Nonspacial) && IsSet(simEntity, EntityFlag_Movable))
+            {
+                MoveEntity(gameState, simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
+            }
+            
+            ////////////////////////////////////////////////////////////////////////////////////////////////////
+            // post physics entity work
+            ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+            
+            renderGroup->Transform.OffsetP = GetEntityGroundPoint(simEntity);
+
+            switch (simEntity->Type) {
+            case EntityType_Wall:
+            {
+                v4 wallColor = {1,1,1,1};
+                // real32 halfDepth = simEntity->Collision->TotalVolume.Dim.z * 0.5f;
+                // if (simEntity->P.z < halfDepth && simEntity->P.z > -0.5f*halfDepth) {
+                //     wallColor.a = 1.0f;
+                // }
+                
+                PushBitmap(renderGroup, &gameState->WallDemoBitmap, 1.4f, ToV3(0,0, 0), wallColor);
+            } break;
+            case EntityType_Sword:
+            {
+                PushBitmap(renderGroup, &gameState->SwordDemoBitmap, 0.5f, ToV3(0,0,0));
+            } break;
+            case EntityType_Hero:
+            {
+                PushBitmap(renderGroup, &heroBitmaps->Character, 1.6f, ToV3(0, 0, 0));
+
+                sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
+                PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 1.0f));
+
+                PushHitpoints(renderGroup, simEntity);
+            } break;
+            case EntityType_Monster:
+            {
+                PushBitmap(renderGroup, &gameState->EnemyDemoBitmap, 2.0f, ToV3(0, 0, 0));
+
+                PushHitpoints(renderGroup, simEntity);
+            } break;
+            case EntityType_Familiar:
+            {
                 PushBitmap(renderGroup, &gameState->FamiliarDemoBitmap, 2.0f, ToV3(0, 0.2f * Sin(13 * simEntity->TBobing), 0));
             } break;
             case EntityType_Stairwell:
             {
                 real32 wallAlpha = 1.0f;
-                // if (simEntity->P.z != 0) {
-                //     wallAlpha = 0.1f;
-                // }
-                
                 PushPieceRect(renderGroup, ToV3(0, 0, 0), simEntity->WalkableDim, ToV4(1,1,0,1));
 
                 // NOTE(vlad): this is hack to make top door in z-space
+                /*
                 render_basis *secondBasis = PushStruct(&tranState->TransientArena, render_basis);
                 secondBasis->P = GetEntityGroundPoint(simEntity);
                 secondBasis->P.z += simEntity->WalkableHeight;
                 renderGroup->DefaultBasis = secondBasis;
                 PushPieceRect(renderGroup, ToV3(0, 0, 0), simEntity->WalkableDim, ToV4(0.5f,0.5f,0, 1.0f));
+                */
             } break;
             case EntityType_Space:
             {
@@ -1431,10 +1461,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             }
 
-            if (!IsSet(simEntity, EntityFlag_Nonspacial) && IsSet(simEntity, EntityFlag_Movable))
-            {
-                MoveEntity(gameState, simRegion, simEntity, input->DtForFrame, &moveSpec, ddp);
-            }
 
             /**
              * TODO: figure out why meters to pixesl here....
@@ -1445,8 +1471,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             real32 entityY = screenCenter.y - entityBaseP.y * gameState->MetersToPixels * zFugde;
             real32 entityZ = -entityBaseP.z * gameState->MetersToPixels;
             */
-
-            basis->P = GetEntityGroundPoint(simEntity);
             
 
             if (false) // draw entity bounds

@@ -11,6 +11,15 @@ ToV2(real32 x, real32 y)
     return res;
 }
 
+inline v2
+ToV2i(uint32 x, uint32 y)
+{
+    v2 res;
+    res.x = (real32)x;
+    res.y = (real32)y;
+    return res;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // operators

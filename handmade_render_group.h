@@ -52,18 +52,6 @@ struct render_environment_map
     real32 PositionZ;
 };
 
-struct render_basis
-{
-    v3 P;
-};
-
-struct render_entity_basis
-{
-    render_basis *Basis;
-    v3 Offset;
-    real32 Scale;
-};
-
 // NOTE: render group entry is a efficient "discriminated union"
 struct render_entry_header
 {
@@ -97,6 +85,8 @@ struct render_entry_coordinate_system
     render_environment_map *Top;
     render_environment_map *Middle;
     render_environment_map *Bottom;
+
+    real32 PixelsToMeters; // TODO need to store this for lighting
 };
 
 struct render_entry_saturation
@@ -106,38 +96,41 @@ struct render_entry_saturation
 
 struct render_entry_rectangle
 {
+    v2 P;
     v2 Dim;
     v4 Color;
-    render_entity_basis EntityBasis;
 };
 
 struct render_entry_bitmap
 {
     loaded_bitmap *Bitmap;
+    v2 P;
     v2 Size;
     v4 Color;
-    render_entity_basis EntityBasis;
 };
 
-struct render_group_camera
+struct render_transform
 {
     real32 FocalLength;
     real32 DistanceToTarget;
+
+    v2 ScreenCenter;
+
+    v3 OffsetP;
+    real32 Scale;
+    
+    real32 MetersToPixels; // translates meters on monitor to pixels on monitor
 };
 
 struct render_group
 {
-    render_group_camera GameCamera;
-    render_group_camera RenderCamera;
-    
-    real32 MetersToPixels; // translates meters on monitor to pixels on monitor
     v2 MonitorHalfDimInMeters;
     
     // camera parameters for render
     real32 GlobalAlpha;
 
-    render_basis *DefaultBasis;
-    
+    render_transform Transform;
+
     uint32 PushBufferSize;
     uint32 MaxPushBufferSize;
     uint8 *PushBufferBase;
