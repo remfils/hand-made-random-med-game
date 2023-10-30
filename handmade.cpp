@@ -740,7 +740,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         gameState->NullCollision = MakeNullCollision(gameState);
         gameState->SwordCollision = MakeSimpleGroundedCollision(gameState, 01.f, 0.1f, 0.1f);
-        gameState->StairCollision = MakeSimpleGroundedCollision(gameState, tileSideInMeters, 2.0f * tileSideInMeters, 1.2f * gameState->TypicalFloorHeight);
+        gameState->StairCollision = MakeSimpleGroundedCollision(gameState, tileSideInMeters, 4.0f * tileSideInMeters, 1.2f * gameState->TypicalFloorHeight);
         gameState->PlayerCollision = MakeSimpleGroundedCollision(gameState, 0.5f, 0.4f, 0.5f);
         gameState->MonsterCollision = MakeSimpleGroundedCollision(gameState, 0.4f, 0.4f, 0.5f);
         gameState->FamiliarCollision = MakeSimpleGroundedCollision(gameState, 0.4f, 0.4f, 0.1f);
@@ -1445,7 +1445,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             case EntityType_Stairwell:
             {
                 real32 wallAlpha = 1.0f;
-                PushPieceRect(renderGroup, ToV3(0, 0, 0), simEntity->WalkableDim, ToV4(1,1,0,1));
+
+                real32 stairStepWidth = simEntity->WalkableDim.y / 10.0f;
+                real32 stairStepDepth = gameState->TypicalFloorHeight / 10.0f;
+                v2 stairSize = ToV2(simEntity->WalkableDim.x, stairStepWidth);
+
+                for (uint32 stairIndex=0; stairIndex<10; stairIndex++)
+                {
+                    PushPieceRect(renderGroup, ToV3(0, stairIndex*stairStepWidth - 0.5f * simEntity->WalkableDim.y, stairIndex * stairStepDepth), stairSize, ToV4(1,1,0,1));
+                }
 
                 // NOTE(vlad): this is hack to make top door in z-space
                 /*
