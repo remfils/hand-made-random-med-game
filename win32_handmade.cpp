@@ -254,7 +254,7 @@ Win32ResizeDIBSection(win32_offscreen_buffer *buffer, int width, int height)
     int bitmapMemorySize = buffer->Width * buffer->Height * buffer->BytesPerPixel;
     buffer->Memory = VirtualAlloc(0, bitmapMemorySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-    buffer->Pitch = buffer->Width * buffer->BytesPerPixel;
+    buffer->Pitch = Align16(buffer->Width * buffer->BytesPerPixel);
 
     // drawing stuff
 
@@ -264,8 +264,8 @@ Win32ResizeDIBSection(win32_offscreen_buffer *buffer, int width, int height)
 internal void
 Win32DisplayBufferInWindow(HDC deviceContext, int windowWidth, int windowHeight, win32_offscreen_buffer *buffer, int x, int y, int width, int height)
 {
-    int offsetX = 10;
-    int offsetY = 10;
+    int offsetX = 0;
+    int offsetY = 0;
 
     if ((windowWidth > buffer->Width * 1.2) &&
         (windowHeight > buffer->Height * 1.2))
@@ -943,8 +943,8 @@ Win32DebugDrawVertical(win32_offscreen_buffer *backbuffer, int x, int top, int b
 internal void
 Win32DebugSyncDisplay(win32_offscreen_buffer *backbuffer, int soundCursorsCount, win32_debug_sound *soundCursors, win32_sound_output *SoundOutput, real32 targetSecondsPerFrame)
 {
-    int padX = 16;
-    int padY = 16;
+    int padX = 0;
+    int padY = 0;
     
     int top = padY;
     int bottom = 100;
@@ -985,7 +985,7 @@ Win32SetEXERootPath(win32_state *winState)
 internal void
 HandleDebugCycleCounter(game_memory *memory)
 {
-#if HANDMADE_SLOW
+#if 0
 
     OutputDebugStringA("DEBUG CYCLES\n");
     
@@ -1230,7 +1230,7 @@ int CALLBACK WinMain(
                 monitorRefreshHz = win32RefreshRate;
             }
     
-            int32 gameUpdateHz = monitorRefreshHz;
+            int32 gameUpdateHz = monitorRefreshHz / 2;
             real32 targetSecondsPerFrame = (real32)1.0f / (real32)gameUpdateHz;
             
             int xOffset = 0;
@@ -1711,10 +1711,17 @@ int CALLBACK WinMain(
                 if (secondsElapsedForFrame < targetSecondsPerFrame)
                 {
                     LARGE_INTEGER sleepStartTime = Win32GetWallClock();
-                    
-                    if (sleepIsGranural)
+
+                    // TODO: investigate missed framerates
+                    // if (sleepIsGranural)
+                    if (false)
                     {
                         DWORD sleepMs = (DWORD)((targetSecondsPerFrame - secondsElapsedForFrame) * (real32)1000.0f);
+
+                        char buffer[256];
+                        sprintf_s(buffer, "Starrt sleep %u\n", sleepMs);
+                        OutputDebugStringA(buffer);
+                        
                         Sleep(sleepMs);
                     }
 
@@ -1732,7 +1739,7 @@ int CALLBACK WinMain(
                 }
                 else
                 {
-                    int64 DEBUG_VS_CRAP = 0;
+                    OutputDebugStringA("Missed frame");
                 }
 
                 LARGE_INTEGER endCounter = Win32GetWallClock();

@@ -1,6 +1,6 @@
-* to be done [0/541]
+* to be done [1/541]
 
-** TODO Handmade Hero Day 127 - Aligning Rendering Memory
+** DONE Handmade Hero Day 127 - Aligning Rendering Memory
 - [[https://www.youtube.com/watch?v=blcNbU70I9o]]
 
 ** TODO Handmade Hero Day 128 - Push-time Transforms

@@ -698,6 +698,8 @@ game_memory *DebugGlobalMemory;
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
+    PlatformAddEntry = memory->PlatformAddEntry;
+    PlatformCompleteAllWork = memory->PlatformCompleteAllWork;
 
     #if HANDMADE_SLOW
     DebugGlobalMemory = memory;
@@ -709,13 +711,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     game_state *gameState = (game_state *)memory->PermanentStorage;
     
-    // real32 metersToPixels = (real32)TileSideInPixels / (real32)TileSideInMeters;
-    
     if (!memory->IsInitialized)
     {
-        PlatformAddEntry = memory->PlatformAddEntry;
-        PlatformCompleteAllWork = memory->PlatformCompleteAllWork;
-        
         uint32 groundBufferWidth = 256;
         uint32 groundBufferHeight = 256;
 

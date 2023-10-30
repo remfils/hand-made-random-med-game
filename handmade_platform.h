@@ -38,6 +38,8 @@ typedef double real64;
 #define Terabytes(val) (Gigabytes((val)*1024LL))
 #define ArrayCount(array) (sizeof(array) / sizeof((array)[0]))
 
+#define Align16(value) ((value + 15) & ~15)
+
 
 #if HANDMADE_SLOW
 #define Assert(expression) if (!(expression)) {*(int *)0 = 0;}
