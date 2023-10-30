@@ -3,6 +3,8 @@
 ** DONE Handmade Hero Day 127 - Aligning Rendering Memory
 - [[https://www.youtube.com/watch?v=blcNbU70I9o]]
 
+Исправлена отрисовка полос. Добавлено четкое вырванивание по пискелям.
+
 ** TODO Handmade Hero Day 128 - Push-time Transforms
 - [[https://www.youtube.com/watch?v=8L21Tyh53BQ]]
 

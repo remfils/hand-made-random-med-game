@@ -3,10 +3,25 @@
 
 // todo: remove math.h
 
+inline real32
+FloorReal32(real32 val)
+{
+    real32 res = floorf(val);
+    return res;
+}
+
 inline int32
 FloorReal32ToInt32(real32 val)
 {
     int32 res = (int32)floorf(val);
+    return res;
+}
+
+
+inline real32
+CeilReal32(real32 val)
+{
+    real32 res = ceilf(val);
     return res;
 }
 

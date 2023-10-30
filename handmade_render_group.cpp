@@ -1407,8 +1407,11 @@ TiledRenderGroup(platform_work_queue *renderQueue, loaded_bitmap *outputTarget, 
             clipRect.MaxX = tileX * tileWidth + tileWidth;
             clipRect.MaxY = tileY * tileHeight + tileHeight;
 
-            if (clipRect.MaxX > outputTarget->Width) {
+            if (tileX == tileCountX - 1) {
                 clipRect.MaxX = outputTarget->Width;
+            }
+            if (tileY == tileCountY - 1) {
+                clipRect.MaxY = outputTarget->Height;
             }
             
             tile_render_work *workItem = workArray + workIndex++;
