@@ -1013,10 +1013,11 @@ RenderSquareDot(loaded_bitmap *drawBuffer, real32 dotPositionX, real32 dotPositi
 
 
 internal render_group*
-AllocateRenderGroup(memory_arena *arena, uint32 maxPushBufferSize, uint32 resolutionPixelX, uint32 resolutionPixelY)
+AllocateRenderGroup(memory_arena *arena, game_assets * assets, uint32 maxPushBufferSize, uint32 resolutionPixelX, uint32 resolutionPixelY)
 {
     render_group *result = PushStruct(arena, render_group);
 
+    result->Assets = assets;
     result->Transform = {};
     
     result->Transform.OffsetP = ToV3(0,0,0);
@@ -1146,6 +1147,20 @@ PushBitmap(render_group *grp, loaded_bitmap *bmp, real32 height, v3 offset, v4 c
             color.a = grp->GlobalAlpha;
             renderEntry->Color = color;
         }
+    }
+}
+
+inline void
+PushBitmap(render_group *group, game_asset_id GAI, real32 height, v3 offset, v4 color = {1,1,1,1})
+{
+    loaded_bitmap *bitmap = GetBitmap(group->Assets, GAI);
+    if (bitmap)
+    {
+        PushBitmap(group, bitmap, height, offset, color);
+    }
+    else
+    {
+        LoadAsset(group->Assets, GAI);
     }
 }
 

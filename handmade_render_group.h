@@ -124,8 +124,11 @@ struct render_transform
     real32 MetersToPixels; // translates meters on monitor to pixels on monitor
 };
 
+struct game_assets;
 struct render_group
 {
+    game_assets *Assets;
+    
     v2 MonitorHalfDimInMeters;
     
     // camera parameters for render

@@ -1,4 +1,4 @@
-* to be done [5/541]
+* to be done [6/541]
 
 ** DONE Handmade Hero Day 127 - Aligning Rendering Memory
 - [[https://www.youtube.com/watch?v=blcNbU70I9o]]
@@ -26,7 +26,10 @@
 ** DONE Handmade Hero Day 131 - Asynchronous Ground Chunk Composition
 - [[https://www.youtube.com/watch?v=6blXhvPIz5g]]
 
-** TODO Handmade Hero Day 132 - Asset Streaming
+Добавлена процедура отрисови пола в отдельном потоке с низким
+приоритетом.
+
+** DONE Handmade Hero Day 132 - Asset Streaming
 - [[https://www.youtube.com/watch?v=qyHM36RQxAI]]
 
 ** TODO Handmade Hero Day 133 - Preliminary Asset Structuring

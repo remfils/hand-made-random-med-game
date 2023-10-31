@@ -199,6 +199,60 @@ struct ground_buffer
     loaded_bitmap Bitmap;
 };
 
+enum game_asset_id
+{
+    GAI_Backdrop,
+    GAI_Grass,
+    GAI_Ground,
+    GAI_Loaded,
+    GAI_EnemyDemo,
+    GAI_FamiliarDemo,
+    GAI_WallDemo,
+    GAI_SwordDemo,
+    GAI_Stairway,
+
+
+    GAI_Count
+};
+
+enum asset_state
+{
+    AssetState_Unloaded,
+    AssetState_Queued,
+    AssetState_Loaded
+};
+
+struct asset_handle
+{
+    asset_state State;
+    loaded_bitmap *Bitmap;
+};
+
+struct game_assets
+{
+    struct transient_state *TranState;
+    
+    memory_arena Arena;
+
+    debug_platform_read_entire_file *ReadEntireFile;
+    
+    loaded_bitmap *Bitmaps[GAI_Count];
+    
+    hero_bitmaps Hero[4];
+    
+    loaded_bitmap Grass[2];
+    loaded_bitmap Ground[2];
+};
+
+inline loaded_bitmap*
+GetBitmap(game_assets *assets, game_asset_id gai)
+{
+    loaded_bitmap *result = assets->Bitmaps[gai];
+    return result;
+}
+
+
+
 struct game_state
 {
     int XOffset;
@@ -210,7 +264,6 @@ struct game_state
     real32 tSine;
 
     real32 CurrentTime;
-
 
     real32 TypicalFloorHeight;
 
@@ -224,21 +277,9 @@ struct game_state
 
     uint32 LowEntityCount;
     low_entity LowEntities[100000];
-
-    loaded_bitmap GrassBitmaps[2];
-    loaded_bitmap GroundBitmaps[2];
-    
-    loaded_bitmap LoadedBitmap;
-    loaded_bitmap EnemyDemoBitmap;
-    loaded_bitmap FamiliarDemoBitmap;
-    loaded_bitmap WallDemoBitmap;
-    loaded_bitmap SwordDemoBitmap;
-    loaded_bitmap StairwayBitmap;
     
     world_position GroundP;    
     
-    hero_bitmaps HeroBitmaps[4];
-
     // must be a power of two
     pairwise_collision_rule *CollisionRuleHash[256];
     pairwise_collision_rule *FirstFreeCollisionRule;
@@ -265,6 +306,10 @@ struct task_with_memory
 
 struct transient_state
 {
+    game_assets Assets;
+
+    thread_context Thread;
+
     bool32 IsInitialized;
     memory_arena TransientArena;
     uint32 GroundBufferCount;
@@ -375,6 +420,8 @@ SubArena(memory_arena *result, memory_arena *arena, memory_index size, memory_in
     result->Used = 0;
     result->TempCount = 0;
 }
+
+internal void LoadAsset(game_assets *assets, game_asset_id GAI);
 
 /* void GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_input *input); */
 

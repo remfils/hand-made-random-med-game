@@ -419,7 +419,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
         loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
         // TODO: (uint32)GetArenaSizeRemaining(&task->Arena) is not safe
         // TODO(vlad): why allocate group is not working here?
-        render_group *renderGroup = AllocateRenderGroup(&task->Arena, 0, drawBuffer->Width, drawBuffer->Height);
+        render_group *renderGroup = AllocateRenderGroup(&task->Arena, &tranState->Assets, 0, drawBuffer->Width, drawBuffer->Height);
 
         real32 width = gameState->World->ChunkDimInMeters.x;
         real32 height = gameState->World->ChunkDimInMeters.y;
@@ -463,7 +463,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 {
                     loaded_bitmap *bitmap;
                 
-                    bitmap = gameState->GroundBitmaps + RandomChoice(&series, ArrayCount(gameState->GroundBitmaps));
+                    bitmap = tranState->Assets.Ground + RandomChoice(&series, ArrayCount(tranState->Assets.Ground));
 
                     v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
@@ -494,7 +494,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 {
                     loaded_bitmap *bitmap;
                 
-                    bitmap = gameState->GrassBitmaps + RandomChoice(&series, ArrayCount(gameState->GrassBitmaps));
+                    bitmap = tranState->Assets.Grass + RandomChoice(&series, ArrayCount(tranState->Assets.Grass));
 
                     v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
@@ -744,6 +744,86 @@ MakeSphereDiffuseMap(loaded_bitmap *bitmap)
     }
 }
 
+struct load_asset_work
+{
+    task_with_memory *Task;
+    game_assets *Assets;
+    game_asset_id GAI;
+    loaded_bitmap *Bitmap;
+    char *FileName;
+    int32 TopDownAlignX;
+    int32 TopDownAlignY;
+};
+
+internal PLATFORM_WORK_QUEUE_CALLBACK(DoLoadAssetWork)
+{
+    load_asset_work *work = (load_asset_work *)data;
+
+    // TODO: remove this
+    thread_context *thread = 0;
+
+    *work->Bitmap = DEBUGLoadBMP(thread, work->Assets->ReadEntireFile, work->FileName, work->TopDownAlignX, work->TopDownAlignY);
+
+    // TODO: fence
+    work->Assets->Bitmaps[work->GAI] = work->Bitmap;
+
+    EndTaskWithMemory(work->Task);
+}
+
+internal void
+LoadAsset(game_assets *assets, game_asset_id GAI)
+{
+
+    task_with_memory *task = BeginTaskWithMemory(assets->TranState);
+    
+    if (task)
+    {
+        load_asset_work *work = PushStruct(&task->Arena, load_asset_work);
+
+        work->Assets = assets;
+        work->GAI = GAI;
+        work->Bitmap = PushStruct(&task->Arena, loaded_bitmap);
+        work->Task = task;
+
+        switch (GAI)
+        {
+        case GAI_Loaded: {
+            work->FileName = "../data/new-bg-code.bmp";
+            work->TopDownAlignX = 0;
+            work->TopDownAlignY = 0;
+        } break;
+        case GAI_EnemyDemo: {
+            work->FileName = "../data/test2/enemy_demo.bmp";
+            work->TopDownAlignX = 61;
+            work->TopDownAlignY = 197;
+        }   break;
+        case GAI_FamiliarDemo: {
+            work->FileName = "../data/test2/familiar_demo.bmp";
+            work->TopDownAlignX = 58;
+            work->TopDownAlignY = 203;
+        }   break;
+        case GAI_WallDemo: {
+            work->FileName = "../data/test2/wall_demo.bmp";
+            work->TopDownAlignX = 64 / 2;
+            work->TopDownAlignY = 64 / 2;
+        }   break;
+        case GAI_SwordDemo: {
+            work->FileName = "../data/test2/sword_demo.bmp";
+            work->TopDownAlignX = 12;
+            work->TopDownAlignY = 60;
+        }   break;
+        case GAI_Stairway: {
+            work->FileName = "../data/old_random_med_stuff/Stairway2.bmp";
+            work->TopDownAlignX = 0;
+            work->TopDownAlignY = 0;
+        }   break;
+        }
+
+        PlatformAddEntry(assets->TranState->LowPriorityQueue, DoLoadAssetWork, work);
+    }
+}
+
+
 #if HANDMADE_SLOW
 game_memory *DebugGlobalMemory;
 #endif
@@ -795,25 +875,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         gameState->FamiliarCollision = MakeSimpleGroundedCollision(gameState, 0.4f, 0.4f, 0.1f);
         gameState->WallCollision = MakeSimpleGroundedCollision(gameState, tileSideInMeters, tileSideInMeters, tileDepthInMeters);
         gameState->StandardRoomCollision = MakeSimpleGroundedCollision(gameState, tilesPerScreenWidth * tileSideInMeters, tilesPerScreenHeight * tileSideInMeters, 0.9f * tileDepthInMeters);
-
-
-        gameState->LoadedBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/new-bg-code.bmp", 0, 0);
-
-        gameState->EnemyDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/enemy_demo.bmp", 61, 197);
-        gameState->FamiliarDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/familiar_demo.bmp", 58, 203);
-        gameState->WallDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/wall_demo.bmp", 64 / 2, 64 / 2);
-        gameState->SwordDemoBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/test2/sword_demo.bmp", 12, 60);
-        gameState->StairwayBitmap = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/Stairway2.bmp", 0, 0);
-
-        gameState->GrassBitmaps[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass001.bmp");
-        gameState->GrassBitmaps[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass002.bmp");
-        gameState->GroundBitmaps[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground001.bmp");
-        gameState->GroundBitmaps[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground002.bmp");
-        
-        gameState->HeroBitmaps[0].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_right.bmp", 60, 195);
-        gameState->HeroBitmaps[1].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_up.bmp", 60, 185);
-        gameState->HeroBitmaps[2].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_left.bmp", 60, 195);
-        gameState->HeroBitmaps[3].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_down.bmp", 60, 185);
         
         gameState->XOffset = 0;
         gameState->YOffset = 0;
@@ -1036,7 +1097,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     transient_state *tranState = (transient_state *)memory->TransientStorage;
     if (!tranState->IsInitialized) {
         InitializeArena(&tranState->TransientArena, memory->TransientStorageSize-sizeof(transient_state), (uint8 *)memory->TransientStorage + sizeof(transient_state));
-
         tranState->LowPriorityQueue = memory->LowPriorityQueue;
         tranState->HighPriorityQueue = memory->HighPriorityQueue;
 
@@ -1046,6 +1106,22 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             task->IsUsed = false;
             SubArena(&task->Arena, &tranState->TransientArena, Megabytes(3));
         }
+
+        //LoadAssets(&tranState->Assets, tranState, thread, memory->DEBUG_PlatformReadEntireFile);
+
+        tranState->Assets.ReadEntireFile = memory->DEBUG_PlatformReadEntireFile;
+        tranState->Assets.TranState = tranState;
+        SubArena(&tranState->Assets.Arena, &tranState->TransientArena, Megabytes(64));
+
+        tranState->Assets.Grass[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass001.bmp");
+        tranState->Assets.Grass[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass002.bmp");
+        tranState->Assets.Ground[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground001.bmp");
+        tranState->Assets.Ground[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground002.bmp");
+        
+        tranState->Assets.Hero[0].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_right.bmp", 60, 195);
+        tranState->Assets.Hero[1].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_up.bmp", 60, 185);
+        tranState->Assets.Hero[2].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_left.bmp", 60, 195);
+        tranState->Assets.Hero[3].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_down.bmp", 60, 185);
 
 
         // NOTE: make square for now
@@ -1205,7 +1281,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     // TODO: how much push buffer should be
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, &tranState->Assets, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
     //real32 metersToPixels = ;
     real32 focalLength = 0.6f;
     real32 distanceAboveTarget = 15.0f;
@@ -1332,7 +1408,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             // TODO: draw entities on one Z-plane
 
-            hero_bitmaps *heroBitmaps = &gameState->HeroBitmaps[simEntity->FacingDirection];
+            hero_bitmaps *heroBitmaps = &tranState->Assets.Hero[simEntity->FacingDirection];
 
             move_spec moveSpec = DefaultMoveSpec();
             v3 ddp = {};
@@ -1474,11 +1550,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 //     wallColor.a = 1.0f;
                 // }
                 
-                PushBitmap(renderGroup, &gameState->WallDemoBitmap, 1.4f, ToV3(0,0, 0), wallColor);
+                PushBitmap(renderGroup, GAI_WallDemo, 1.4f, ToV3(0,0, 0), wallColor);
             } break;
             case EntityType_Sword:
             {
-                PushBitmap(renderGroup, &gameState->SwordDemoBitmap, 0.5f, ToV3(0,0,0));
+                PushBitmap(renderGroup, GAI_SwordDemo, 0.5f, ToV3(0,0,0));
             } break;
             case EntityType_Hero:
             {
@@ -1491,13 +1567,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             case EntityType_Monster:
             {
-                PushBitmap(renderGroup, &gameState->EnemyDemoBitmap, 2.0f, ToV3(0, 0, 0));
+                PushBitmap(renderGroup, GAI_EnemyDemo, 2.0f, ToV3(0, 0, 0));
 
                 PushHitpoints(renderGroup, simEntity);
             } break;
             case EntityType_Familiar:
             {
-                PushBitmap(renderGroup, &gameState->FamiliarDemoBitmap, 2.0f, ToV3(0, 0.2f * Sin(13 * simEntity->TBobing), 0));
+                PushBitmap(renderGroup, GAI_FamiliarDemo, 2.0f, ToV3(0, 0.2f * Sin(13 * simEntity->TBobing), 0));
             } break;
             case EntityType_Stairwell:
             {
