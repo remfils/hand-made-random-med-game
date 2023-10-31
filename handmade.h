@@ -267,7 +267,9 @@ struct transient_state
     uint32 EnvMapHeight;
     render_environment_map EnvMaps[3];
 
-    platform_work_queue *RenderQueue;
+    platform_work_queue *HighPriorityQueue;
+    platform_work_queue *LowPriorityQueue;
+    uint64_t Padding;
 };
 
 

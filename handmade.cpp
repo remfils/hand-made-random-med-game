@@ -385,9 +385,8 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
     real32 width = gameState->World->ChunkDimInMeters.x;
     real32 height = gameState->World->ChunkDimInMeters.y;
 
-    MakeOrthographic(renderGroup, drawBuffer->Width, drawBuffer->Height, (real32)drawBuffer->Width / width);
-
-    //renderGroup->Transform.DistanceToTarget = 100.0f;
+    // NOTE: account for pixel margin for bilinear blend
+    MakeOrthographic(renderGroup, drawBuffer->Width, drawBuffer->Height, ((real32)drawBuffer->Width - 2.0f) / width);
 
     groundBuffer->P = chunkP;
     
@@ -395,6 +394,14 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 #if 1
 
     v2 halfDim = 0.5f * ToV2(width, height);
+
+    v4 color = {1,1,1,1};
+
+    if (chunkP.ChunkZ == 0) {
+        color = {1,1,1,1};
+    } else {
+        color = {1.0f - (real32)chunkP.ChunkZ / 10.0f,1.0f - (real32)chunkP.ChunkZ / 10.0f,1.0f - (real32)chunkP.ChunkZ / 10.0f,1};
+    }
 
     for (int32 chunkOffsetX =  - 1;
          chunkOffsetX <= 1;
@@ -407,7 +414,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             int32 chunkX = chunkP.ChunkX + chunkOffsetX;
             int32 chunkY = chunkP.ChunkY + chunkOffsetY;
             int32 chunkZ = chunkP.ChunkZ;
-            
+
             // TODO: look into wang hashing here
             random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
@@ -421,7 +428,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 
                 v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
-                PushBitmap(renderGroup, bitmap, 1.0f, ToV3(grassCenter));
+                PushBitmap(renderGroup, bitmap, 1.0f, ToV3(grassCenter), color);
             }
         }
     }
@@ -459,7 +466,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 
     #endif
 
-    TiledRenderGroup(tranState->RenderQueue, drawBuffer, renderGroup);
+    TiledRenderGroup(tranState->LowPriorityQueue, drawBuffer, renderGroup);
 
     EndTemporaryMemory(renderMemory);
 }
@@ -988,7 +995,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     if (!tranState->IsInitialized) {
         InitializeArena(&tranState->TransientArena, memory->TransientStorageSize-sizeof(transient_state), (uint8 *)memory->TransientStorage + sizeof(transient_state));
 
-        tranState->RenderQueue = memory->RenderQueue;
+        tranState->LowPriorityQueue = memory->LowPriorityQueue;
+        tranState->HighPriorityQueue = memory->HighPriorityQueue;
 
 
         // NOTE: make square for now
@@ -1176,7 +1184,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
 
             if (groundDelta.z > -1 && groundDelta.z < 1) {
-#if 1
+#if 0
                 PushPieceRectOutline(renderGroup, groundDelta, gameState->World->ChunkDimInMeters.xy, chunkColor);
 #endif
 
@@ -1450,6 +1458,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 real32 stairStepDepth = gameState->TypicalFloorHeight / 10.0f;
                 v2 stairSize = ToV2(simEntity->WalkableDim.x, stairStepWidth);
 
+                PushPieceRect(renderGroup, ToV3(0, 0, 0), simEntity->WalkableDim, ToV4(0.2f,0.2f,0,1));
+
                 for (uint32 stairIndex=0; stairIndex<10; stairIndex++)
                 {
                     PushPieceRect(renderGroup, ToV3(0, stairIndex*stairStepWidth - 0.5f * simEntity->WalkableDim.y, stairIndex * stairStepDepth), stairSize, ToV4(1,1,0,1));
@@ -1693,7 +1703,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // PushSaturationFilter(renderGroup, (1.0f + Cos(4.0f * angle) * 0.5f));
     // PushSaturationFilter(renderGroup, 0.5f + Cos(2.0f * angle) * 0.5f);
 
-    TiledRenderGroup(tranState->RenderQueue, drawBuffer, renderGroup);
+    TiledRenderGroup(tranState->HighPriorityQueue, drawBuffer, renderGroup);
 
     EndSim(simRegion, gameState);
 

@@ -600,6 +600,7 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
 
     __m128 zero_4x = _mm_set1_ps(0.0f);
     __m128 half_4x = _mm_set1_ps(0.5f);
+    __m128 pixelMarginOffset_4x = _mm_set1_ps(0.5f);
     __m128 one_4x = _mm_set1_ps(1.0f);
     __m128 four_4x = _mm_set1_ps(4.0f);
 
@@ -614,8 +615,8 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     __m128 nYAxisx_4x = _mm_set1_ps(nYAxis.x);
     __m128 nYAxisy_4x = _mm_set1_ps(nYAxis.y);
 
-    __m128 width_4x = _mm_set1_ps((real32(texture->Width)));
-    __m128 height_4x = _mm_set1_ps((real32(texture->Height)));
+    __m128 width_4x = _mm_set1_ps((real32(texture->Width)) - 2.0f);
+    __m128 height_4x = _mm_set1_ps((real32(texture->Height)) - 2.0f);
 
     __m128i maskFF_4x = _mm_set1_epi32(0xff);
 
@@ -671,8 +672,10 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 u_4x = _mm_min_ps(_mm_max_ps(u_4x, zero_4x), one_4x);
                 v_4x = _mm_min_ps(_mm_max_ps(v_4x, zero_4x), one_4x);
 
-                __m128 tx_4x = _mm_mul_ps(u_4x, width_4x);
-                __m128 ty_4x = _mm_mul_ps(v_4x, height_4x);
+                // NOTE: images should have 1 pixel margin so that
+                // bilinear blend is ok
+                __m128 tx_4x = _mm_add_ps(pixelMarginOffset_4x, _mm_mul_ps(u_4x, width_4x));
+                __m128 ty_4x = _mm_add_ps(pixelMarginOffset_4x, _mm_mul_ps(v_4x, height_4x));
 
                 __m128i imgX_4x = _mm_cvttps_epi32(tx_4x);
                 __m128i imgY_4x = _mm_cvttps_epi32(ty_4x);
@@ -1074,6 +1077,8 @@ GetTopLeftPointForEntityBasis(render_transform *transform, v3 p)
     
     if (transform->Perspective)
     {
+        // if (1) { transform->DistanceToTarget = 100.0f; };
+        
         real32 distanceToPointZ = transform->DistanceToTarget - entityBaseP.z;
         real32 nearClipPlane = 0.2f;
 
