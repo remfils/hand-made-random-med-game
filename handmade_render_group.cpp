@@ -1022,6 +1022,10 @@ AllocateRenderGroup(memory_arena *arena, uint32 maxPushBufferSize, uint32 resolu
     result->Transform.OffsetP = ToV3(0,0,0);
     result->Transform.Scale = 1.0f;
 
+    if (maxPushBufferSize == 0) {
+        maxPushBufferSize = (uint32)GetArenaSizeRemaining(arena);
+    }
+    
     result->PushBufferBase = (uint8 *)PushSize(arena, maxPushBufferSize);
     result->MaxPushBufferSize = maxPushBufferSize;
     result->PushBufferSize = 0;
@@ -1456,6 +1460,25 @@ TiledRenderGroup(platform_work_queue *renderQueue, loaded_bitmap *outputTarget, 
     }
 
     PlatformCompleteAllWork(renderQueue);
+}
+
+internal void
+SingleThreadedRenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup)
+{
+    Assert(((uintptr)outputTarget->Memory & 15) == 0);
+
+    rectangle2i clipRect;
+    clipRect.MinX = 0;
+    clipRect.MinY = 0;
+    clipRect.MaxX = outputTarget->Width;
+    clipRect.MaxY = outputTarget->Height;
+
+    tile_render_work work;
+    work.ClipRect = clipRect;
+    work.RenderGroup = renderGroup;
+    work.OutputTarget = outputTarget;
+    
+    DoTiledRenderWork(0, &work);
 }
 
 inline v2

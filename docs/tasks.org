@@ -1,4 +1,4 @@
-* to be done [3/541]
+* to be done [5/541]
 
 ** DONE Handmade Hero Day 127 - Aligning Rendering Memory
 - [[https://www.youtube.com/watch?v=blcNbU70I9o]]
@@ -20,10 +20,10 @@
 
 Добавлена ортографическая проэкция
 
-** TODO Handmade Hero Day 130 - Seamless Bilinear Tiling
+** DONE Handmade Hero Day 130 - Seamless Bilinear Tiling
 - [[https://www.youtube.com/watch?v=odlnqAsclFo]]
 
-** TODO Handmade Hero Day 131 - Asynchronous Ground Chunk Composition
+** DONE Handmade Hero Day 131 - Asynchronous Ground Chunk Composition
 - [[https://www.youtube.com/watch?v=6blXhvPIz5g]]
 
 ** TODO Handmade Hero Day 132 - Asset Streaming

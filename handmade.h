@@ -85,9 +85,9 @@
 #define Minimum(A, B) ((A < B) ? (A) : (B))
 #define Maximum(A, B) ((A > B) ? (A) : (B))
 
-#define PushStruct(arena, type) (type *)PushSize_(arena, sizeof(type))
-#define PushArray(arena, count,  type) (type *)PushSize_(arena, count * sizeof(type))
-#define PushSize(arena, size) PushSize_(arena, size)
+#define PushStruct(arena, type, ...) (type *)PushSize_(arena, sizeof(type), ##__VA_ARGS__)
+#define PushArray(arena, count,  type, ...) (type *)PushSize_(arena, count * sizeof(type), ##__VA_ARGS__)
+#define PushSize(arena, size, ...) PushSize_(arena, size, ##__VA_ARGS__)
 
 /* void Debug_PlatformFreeFileMemory(void *memory); */
 /* debug_read_file_result Debug_PlatformReadEntireFile(char *filename); */
@@ -256,12 +256,21 @@ struct game_state
     loaded_bitmap TestNormal;
 };
 
+struct task_with_memory
+{
+    bool32 IsUsed;
+    memory_arena Arena;
+    temporary_memory TempMemory;
+};
+
 struct transient_state
 {
     bool32 IsInitialized;
     memory_arena TransientArena;
     uint32 GroundBufferCount;
     ground_buffer *GroundBuffers;
+    
+    task_with_memory Tasks[4];
 
     uint32 EnvMapWidth;
     uint32 EnvMapHeight;
@@ -270,15 +279,34 @@ struct transient_state
     platform_work_queue *HighPriorityQueue;
     platform_work_queue *LowPriorityQueue;
     uint64_t Padding;
+
 };
+
+inline memory_index
+GetMemoryBitAlignmentOffset(memory_arena *arena, memory_index alignment)
+{
+    memory_index ptr = (memory_index)(arena->Base + arena->Used);
+    memory_index alignOffset = 0;
+    memory_index alignMask = alignment - 1;
+    if (ptr & alignMask)
+    {
+        alignOffset = alignment - (ptr & alignMask);
+    }
+
+    return alignOffset;
+}
 
 
 inline void*
-PushSize_(memory_arena *arena, memory_index size)
+PushSize_(memory_arena *arena, memory_index size, memory_index alignment = 4)
 {
-    Assert((arena->Used + size) <= arena->Size);
+    memory_index alignOffset = GetMemoryBitAlignmentOffset(arena, alignment);
 
-    void *result = arena->Base + arena->Used;
+    size += alignOffset;
+    
+    Assert((arena->Used + size) <= arena->Size);
+    
+    void *result = (void *) (arena->Base + arena->Used + alignOffset);
     arena->Used += size;
     return result;
 }
@@ -317,10 +345,35 @@ EndTemporaryMemory(temporary_memory tempMem)
     arena->TempCount--;
 }
 
+internal void
+InitializeArena(memory_arena *arena, memory_index size, void *base)
+{
+    arena->Size = size;
+    arena->Base = (uint8 *)base;
+    arena->Used = 0;
+    arena->TempCount = 0;
+}
+
+inline memory_index
+GetArenaSizeRemaining(memory_arena *arena, memory_index alignment=4)
+{
+    memory_index result = arena->Size - (arena->Used + GetMemoryBitAlignmentOffset(arena, alignment));
+    return result;
+}
+
 inline void
 CheckArena(memory_arena *arena)
 {
     Assert(arena->TempCount == 0);
+}
+
+inline void
+SubArena(memory_arena *result, memory_arena *arena, memory_index size, memory_index alignment = 4)
+{
+    result->Size = size;
+    result->Base = (uint8 *)PushSize_(arena, size, alignment);
+    result->Used = 0;
+    result->TempCount = 0;
 }
 
 /* void GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_input *input); */
