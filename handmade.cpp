@@ -1406,7 +1406,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 real32 stairStepDepth = gameState->TypicalFloorHeight / 10.0f;
                 v2 stairSize = ToV2(simEntity->WalkableDim.x, stairStepWidth);
 
-                PushPieceRect(renderGroup, ToV3(0, 0, 0), simEntity->WalkableDim, ToV4(0.2f,0.2f,0,1));
+                PushPieceRect(renderGroup, ToV3(0, 0, 0), simEntity->WalkableDim, ToV4(0.2f,0.2f,0,1), true);
 
                 for (uint32 stairIndex=0; stairIndex<10; stairIndex++)
                 {

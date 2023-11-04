@@ -89,6 +89,7 @@ struct render_entry_rectangle
     v2 P;
     v2 Dim;
     v4 Color;
+    bool32 renderFringes;
 };
 
 struct render_entry_bitmap

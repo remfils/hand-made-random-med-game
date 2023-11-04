@@ -4,12 +4,17 @@
 
 
 internal void
-RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color, rectangle2i clipRect, bool32 even)
+RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color, rectangle2i clipRect, bool32 even, bool32 renderFringes=false)
 {
     int32 minX = RoundReal32ToInt32(realMinX);
     int32 minY = RoundReal32ToInt32(realMinY);
     int32 maxX = RoundReal32ToInt32(realMaxX);
     int32 maxY = RoundReal32ToInt32(realMaxY);
+
+    if (renderFringes)
+    {
+        int32 debug = 0;
+    }
     
     if (minX < 0)
     {
@@ -44,10 +49,11 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     __m128i startClipMask = _mm_set1_epi8(-1);
     __m128i endClipMask = _mm_set1_epi8(-1);
 
-    if (fillRect.MinX & 3)
+    int32 minXRemainder = fillRect.MinX & 3;
+    if (minXRemainder)
     {
         fillRect.MinX = fillRect.MinX & ~3;
-        switch (fillRect.MinX & 3)
+        switch (minXRemainder)
         {
         case 1: startClipMask = _mm_slli_si128(startClipMask, 1 * 4); break; // shift is in bytes 
         case 2: startClipMask = _mm_slli_si128(startClipMask, 2 * 4); break; // shift is in bytes 
@@ -55,22 +61,28 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
         }
     }
 
-    if (fillRect.MaxX & 3)
+    int32 maxXRemainder = fillRect.MaxX & 3;
+    if (maxXRemainder)
     {
         fillRect.MaxX = (fillRect.MaxX & ~3) + 4;
-        switch (fillRect.MaxX & 3)
+        switch (maxXRemainder)
         {
-        case 1: endClipMask = _mm_slli_si128(endClipMask, 3 * 4); break; // shift is in bytes 
-        case 2: endClipMask = _mm_slli_si128(endClipMask, 2 * 4); break; // shift is in bytes 
-        case 3: endClipMask = _mm_slli_si128(endClipMask, 1 * 4); break; // shift is in bytes 
+        case 1: endClipMask = _mm_srli_si128(endClipMask, 3 * 4); break; // shift is in bytes 
+        case 2: endClipMask = _mm_srli_si128(endClipMask, 2 * 4); break; // shift is in bytes 
+        case 3: endClipMask = _mm_srli_si128(endClipMask, 1 * 4); break; // shift is in bytes 
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    // fill base rectangle
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     minX = fillRect.MinX;
     minY = fillRect.MinY;
     maxX = fillRect.MaxX;
     maxY = fillRect.MaxY;
 
+    v4 originalColor = color;
     color.rgb *= color.a;
 
     real32 val255 = 255.0f;
@@ -92,6 +104,11 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
 
     __m128 zero_4x = _mm_set1_ps(0.0f);
     __m128i maskFF_4x = _mm_set1_epi32(0xff);
+
+    if (renderFringes)
+    {
+        int32 debug = 0;
+    }
     
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
     for (int y = minY; y < maxY; y+=2)
@@ -1126,7 +1143,7 @@ PushBitmap(render_group *group, bitmap_id id, real32 height, v3 offset, v4 color
 
 
 inline void
-PushPieceRect(render_group *grp, v3 offset, v2 dim, v4 color)
+PushPieceRect(render_group *grp, v3 offset, v2 dim, v4 color, bool32 renderFringes=false)
 {
     v3 p = (offset - 0.5f * ToV3(dim));
     
@@ -1141,6 +1158,7 @@ PushPieceRect(render_group *grp, v3 offset, v2 dim, v4 color)
             color.a = grp->GlobalAlpha;
             renderEntry->Color = color;
             renderEntry->Dim = basisResult.Scale * dim;
+            renderEntry->renderFringes = renderFringes;
         }
     }
 }
@@ -1325,7 +1343,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i 
         } break;
         case RenderEntryType_render_entry_rectangle: {
             render_entry_rectangle *entry = (render_entry_rectangle *) voidEntry;
-            RenderRectangle(outputTarget, entry->P.x, entry->P.y, entry->P.x + entry->Dim.x, entry->P.y + entry->Dim.y, entry->Color, clipRect, even);
+            RenderRectangle(outputTarget, entry->P.x, entry->P.y, entry->P.x + entry->Dim.x, entry->P.y + entry->Dim.y, entry->Color, clipRect, even, entry->renderFringes);
             
             baseAddress += sizeof(*entry);
         } break;
