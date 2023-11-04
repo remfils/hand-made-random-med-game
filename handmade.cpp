@@ -1,7 +1,8 @@
 #include "handmade.h"
+#include "handmade_platform.cpp"
+#include "handmade_assets.cpp"
 #include "handmade_render_group.cpp"
 #include "handmade_world.cpp"
-#include "random.h"
 #include "handmade_sim_region.cpp"
 #include "handmade_sim_entity.cpp"
 
@@ -13,136 +14,6 @@ global_variable real32 tSine = 0;
 global_variable real32 tileSideInMeters = 1.3f;
 global_variable real32 tileDepthInMeters = 3.0f;
 
-
-#pragma pack(push, 1)
-struct bitmap_header {
-    uint16 FileType;
-    uint32 FileSize;
-    uint16 Reserved1;
-    uint16 Reserved2;
-    uint32 BitmapOffset;
-    uint32 Size;
-    int32 Width;
-    int32 Height;
-    uint16 Planes;
-    uint16 BitsPerPixel;
-    uint32 Compression; // wtf
-    uint32 ImageSize; // wtf
-    uint32 XPixelsPerMeter; // wtf
-    uint32 YPixelsPerMeter; // wtf
-    uint32 ColorsInColorTable; // wtf
-    uint32 ImportantColorCount; // wtf
-    uint32 RedMask;
-    uint32 GreenMask;
-    uint32 BlueMask;
-    uint32 AlphaMask;
-};
-#pragma pack(pop)
-
-
-inline v2
-FromTopDownToBottomUpAlign(loaded_bitmap *image, v2 topDownAlignment)
-{
-    v2 result = {topDownAlignment.x, (real32)(image->Height - 1) - topDownAlignment.y};
-    return result;
-}
-
-internal loaded_bitmap
-DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireFile, char *filename, int32 topDownAlignX, int32 topDownAlignY)
-{
-    // NOTE: bitmap order is AABBGGRR, bottom row is first
-    
-    debug_read_file_result readResult = ReadEntireFile(thread, filename);
-    
-    loaded_bitmap result = {};
-
-    if (readResult.Content)
-    {
-        void *content = readResult.Content;
-        
-        bitmap_header *header = (bitmap_header *) content;
-        
-        result.Width = header->Width;
-        result.Height = header->Height;
-        result.WidthOverHeight = SafeRatio_1((real32)result.Width, (real32)result.Height);
-
-        result.AlignPercent = ToV2(
-                                 SafeRatio_0((real32)topDownAlignX, (real32)result.Width),
-                                 SafeRatio_0((real32)((result.Height - 1) - topDownAlignY), (real32)result.Height)
-                                 );
-        uint8 *pixels = (uint8 *)((uint8 *)content + header->BitmapOffset);
-        result.Memory = pixels;
-
-        uint32 redMask = header->RedMask;
-        uint32 greenMask = header->GreenMask;
-        uint32 blueMask = header->BlueMask;
-        uint32 alphaMask = ~(redMask | greenMask | blueMask);
-
-        bit_scan_result redScan = FindLeastSignificantSetBit(redMask);
-        bit_scan_result greenScan = FindLeastSignificantSetBit(greenMask);
-        bit_scan_result blueScan = FindLeastSignificantSetBit(blueMask);
-        bit_scan_result alphaScan = FindLeastSignificantSetBit(alphaMask);
-
-        uint32 alphaShiftUp = 24;
-        int32 alphaShiftDown = (int32)alphaScan.Index;
-        
-        uint32 redShiftUp = 16;
-        int32 redShiftDown = (int32)redScan.Index;
-
-        uint32 greenShiftUp = 8;
-        int32 greenShiftDown = (int32)greenScan.Index;
-
-        uint32 blueShiftUp = 0;
-        int32 blueShiftDown = (int32)blueScan.Index;
-
-
-        // NOTE: why this is not needed?
-        uint32 *srcDest = (uint32 *)pixels;
-        for (int32 y =0;
-             y < header->Height;
-             ++y)
-        {
-            for (int32 x =0;
-                 x < header->Width;
-                 ++x)
-            {
-                uint32 color = *srcDest;
-
-                v4 texel = {
-                    (real32)((color & redMask) >> redShiftDown),
-                    (real32)((color & greenMask) >> greenShiftDown),
-                    (real32)((color & blueMask) >> blueShiftDown),
-                    (real32)((color & alphaMask) >> alphaShiftDown)
-                };
-
-                texel = SRGB255_ToLinear1(texel);
-                texel.rgb *= texel.a;
-                texel = Linear_1_ToSRGB255(texel);
-
-                *srcDest++ = ((uint32)(texel.a + 0.5f) << alphaShiftUp)
-                    | ((uint32)(texel.r + 0.5f) << redShiftUp)
-                    | ((uint32)(texel.g + 0.5f) << greenShiftUp)
-                    | ((uint32)(texel.b + 0.5f) << blueShiftUp);
-            }
-        }
-    }
-    else
-    {
-        // todo: error
-    }
-
-    result.Pitch = result.Width * BITMAP_BYTES_PER_PIXEL;
-
-    return result;
-}
-
-internal loaded_bitmap
-DEBUGLoadBMP(thread_context *thread, debug_platform_read_entire_file ReadEntireFile, char *filename)
-{
-    loaded_bitmap result = DEBUGLoadBMP(thread, ReadEntireFile, filename, 0, 0);
-    result.AlignPercent = ToV2(0.5f, 0.5f);
-    return result;
-}
 
 struct add_low_entity_result
 {
@@ -389,7 +260,7 @@ BeginTaskWithMemory(transient_state *tranState)
     return foundTask;
 }
 
-inline void
+internal void
 EndTaskWithMemory(task_with_memory *task)
 {
      EndTemporaryMemory(task->TempMemory);
@@ -405,9 +276,46 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(DoFillGrounChunkWork)
     EndTaskWithMemory(work->Task);
 }
 
+#if 0
+internal int32
+PickBest(int32 infoCount, asset_bitmap_info *infos, asset_tag *tags, real32 *matchVector, real32 *weightVector)
+{
+    int32 bestIndex = 0;
+    real32 bestDiff = Real32Maximum;
+    
+    for (int32 infoIndex=0;
+         infoIndex < infoCount;
+         infoIndex++)
+    {
+        real32 totalWeightedDiff = 0.0f;
+        asset_bitmap_info *info = infos + infoIndex;
+        for (uint32 tagIndex = info->FirstTagIndex;
+             tagIndex < info->OnePastLastTagIndex;
+             tagIndex++)
+        {
+            asset_tag *tag = tags + tagIndex;
+            real32 diff = matchVector[tag->ID] - tag->Value;
+            real32 weightedDifference = weightVector[tag->ID] * AbsoluteValue(diff);
+
+            totalWeightedDiff += weightedDifference;
+        }
+
+        if (bestDiff > totalWeightedDiff)
+        {
+            bestDiff = totalWeightedDiff;
+            bestIndex = infoIndex;
+        }
+    }
+
+    return bestIndex;
+}
+
+#endif
+
 internal void
 FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position chunkP)
 {
+#if 1
     task_with_memory *task = BeginTaskWithMemory(tranState);
     
     if (task)
@@ -419,7 +327,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
         loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
         // TODO: (uint32)GetArenaSizeRemaining(&task->Arena) is not safe
         // TODO(vlad): why allocate group is not working here?
-        render_group *renderGroup = AllocateRenderGroup(&task->Arena, &tranState->Assets, 0, drawBuffer->Width, drawBuffer->Height);
+        render_group *renderGroup = AllocateRenderGroup(&task->Arena, tranState->Assets, 0, drawBuffer->Width, drawBuffer->Height);
 
         real32 width = gameState->World->ChunkDimInMeters.x;
         real32 height = gameState->World->ChunkDimInMeters.y;
@@ -430,7 +338,6 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
         groundBuffer->P = chunkP;
     
         PushDefaultColorFill(renderGroup, ToV4(0,0.3f,0,1));
-#if 1
 
         v2 halfDim = 0.5f * ToV2(width, height);
 
@@ -463,7 +370,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 {
                     loaded_bitmap *bitmap;
                 
-                    bitmap = tranState->Assets.Ground + RandomChoice(&series, ArrayCount(tranState->Assets.Ground));
+                    bitmap = tranState->Assets->Ground + RandomChoice(&series, ArrayCount(tranState->Assets->Ground));
 
                     v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
@@ -494,7 +401,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
                 {
                     loaded_bitmap *bitmap;
                 
-                    bitmap = tranState->Assets.Grass + RandomChoice(&series, ArrayCount(tranState->Assets.Grass));
+                    bitmap = tranState->Assets->Grass + RandomChoice(&series, ArrayCount(tranState->Assets->Grass));
 
                     v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
@@ -503,14 +410,16 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             }
         }
 
-        work->OutputTarget = drawBuffer;
-        work->RenderGroup = renderGroup;
-        work->Task = task;
-
-        PlatformAddEntry(tranState->LowPriorityQueue, DoFillGrounChunkWork, work);
-
-#endif
+        if (AllBitmapsAreValid(renderGroup))
+        {
+            work->OutputTarget = drawBuffer;
+            work->RenderGroup = renderGroup;
+            work->Task = task;
+        
+            PlatformAddEntry(tranState->LowPriorityQueue, DoFillGrounChunkWork, work);
+        }
     }
+#endif
 }
 
 internal void
@@ -744,86 +653,6 @@ MakeSphereDiffuseMap(loaded_bitmap *bitmap)
     }
 }
 
-struct load_asset_work
-{
-    task_with_memory *Task;
-    game_assets *Assets;
-    game_asset_id GAI;
-    loaded_bitmap *Bitmap;
-    char *FileName;
-    int32 TopDownAlignX;
-    int32 TopDownAlignY;
-};
-
-internal PLATFORM_WORK_QUEUE_CALLBACK(DoLoadAssetWork)
-{
-    load_asset_work *work = (load_asset_work *)data;
-
-    // TODO: remove this
-    thread_context *thread = 0;
-
-    *work->Bitmap = DEBUGLoadBMP(thread, work->Assets->ReadEntireFile, work->FileName, work->TopDownAlignX, work->TopDownAlignY);
-
-    // TODO: fence
-    work->Assets->Bitmaps[work->GAI] = work->Bitmap;
-
-    EndTaskWithMemory(work->Task);
-}
-
-internal void
-LoadAsset(game_assets *assets, game_asset_id GAI)
-{
-
-    task_with_memory *task = BeginTaskWithMemory(assets->TranState);
-    
-    if (task)
-    {
-        load_asset_work *work = PushStruct(&task->Arena, load_asset_work);
-
-        work->Assets = assets;
-        work->GAI = GAI;
-        work->Bitmap = PushStruct(&task->Arena, loaded_bitmap);
-        work->Task = task;
-
-        switch (GAI)
-        {
-        case GAI_Loaded: {
-            work->FileName = "../data/new-bg-code.bmp";
-            work->TopDownAlignX = 0;
-            work->TopDownAlignY = 0;
-        } break;
-        case GAI_EnemyDemo: {
-            work->FileName = "../data/test2/enemy_demo.bmp";
-            work->TopDownAlignX = 61;
-            work->TopDownAlignY = 197;
-        }   break;
-        case GAI_FamiliarDemo: {
-            work->FileName = "../data/test2/familiar_demo.bmp";
-            work->TopDownAlignX = 58;
-            work->TopDownAlignY = 203;
-        }   break;
-        case GAI_WallDemo: {
-            work->FileName = "../data/test2/wall_demo.bmp";
-            work->TopDownAlignX = 64 / 2;
-            work->TopDownAlignY = 64 / 2;
-        }   break;
-        case GAI_SwordDemo: {
-            work->FileName = "../data/test2/sword_demo.bmp";
-            work->TopDownAlignX = 12;
-            work->TopDownAlignY = 60;
-        }   break;
-        case GAI_Stairway: {
-            work->FileName = "../data/old_random_med_stuff/Stairway2.bmp";
-            work->TopDownAlignX = 0;
-            work->TopDownAlignY = 0;
-        }   break;
-        }
-
-        PlatformAddEntry(assets->TranState->LowPriorityQueue, DoLoadAssetWork, work);
-    }
-}
-
-
 #if HANDMADE_SLOW
 game_memory *DebugGlobalMemory;
 #endif
@@ -832,6 +661,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
     PlatformAddEntry = memory->PlatformAddEntry;
     PlatformCompleteAllWork = memory->PlatformCompleteAllWork;
+    
+    DEBUG_PlatformFreeFileMemory = memory->DEBUG_PlatformFreeFileMemory;
+    DEBUG_ReadEntireFile = memory->DEBUG_PlatformReadEntireFile;
+    DEBUG_PlatformWriteEntireFile = memory->DEBUG_PlatformWriteEntireFile;
 
     #if HANDMADE_SLOW
     DebugGlobalMemory = memory;
@@ -1093,13 +926,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         memory->IsInitialized = true;
     }
 
-    Assert(sizeof(transient_state) <= memory->TransientStorageSize);
     transient_state *tranState = (transient_state *)memory->TransientStorage;
+    
+    Assert(sizeof(transient_state) <= memory->TransientStorageSize);
     if (!tranState->IsInitialized) {
         InitializeArena(&tranState->TransientArena, memory->TransientStorageSize-sizeof(transient_state), (uint8 *)memory->TransientStorage + sizeof(transient_state));
+
         tranState->LowPriorityQueue = memory->LowPriorityQueue;
         tranState->HighPriorityQueue = memory->HighPriorityQueue;
-
+        
         for (uint32 taskIndex=0; taskIndex < ArrayCount(tranState->Tasks); taskIndex++)
         {
             task_with_memory *task = tranState->Tasks + taskIndex;
@@ -1109,20 +944,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         //LoadAssets(&tranState->Assets, tranState, thread, memory->DEBUG_PlatformReadEntireFile);
 
-        tranState->Assets.ReadEntireFile = memory->DEBUG_PlatformReadEntireFile;
-        tranState->Assets.TranState = tranState;
-        SubArena(&tranState->Assets.Arena, &tranState->TransientArena, Megabytes(64));
-
-        tranState->Assets.Grass[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass001.bmp");
-        tranState->Assets.Grass[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/grass002.bmp");
-        tranState->Assets.Ground[0] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground001.bmp");
-        tranState->Assets.Ground[1] = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/ground002.bmp");
-        
-        tranState->Assets.Hero[0].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_right.bmp", 60, 195);
-        tranState->Assets.Hero[1].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_up.bmp", 60, 185);
-        tranState->Assets.Hero[2].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_left.bmp", 60, 195);
-        tranState->Assets.Hero[3].Character = DEBUGLoadBMP(thread, memory->DEBUG_PlatformReadEntireFile, "../data/old_random_med_stuff/stand_down.bmp", 60, 185);
-
+        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(64), tranState);
 
         // NOTE: make square for now
         int32 diffuseWidth = 128;
@@ -1281,7 +1103,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     // TODO: how much push buffer should be
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, &tranState->Assets, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
     //real32 metersToPixels = ;
     real32 focalLength = 0.6f;
     real32 distanceAboveTarget = 15.0f;
@@ -1299,6 +1121,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     rectangle3 cameraBoundsInMeters = RectCenterHalfDim(ToV3(0,0,0), ToV3(screenBounds.Max, 1));
 
     v4 chunkColor = {1.0f,1.0f,0.0f, 1.0f};
+
     for (uint32 groundBufferIndex=0;
          groundBufferIndex < tranState->GroundBufferCount;
          groundBufferIndex++)
@@ -1408,7 +1231,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             // TODO: draw entities on one Z-plane
 
-            hero_bitmaps *heroBitmaps = &tranState->Assets.Hero[simEntity->FacingDirection];
+            hero_bitmaps *heroBitmaps = &tranState->Assets->Hero[simEntity->FacingDirection];
 
             move_spec moveSpec = DefaultMoveSpec();
             v3 ddp = {};
@@ -1550,11 +1373,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 //     wallColor.a = 1.0f;
                 // }
                 
-                PushBitmap(renderGroup, GAI_WallDemo, 1.4f, ToV3(0,0, 0), wallColor);
+                PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_WallDemo), 1.4f, ToV3(0,0, 0), wallColor);
             } break;
             case EntityType_Sword:
             {
-                PushBitmap(renderGroup, GAI_SwordDemo, 0.5f, ToV3(0,0,0));
+                PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_SwordDemo), 0.5f, ToV3(0,0,0));
             } break;
             case EntityType_Hero:
             {
@@ -1567,13 +1390,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             case EntityType_Monster:
             {
-                PushBitmap(renderGroup, GAI_EnemyDemo, 2.0f, ToV3(0, 0, 0));
+                PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_EnemyDemo), 2.0f, ToV3(0, 0, 0));
 
                 PushHitpoints(renderGroup, simEntity);
             } break;
             case EntityType_Familiar:
             {
-                PushBitmap(renderGroup, GAI_FamiliarDemo, 2.0f, ToV3(0, 0.2f * Sin(13 * simEntity->TBobing), 0));
+                PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_FamiliarDemo), 2.0f, ToV3(0, 0.2f * Sin(13 * simEntity->TBobing), 0));
             } break;
             case EntityType_Stairwell:
             {

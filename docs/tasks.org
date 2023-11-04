@@ -1,4 +1,4 @@
-* to be done [6/541]
+* to be done [8/541]
 
 ** DONE Handmade Hero Day 127 - Aligning Rendering Memory
 - [[https://www.youtube.com/watch?v=blcNbU70I9o]]
@@ -32,10 +32,14 @@
 ** DONE Handmade Hero Day 132 - Asset Streaming
 - [[https://www.youtube.com/watch?v=qyHM36RQxAI]]
 
-** TODO Handmade Hero Day 133 - Preliminary Asset Structuring
+** DONE Handmade Hero Day 133 - Preliminary Asset Structuring
 - [[https://www.youtube.com/watch?v=u0LjxqHmvkk]]
 
-** TODO Handmade Hero Day 134 - Mapping Assets to Bitmaps
+Начало структурирования картинок - добавлена (не используется) схема
+по выбору наиболее подходящих картинок по тагам - таки это свойства
+типа высоты, ширины или чего угодно другого (даже стоимости).
+
+** DONE Handmade Hero Day 134 - Mapping Assets to Bitmaps
 - [[https://www.youtube.com/watch?v=AdscwVnyaQw]]
 
 ** TODO Handmade Hero Day 135 - Typed Asset Arrays

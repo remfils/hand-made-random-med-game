@@ -16,10 +16,9 @@
 
   just a partial list of stuff
  */
-#include <stdint.h>
 
-#include <malloc.h>
 #include <windows.h>
+#include <malloc.h>
 #include <xinput.h>
 #include <dsound.h>
 #include <stdio.h>
@@ -342,7 +341,7 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(Debug_PlatformReadEntireFile)
                 }
                 else
                 {
-                    Debug_PlatformFreeFileMemory(thread, result.Content);
+                    Debug_PlatformFreeFileMemory(result.Content);
                     result.Content = 0;
                 }
 
@@ -1223,9 +1222,6 @@ int CALLBACK WinMain(
 
         if (windowHandle)
         {
-
-            thread_context thread = {};
-            
             HDC refreshDC = GetDC(windowHandle);
             int win32RefreshRate = GetDeviceCaps(refreshDC, VREFRESH);
             if (win32RefreshRate > 1)
@@ -1562,7 +1558,7 @@ int CALLBACK WinMain(
                 if (game.UpdateAndRender)
                 {
                     // TODO: clear 
-                    game.UpdateAndRender(&thread, &gameMemory, &buf, newInput);
+                    game.UpdateAndRender(&gameMemory, &buf, newInput);
 
                     HandleDebugCycleCounter(&gameMemory);
                 }
@@ -1655,7 +1651,7 @@ int CALLBACK WinMain(
 
                     if (game.GetSoundSamples)
                     {
-                        game.GetSoundSamples(&thread, &gameMemory, &soundBuffer);
+                        game.GetSoundSamples(&gameMemory, &soundBuffer);
                     }
 
 #if HANDMADE_INTERNAL

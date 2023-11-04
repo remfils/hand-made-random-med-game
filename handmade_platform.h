@@ -1,8 +1,13 @@
+#if _MSC_VER
+#define COMPILER_MSVC 1
+#endif
+
 #include <stdint.h>
 #include <limits.h>
 #include <float.h>
 
-#if _MSC_VER
+#if COMPILER_MSVC
+#include <windows.h>
 #include <intrin.h>
 #endif
 
@@ -65,7 +70,7 @@ typedef struct debug_cycle_counter
 
 extern struct game_memory *DebugGlobalMemory;
 
-#if _MSC_VER
+#if COMPILER_MSVC
 #define BEGIN_TIMED_BLOCK(ID) uint64 startCycleCount##ID = __rdtsc();
 #define END_TIMED_BLOCK(ID) DebugGlobalMemory->DebugCounters[DebugCounter_##ID].CycleCount += __rdtsc() - startCycleCount##ID; DebugGlobalMemory->DebugCounters[DebugCounter_##ID].HitCount++;
 #define END_TIMED_BLOCK_COUNTED(ID, count) DebugGlobalMemory->DebugCounters[DebugCounter_##ID].CycleCount += __rdtsc() - startCycleCount##ID; DebugGlobalMemory->DebugCounters[DebugCounter_##ID].HitCount += count;
@@ -84,11 +89,6 @@ extern struct game_memory *DebugGlobalMemory;
 #define Assert(expression)
 #endif
 
-
-struct thread_context
-{
-    int Placeholder;  
-};
 
 struct debug_read_file_result
 {
@@ -111,6 +111,28 @@ struct game_sound_output_buffer
     int16 *Samples;
     int SampleCount;
     int SamplesPerSecond;
+};
+
+struct memory_arena
+{
+    memory_index Size;
+    uint8 *Base;
+    memory_index Used;
+
+    int32 TempCount;
+};
+
+struct temporary_memory
+{
+    memory_arena *Arena;
+    memory_index Used;
+};
+
+struct task_with_memory
+{
+    bool32 IsUsed;
+    memory_arena Arena;
+    temporary_memory TempMemory;
 };
 
 struct game_button_state
@@ -177,13 +199,13 @@ typedef void platform_complete_all_work(platform_work_queue *queue);
 typedef PLATFORM_WORK_QUEUE_CALLBACK(platform_work_queue_callback);
 
 
-#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(thread_context *thread, void *memory)
+#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(void *memory)
 typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(debug_platform_free_file_memory);
 
-#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(thread_context *thread, char *filename)
+#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(char *filename)
 typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
 
-#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(thread_context *thread, char *filename, uint32 memorySize, void *memory)
+#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(char *filename, uint32 memorySize, void *memory)
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 
 
@@ -191,6 +213,9 @@ platform_work_queue *RenderQueue;
 global_variable platform_add_entry *PlatformAddEntry;
 global_variable platform_complete_all_work *PlatformCompleteAllWork;
 
+global_variable debug_platform_read_entire_file *DEBUG_ReadEntireFile;
+global_variable debug_platform_free_file_memory *DEBUG_PlatformFreeFileMemory;
+global_variable debug_platform_write_entire_file *DEBUG_PlatformWriteEntireFile;
 
 struct game_memory
 {
@@ -205,6 +230,7 @@ struct game_memory
 
     uint64 TransientStorageSize;
     void *TransientStorage; // should be initialized to zero
+    
     debug_platform_free_file_memory *DEBUG_PlatformFreeFileMemory;
     debug_platform_read_entire_file *DEBUG_PlatformReadEntireFile;
     debug_platform_write_entire_file *DEBUG_PlatformWriteEntireFile;
@@ -218,9 +244,9 @@ struct game_memory
 
 
 
-#define GAME_UPDATE_AND_RENDER(name) void name(thread_context *thread, game_memory *memory, game_offscreen_buffer *buffer, game_input *input)
+#define GAME_UPDATE_AND_RENDER(name) void name(game_memory *memory, game_offscreen_buffer *buffer, game_input *input)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 
-#define GAME_GET_SOUND_SAMPLES(name) void name(thread_context *thread, game_memory *memory, game_sound_output_buffer *soundBuffer)
+#define GAME_GET_SOUND_SAMPLES(name) void name(game_memory *memory, game_sound_output_buffer *soundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 

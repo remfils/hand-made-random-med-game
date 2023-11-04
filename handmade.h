@@ -75,10 +75,11 @@
 #include <math.h>
 
 #include "handmade_platform.h"
-#include "handmade_platform.cpp"
 #include "handmade_intrinsics.h"
 #include "handmade_math.h"
+#include "handmade_assets.h"
 #include "handmade_render_group.h"
+#include "random.h"
 
 
 
@@ -107,25 +108,6 @@ inline game_controller_input *GetController(game_input *input, int controllerInd
 #include "handmade_world.h"
 #include "handmade_sim_region.h"
 
-struct memory_arena
-{
-    memory_index Size;
-    uint8 *Base;
-    memory_index Used;
-
-    int32 TempCount;
-};
-
-struct temporary_memory
-{
-    memory_arena *Arena;
-    memory_index Used;
-};
-
-struct hero_bitmaps
-{
-    loaded_bitmap Character;
-};
 
 /*
 struct high_entity
@@ -199,60 +181,6 @@ struct ground_buffer
     loaded_bitmap Bitmap;
 };
 
-enum game_asset_id
-{
-    GAI_Backdrop,
-    GAI_Grass,
-    GAI_Ground,
-    GAI_Loaded,
-    GAI_EnemyDemo,
-    GAI_FamiliarDemo,
-    GAI_WallDemo,
-    GAI_SwordDemo,
-    GAI_Stairway,
-
-
-    GAI_Count
-};
-
-enum asset_state
-{
-    AssetState_Unloaded,
-    AssetState_Queued,
-    AssetState_Loaded
-};
-
-struct asset_handle
-{
-    asset_state State;
-    loaded_bitmap *Bitmap;
-};
-
-struct game_assets
-{
-    struct transient_state *TranState;
-    
-    memory_arena Arena;
-
-    debug_platform_read_entire_file *ReadEntireFile;
-    
-    loaded_bitmap *Bitmaps[GAI_Count];
-    
-    hero_bitmaps Hero[4];
-    
-    loaded_bitmap Grass[2];
-    loaded_bitmap Ground[2];
-};
-
-inline loaded_bitmap*
-GetBitmap(game_assets *assets, game_asset_id gai)
-{
-    loaded_bitmap *result = assets->Bitmaps[gai];
-    return result;
-}
-
-
-
 struct game_state
 {
     int XOffset;
@@ -297,18 +225,9 @@ struct game_state
     loaded_bitmap TestNormal;
 };
 
-struct task_with_memory
-{
-    bool32 IsUsed;
-    memory_arena Arena;
-    temporary_memory TempMemory;
-};
-
 struct transient_state
 {
-    game_assets Assets;
-
-    thread_context Thread;
+    game_assets *Assets;
 
     bool32 IsInitialized;
     memory_arena TransientArena;
@@ -421,8 +340,8 @@ SubArena(memory_arena *result, memory_arena *arena, memory_index size, memory_in
     result->TempCount = 0;
 }
 
-internal void LoadAsset(game_assets *assets, game_asset_id GAI);
-
 /* void GameUpdateAndRender(game_memory *memory, game_offscreen_buffer *buffer, game_input *input); */
 
 /* void GameGetSoundSamples(game_memory *memory, game_sound_output_buffer *soundBuffer); */
+internal task_with_memory* BeginTaskWithMemory(transient_state *tranState);
+internal void EndTaskWithMemory(task_with_memory *task);

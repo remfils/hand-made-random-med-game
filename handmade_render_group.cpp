@@ -2,48 +2,6 @@
 #define MMi(a, i) ((int *)&a)[i]
 
 
-inline v4
-SRGB255_ToLinear1(v4 color)
-{
-    v4 result;
-
-    real32 inv255 = 1.0f / 255.0f;
-
-    result.r = Square(color.r * inv255);
-    result.g = Square(color.g * inv255);
-    result.b = Square(color.b * inv255);
-    result.a = color.a * inv255;
-    
-    return result;
-}
-
-inline v4
-Linear_1_ToSRGB255(v4 color)
-{
-    v4 result;
-
-    real32 val255 = 255.0f;
-    
-    result.r = SquareRoot(color.r) * val255;
-    result.g = SquareRoot(color.g) * val255;
-    result.b = SquareRoot(color.b) * val255;
-    result.a = color.a * val255;
-
-    return result;
-}
-
-inline v4
-Unpack4x8(uint32 packed)
-{
-    v4 result = {
-        (real32)((packed >> 16) & 0xff),
-        (real32)((packed >> 8) & 0xff),
-        (real32)((packed >> 0) & 0xff),
-        (real32)((packed >> 24) & 0xff)
-    };
-    return result;
-}
-
 
 internal void
 RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color, rectangle2i clipRect, bool32 even)
@@ -1030,6 +988,7 @@ AllocateRenderGroup(memory_arena *arena, game_assets * assets, uint32 maxPushBuf
     result->PushBufferBase = (uint8 *)PushSize(arena, maxPushBufferSize);
     result->MaxPushBufferSize = maxPushBufferSize;
     result->PushBufferSize = 0;
+    result->MissingResourceCount = 0;
 
     
     result->GlobalAlpha = 1.0f;
@@ -1082,7 +1041,7 @@ GetTopLeftPointForEntityBasis(render_transform *transform, v3 p)
     
     if (transform->Perspective)
     {
-        // if (1) { transform->DistanceToTarget = 100.0f; };
+        if (0) { transform->DistanceToTarget = 100.0f; }; // DEBUG: HIGH CAMERA VIEW
         
         real32 distanceToPointZ = transform->DistanceToTarget - entityBaseP.z;
         real32 nearClipPlane = 0.2f;
@@ -1151,16 +1110,17 @@ PushBitmap(render_group *grp, loaded_bitmap *bmp, real32 height, v3 offset, v4 c
 }
 
 inline void
-PushBitmap(render_group *group, game_asset_id GAI, real32 height, v3 offset, v4 color = {1,1,1,1})
+PushBitmap(render_group *group, bitmap_id id, real32 height, v3 offset, v4 color = {1,1,1,1})
 {
-    loaded_bitmap *bitmap = GetBitmap(group->Assets, GAI);
+    loaded_bitmap *bitmap = GetBitmap(group->Assets, id);
     if (bitmap)
     {
         PushBitmap(group, bitmap, height, offset, color);
     }
     else
     {
-        LoadAsset(group->Assets, GAI);
+        LoadBitmap(group->Assets, id);
+        group->MissingResourceCount++;
     }
 }
 
@@ -1515,5 +1475,12 @@ inline rectangle2
 GetCameraRectangleAtTarget(render_group *group)
 {
     rectangle2 result = GetCameraRectangleAtDistance(group, group->Transform.DistanceToTarget);
+    return result;
+}
+
+inline bool32
+AllBitmapsAreValid(render_group *renderGroup)
+{
+    bool32 result = renderGroup->MissingResourceCount == 0;
     return result;
 }

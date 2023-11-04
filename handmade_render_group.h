@@ -24,16 +24,6 @@ tag to search by to handle z
 
 
 #define BITMAP_BYTES_PER_PIXEL 4
-struct loaded_bitmap
-{
-    v2 AlignPercent;
-    real32 WidthOverHeight;
-    
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
-    void *Memory;
-};
 
 
 enum render_entry_type
@@ -107,6 +97,7 @@ struct render_entry_bitmap
     v2 P;
     v2 Size;
     v4 Color;
+    asset_type_id GAI;
 };
 
 struct render_transform
@@ -139,6 +130,8 @@ struct render_group
     uint32 PushBufferSize;
     uint32 MaxPushBufferSize;
     uint8 *PushBufferBase;
+
+    uint32 MissingResourceCount;
 };
 
 
@@ -156,3 +149,45 @@ inline void PushPieceRectOutline(render_group *grp, v2 offset, real32 offsetZ, v
 inline void PushSaturationFilter(render_group *grp, real32 level);
 inline void PushDefaultRenderClear(render_group *grp);
 #endif
+
+inline v4
+SRGB255_ToLinear1(v4 color)
+{
+    v4 result;
+
+    real32 inv255 = 1.0f / 255.0f;
+
+    result.r = Square(color.r * inv255);
+    result.g = Square(color.g * inv255);
+    result.b = Square(color.b * inv255);
+    result.a = color.a * inv255;
+    
+    return result;
+}
+
+inline v4
+Linear_1_ToSRGB255(v4 color)
+{
+    v4 result;
+
+    real32 val255 = 255.0f;
+    
+    result.r = SquareRoot(color.r) * val255;
+    result.g = SquareRoot(color.g) * val255;
+    result.b = SquareRoot(color.b) * val255;
+    result.a = color.a * val255;
+
+    return result;
+}
+
+inline v4
+Unpack4x8(uint32 packed)
+{
+    v4 result = {
+        (real32)((packed >> 16) & 0xff),
+        (real32)((packed >> 8) & 0xff),
+        (real32)((packed >> 0) & 0xff),
+        (real32)((packed >> 24) & 0xff)
+    };
+    return result;
+}

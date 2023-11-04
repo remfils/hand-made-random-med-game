@@ -1,5 +1,16 @@
-// todo: remove math.h ref
-#include "math.h"
+#if COMPILER_MSVC
+
+#define CompletePreviousWritesBeforeFutureWrites _WriteBarrier();
+
+inline uint32
+AtomicCompareExchange(uint32 volatile *value, uint32 expected, uint32 newValue)
+{
+    uint32 result = InterlockedCompareExchange(value, expected, newValue);
+    return result;
+}
+#else
+#endif
+
 
 // todo: remove math.h
 
