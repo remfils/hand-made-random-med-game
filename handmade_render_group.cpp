@@ -540,20 +540,22 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     __m128i startClipMask = _mm_set1_epi8(-1);
     __m128i endClipMask = _mm_set1_epi8(-1);
 
-    if (fillRect.MinX & 3)
+    int32 minRemainder = fillRect.MinX & 3;
+    if (minRemainder)
     {
         fillRect.MinX = fillRect.MinX & ~3;
-        switch (fillRect.MinX & 3) {
+        switch (minRemainder) {
         case 1: startClipMask = _mm_slli_si128(startClipMask, 1 * 4); break; // shift is in bytes 
         case 2: startClipMask = _mm_slli_si128(startClipMask, 2 * 4); break; // shift is in bytes 
         case 3: startClipMask = _mm_slli_si128(startClipMask, 3 * 4); break; // shift is in bytes 
         }
     }
 
-    if (fillRect.MaxX & 3)
+    int32 maxRemainder = fillRect.MaxX & 3;
+    if (maxRemainder)
     {
         fillRect.MaxX = (fillRect.MaxX & ~3) + 4;
-        switch (fillRect.MaxX & 3) {
+        switch (maxRemainder) {
         case 1: endClipMask = _mm_slli_si128(endClipMask, 3 * 4); break; // shift is in bytes 
         case 2: endClipMask = _mm_slli_si128(endClipMask, 2 * 4); break; // shift is in bytes 
         case 3: endClipMask = _mm_slli_si128(endClipMask, 1 * 4); break; // shift is in bytes 

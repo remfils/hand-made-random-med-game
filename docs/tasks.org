@@ -1,46 +1,4 @@
-* to be done [8/541]
-
-** DONE Handmade Hero Day 127 - Aligning Rendering Memory
-- [[https://www.youtube.com/watch?v=blcNbU70I9o]]
-
-Исправлена отрисовка полос. Добавлено четкое вырванивание по пискелям.
-
-** DONE Handmade Hero Day 128 - Push-time Transforms
-- [[https://www.youtube.com/watch?v=8L21Tyh53BQ]]
-
-Код работы с рендерингом переписан так, что он не пересеченный с
-симуляцией - сначала симуляция - потом расчитывается точка, в которой
-находится сущность - потом добавляются данные отрисовки
-
-не актуально
-+Сейчас понял, что не понимаю, как уменьшить величину тайла, чтобы поле не было на столько огромное.+
-
-** DONE Handmade Hero Day 129 - Adding Orthographic Projection
-- [[https://www.youtube.com/watch?v=8DX-DPsXvy4]]
-
-Добавлена ортографическая проэкция
-
-** DONE Handmade Hero Day 130 - Seamless Bilinear Tiling
-- [[https://www.youtube.com/watch?v=odlnqAsclFo]]
-
-** DONE Handmade Hero Day 131 - Asynchronous Ground Chunk Composition
-- [[https://www.youtube.com/watch?v=6blXhvPIz5g]]
-
-Добавлена процедура отрисови пола в отдельном потоке с низким
-приоритетом.
-
-** DONE Handmade Hero Day 132 - Asset Streaming
-- [[https://www.youtube.com/watch?v=qyHM36RQxAI]]
-
-** DONE Handmade Hero Day 133 - Preliminary Asset Structuring
-- [[https://www.youtube.com/watch?v=u0LjxqHmvkk]]
-
-Начало структурирования картинок - добавлена (не используется) схема
-по выбору наиболее подходящих картинок по тагам - таки это свойства
-типа высоты, ширины или чего угодно другого (даже стоимости).
-
-** DONE Handmade Hero Day 134 - Mapping Assets to Bitmaps
-- [[https://www.youtube.com/watch?v=AdscwVnyaQw]]
+* to be done [0/533]
 
 ** TODO Handmade Hero Day 135 - Typed Asset Arrays
 - [[https://www.youtube.com/watch?v=meU5RI3J1wc]]
@@ -2591,4 +2549,46 @@ MESI - modified exclusive shared invalid
 работает на 1920х1080 в 8 потоков.
 
 У меня криво отрисовываются области пересечения.
+
+** DONE Handmade Hero Day 127 - Aligning Rendering Memory
+- [[https://www.youtube.com/watch?v=blcNbU70I9o]]
+
+Исправлена отрисовка полос. Добавлено четкое вырванивание по пискелям.
+
+** DONE Handmade Hero Day 128 - Push-time Transforms
+- [[https://www.youtube.com/watch?v=8L21Tyh53BQ]]
+
+Код работы с рендерингом переписан так, что он не пересеченный с
+симуляцией - сначала симуляция - потом расчитывается точка, в которой
+находится сущность - потом добавляются данные отрисовки
+
+не актуально
++Сейчас понял, что не понимаю, как уменьшить величину тайла, чтобы поле не было на столько огромное.+
+
+** DONE Handmade Hero Day 129 - Adding Orthographic Projection
+- [[https://www.youtube.com/watch?v=8DX-DPsXvy4]]
+
+Добавлена ортографическая проэкция
+
+** DONE Handmade Hero Day 130 - Seamless Bilinear Tiling
+- [[https://www.youtube.com/watch?v=odlnqAsclFo]]
+
+** DONE Handmade Hero Day 131 - Asynchronous Ground Chunk Composition
+- [[https://www.youtube.com/watch?v=6blXhvPIz5g]]
+
+Добавлена процедура отрисови пола в отдельном потоке с низким
+приоритетом.
+
+** DONE Handmade Hero Day 132 - Asset Streaming
+- [[https://www.youtube.com/watch?v=qyHM36RQxAI]]
+
+** DONE Handmade Hero Day 133 - Preliminary Asset Structuring
+- [[https://www.youtube.com/watch?v=u0LjxqHmvkk]]
+
+Начало структурирования картинок - добавлена (не используется) схема
+по выбору наиболее подходящих картинок по тагам - таки это свойства
+типа высоты, ширины или чего угодно другого (даже стоимости).
+
+** DONE Handmade Hero Day 134 - Mapping Assets to Bitmaps
+- [[https://www.youtube.com/watch?v=AdscwVnyaQw]]
 
