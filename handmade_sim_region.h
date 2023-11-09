@@ -82,7 +82,7 @@ struct sim_entity
     
     sim_entity_collision_volume_group *Collision;
 
-    uint32 FacingDirection;
+    real32 FacingDirection;
     real32 TBobing;
 
     // TODO: should hit points be entities

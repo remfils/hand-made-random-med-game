@@ -571,3 +571,10 @@ RandomBetween(random_series *series, real32 min, real32 max)
     real32 result = Lerp(min, RandomLateral(series), max);
     return result;
 }
+
+internal uint32
+RandomBetween(random_series *series, uint32 min, uint32 max)
+{
+    uint32 result = min + (uint32)(NextRandomUInt32(series) % (max + 1 - min));
+    return result;
+}

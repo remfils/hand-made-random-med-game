@@ -175,6 +175,11 @@ struct pairwise_collision_rule
     pairwise_collision_rule * NextInHash;
 };
 
+struct hero_bitmap_ids
+{
+    bitmap_id Character;
+};
+
 struct ground_buffer
 {
     world_position P; // NOTE: this is center of bitmap

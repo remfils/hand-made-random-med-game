@@ -276,42 +276,6 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(DoFillGrounChunkWork)
     EndTaskWithMemory(work->Task);
 }
 
-#if 0
-internal int32
-PickBest(int32 infoCount, asset_bitmap_info *infos, asset_tag *tags, real32 *matchVector, real32 *weightVector)
-{
-    int32 bestIndex = 0;
-    real32 bestDiff = Real32Maximum;
-    
-    for (int32 infoIndex=0;
-         infoIndex < infoCount;
-         infoIndex++)
-    {
-        real32 totalWeightedDiff = 0.0f;
-        asset_bitmap_info *info = infos + infoIndex;
-        for (uint32 tagIndex = info->FirstTagIndex;
-             tagIndex < info->OnePastLastTagIndex;
-             tagIndex++)
-        {
-            asset_tag *tag = tags + tagIndex;
-            real32 diff = matchVector[tag->ID] - tag->Value;
-            real32 weightedDifference = weightVector[tag->ID] * AbsoluteValue(diff);
-
-            totalWeightedDiff += weightedDifference;
-        }
-
-        if (bestDiff > totalWeightedDiff)
-        {
-            bestDiff = totalWeightedDiff;
-            bestIndex = infoIndex;
-        }
-    }
-
-    return bestIndex;
-}
-
-#endif
-
 internal void
 FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer *groundBuffer, world_position chunkP)
 {
@@ -368,13 +332,11 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 
                 for (uint32 grassIndex=0; grassIndex < 100; grassIndex++)
                 {
-                    loaded_bitmap *bitmap;
-                
-                    bitmap = tranState->Assets->Ground + RandomChoice(&series, ArrayCount(tranState->Assets->Ground));
-
+                    bitmap_id stamp = RandomAssetFrom(tranState->Assets, AssetType_Ground, &series);
+                    
                     v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
-                    PushBitmap(renderGroup, bitmap, 1.0f, ToV3(grassCenter), color);
+                    PushBitmap(renderGroup, stamp, 1.0f, ToV3(grassCenter), color);
                 }
             }
         }
@@ -399,13 +361,11 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 
                 for (uint32 grassIndex=0; grassIndex < 50; grassIndex++)
                 {
-                    loaded_bitmap *bitmap;
-                
-                    bitmap = tranState->Assets->Grass + RandomChoice(&series, ArrayCount(tranState->Assets->Grass));
+                    bitmap_id stamp = RandomAssetFrom(tranState->Assets, AssetType_Grass, &series);
 
                     v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
-                    PushBitmap(renderGroup, bitmap, 0.4f, ToV3(grassCenter));
+                    PushBitmap(renderGroup, stamp, 0.4f, ToV3(grassCenter));
                 }
             }
         }
@@ -417,6 +377,10 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             work->Task = task;
         
             PlatformAddEntry(tranState->LowPriorityQueue, DoFillGrounChunkWork, work);
+        }
+        else {
+            groundBuffer->P = NullPosition();
+            EndTaskWithMemory(task);
         }
     }
 #endif
@@ -1227,11 +1191,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     {
         if (simEntity->Updatable)
         {
+            asset_vector matchVector = {};
+            matchVector.E[Tag_FacingDirection] = (real32)simEntity->FacingDirection;
+            asset_vector weightVector = {};
+            weightVector.E[Tag_FacingDirection] = 1.0f;
+            
+            
             low_entity *lowEntity = gameState->LowEntities + simEntity->StorageIndex;
 
             // TODO: draw entities on one Z-plane
 
-            hero_bitmaps *heroBitmaps = &tranState->Assets->Hero[simEntity->FacingDirection];
+            hero_bitmap_ids heroBitmapIds;// = &tranState->Assets->Hero[simEntity->FacingDirection];
+            heroBitmapIds.Character = BestMatchAsset(renderGroup->Assets, AssetType_HumanBody, &matchVector, &weightVector);
 
             move_spec moveSpec = DefaultMoveSpec();
             v3 ddp = {};
@@ -1259,7 +1230,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             ////////////////////////////////////////////////////////////////////////////////////////////////////
             // pre physics entity work
             ////////////////////////////////////////////////////////////////////////////////////////////////////
-            
+
             switch (simEntity->Type) {
             case EntityType_Wall:
             {
@@ -1381,7 +1352,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             case EntityType_Hero:
             {
-                PushBitmap(renderGroup, &heroBitmaps->Character, 1.6f, ToV3(0, 0, 0));
+                PushBitmap(renderGroup, heroBitmapIds.Character, 1.6f, ToV3(0, 0, 0));
 
                 sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
                 PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 1.0f));

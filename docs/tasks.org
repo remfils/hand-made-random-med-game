@@ -1,10 +1,15 @@
-* to be done [0/533]
+* to be done [2/533]
 
-** TODO Handmade Hero Day 135 - Typed Asset Arrays
+** DONE Handmade Hero Day 135 - Typed Asset Arrays
 - [[https://www.youtube.com/watch?v=meU5RI3J1wc]]
 
-** TODO Handmade Hero Day 136 - Tag-based Asset Retrieval
+** DONE Handmade Hero Day 136 - Tag-based Asset Retrieval
 - [[https://www.youtube.com/watch?v=7g79J2aMTUM]]
+
+переписан код на работу без массивов и hero_bitmaps
+
+мне пока что не понятно, как можно было бы сделать покадровую анимацию
+в этой схеме
 
 ** TODO Handmade Hero Day 137 - Matching Periodic Tags
 - [[https://www.youtube.com/watch?v=gVOuBzVC20g]]

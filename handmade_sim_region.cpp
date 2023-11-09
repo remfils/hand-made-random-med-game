@@ -973,26 +973,8 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
     {
         // dont change direction if both zero
     }
-    else if (AbsoluteValue(movingEntity->dP.x) > AbsoluteValue(movingEntity->dP.y))
-    {
-        if (movingEntity->dP.x > 0)
-        {
-            movingEntity->FacingDirection = 0;
-        }
-        else
-        {
-            movingEntity->FacingDirection = 2;
-        }
-    }
     else
     {
-        if (movingEntity->dP.y > 0)
-        {
-            movingEntity->FacingDirection = 1;
-        }
-        else
-        {
-            movingEntity->FacingDirection = 3;
-        }
+        movingEntity->FacingDirection = ATan2(movingEntity->dP.y, movingEntity->dP.x);
     }
 }

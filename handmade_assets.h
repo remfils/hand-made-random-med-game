@@ -27,32 +27,35 @@ enum asset_tag_id
 {
     Tag_Smoothness,
     Tag_Flatness,
+    /* NOTE: angle in radians off of due right */
+    Tag_FacingDirection,
 
     Tag_Count
 };
 
 struct asset_bitmap_info
 {
+    char *FileName;
     v2 AlignPercent;
-    real32 WidthOverHeight;
-    int32 Width;
-    int32 Height;
-
 };
 
 enum asset_type_id
 {
     AssetType_None,
-    AssetType_Backdrop,
-    AssetType_Grass,
-    AssetType_Ground,
     AssetType_Loaded,
     AssetType_EnemyDemo,
     AssetType_FamiliarDemo,
     AssetType_WallDemo,
     AssetType_SwordDemo,
-    AssetType_Stairway,
 
+    /* arrays */
+    AssetType_Grass,
+    AssetType_Ground,
+
+    /* character */
+
+    AssetType_HumanBody,
+    AssetType_HumanShadow,
 
     AssetType_Unknown,
     AssetType_Count
@@ -62,6 +65,11 @@ struct asset_tag
 {
     uint32 Id;
     real32 Value;
+};
+
+struct asset_vector
+{
+    real32 E[Tag_Count];
 };
 
 struct asset_type
@@ -83,18 +91,14 @@ struct asset_group
     uint32 OnePastLastTagIndex;
 };
 
-struct hero_bitmaps
-{
-    loaded_bitmap Character;
-};
-
 struct game_assets
 {
     struct transient_state *TranState;
     
     memory_arena Arena;
-
+    
     uint32 BitmapCount;
+    asset_bitmap_info *BitmapInfos;
     asset_slot *Bitmaps;
     
     uint32 SoundCount;
@@ -107,11 +111,18 @@ struct game_assets
     asset *Assets;
 
     asset_type AssetTypes[AssetType_Count];
-    
+
+    /*
     hero_bitmaps Hero[4];
+    */
     
-    loaded_bitmap Grass[2];
-    loaded_bitmap Ground[2];
+    // TODO: remove after asset pack file is done
+    uint32 DEBUGUsedBitmapCount;
+    uint32 DEBUGUsedAssetCount;
+    uint32 DEBUGUsedTagCount;
+
+    asset_type *DEBUGCurrentAssetType;
+    asset *DEBUGCurrentAsset;
 };
 
 struct bitmap_id
