@@ -1,4 +1,4 @@
-* to be done [2/533]
+* to be done [3/533]
 
 ** DONE Handmade Hero Day 135 - Typed Asset Arrays
 - [[https://www.youtube.com/watch?v=meU5RI3J1wc]]
@@ -11,11 +11,18 @@
 мне пока что не понятно, как можно было бы сделать покадровую анимацию
 в этой схеме
 
-** TODO Handmade Hero Day 137 - Matching Periodic Tags
+** DONE Handmade Hero Day 137 - Matching Periodic Tags
 - [[https://www.youtube.com/watch?v=gVOuBzVC20g]]
+
+исправлен баг с повотором персонажа - сейчас работает хорошо. Начата
+работа по загрузке аудио данных.
 
 ** TODO Handmade Hero Day 138 - Loading WAV Files
 - [[https://www.youtube.com/watch?v=RSxUBaoomy0]]
+
+вот статья, которая вроде как хорошо расказывает, как нужно парсить данные из wav файла
+
+https://audiocoding.cc/articles/2008-05-22-wav-file-structure/
 
 ** TODO Handmade Hero Day 139 - Introduction to Sound Mixing
 - [[https://www.youtube.com/watch?v=8KvWx4hzdUs]]

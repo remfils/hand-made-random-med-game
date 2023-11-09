@@ -101,6 +101,13 @@ SignOf(int32 value)
     return result;
 }
 
+inline real32
+SignOf(real32 value)
+{
+    real32 result = value >= 0.0f ? 1.0f : -1.0f;
+    return result;
+}
+
 struct bit_scan_result
 {
     bool32 Found;

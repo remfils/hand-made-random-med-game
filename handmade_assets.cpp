@@ -109,6 +109,63 @@ DEBUGLoadBMP(char *filename, v2 alignPercent=ToV2(0.5f, 0.5f))
     return result;
 }
 
+#pragma pack(push, 1)
+struct WAVE_header
+{
+    uint32 ChunkId;
+    uint32 ChunkSize;
+    uint32 Format;
+};
+
+#define RIFF_CODE(a,b,c,d) (((uint32)(a) << 0) | ((uint32)(b) << 8) | ((uint32)(c) << 16) | (((uint32)d) << 24))
+
+enum
+{
+    WAVE_ChunkId_fmt = RIFF_CODE('f', 'm', 't', ' '),
+    WAVE_ChunkId_RIFF = RIFF_CODE('R', 'I', 'F', 'F'),
+    WAVE_ChunkId_WAVE = RIFF_CODE('W', 'A', 'V', 'E'),
+};
+
+struct WAVE_chunk_header
+{
+    uint32 Id;
+    uint32 Size;
+};
+
+struct WAVE_fmt_header
+{
+    uint32 Subchunk1Id;    // (4 байта) Содержит символы "fmt " 0x666d7420
+    uint32 Subchunk1Size;  // (4 байта) 16 для формата PCM. Это оставшийся размер подцепочки, начиная с этой позиции.
+    uint16 AudioFormat;    // (2 байта) Аудио формат, список допустипых форматов. Для PCM = 1 (то есть, Линейное квантование). Значения, отличающиеся от 1, обозначают некоторый формат сжатия.
+    uint16 NumChannels;    // (2 байта) Количество каналов. Моно = 1, Стерео = 2 и т.д.
+    uint32 SampleRate;     // (4 байта) Частота дискретизации. 8000 Гц, 44100 Гц и т.д.
+    uint32 ByteRate;       // (4 байта) Количество байт, переданных за секунду воспроизведения.
+    uint16 BlockAlign;     // (2 байта) Количество байт для одного сэмпла, включая все каналы.
+    uint16 BitsPerSample;  // (2 байта) Количество бит в сэмпле. Так называемая "глубина" или точность звучания. 8 бит, 16 бит и т.д.
+    uint32 Subchunk2Id;    // (4 байта) Содержит символы "data" 0x64617461
+    uint32 Subchunk2Size;  // (4 байта) Количество байт в области данных.
+};
+#pragma pack(pop)
+
+internal loaded_sound
+DEBUGLoadWAV(char *filename)
+{
+    debug_read_file_result readResult = DEBUG_ReadEntireFile(filename);
+    
+    loaded_sound result = {};
+
+    if (readResult.Content)
+    {
+        WAVE_header *header = (WAVE_header *)readResult.Content;
+        Assert(header->ChunkId == WAVE_ChunkId_RIFF);
+        Assert(header->Format == WAVE_ChunkId_WAVE);
+
+        // TODO: finish this
+    }
+
+    return result;
+}
+
 struct load_bitmap_work
 {
     game_assets *Assets;
@@ -205,7 +262,11 @@ BestMatchAsset(game_assets *assets,
              ++tagIndex)
         {
             asset_tag *tag = assets->Tags + tagIndex;
-            real32 diff = matchVector->E[tag->Id] - tag->Value;
+            real32 a = matchVector->E[tag->Id];
+            real32 b = tag->Value;
+            real32 d0 = AbsoluteValue(a - b);
+            real32 d1 = AbsoluteValue(a - assets->TagPeriodRange[tag->Id] * SignOf(a) - b);
+            real32 diff = Minimum(d0, d1);
             real32 weightedDifference = weightVector->E[tag->Id] * AbsoluteValue(diff);
 
             totalWeightedDiff += weightedDifference;
@@ -238,10 +299,58 @@ GetFirstBitmap(game_assets* assets, asset_type_id assetType)
     return result;
 }
 
-internal void
-LoadSound(game_assets *assets, uint32 id)
+struct load_sound_work
 {
-    // TODO:
+    game_assets *Assets;
+    sound_id Id;
+    task_with_memory *Task;
+    loaded_sound *Sound;
+
+    asset_state FinalState;
+};
+
+internal PLATFORM_WORK_QUEUE_CALLBACK(DoLoadSoundWork)
+{
+    load_sound_work *work = (load_sound_work *)data;
+
+    // TODO: remove this
+
+    asset_sound_info *info = work->Assets->SoundInfos + work->Id.Value;
+    *work->Sound = DEBUGLoadWAV(info->FileName);
+
+    CompletePreviousWritesBeforeFutureWrites;
+    
+    work->Assets->Sounds[work->Id.Value].Sound = work->Sound;
+    work->Assets->Sounds[work->Id.Value].State = work->FinalState;
+
+    EndTaskWithMemory(work->Task);
+}
+
+internal void
+LoadSound(game_assets *assets, sound_id id)
+{
+    if (id.Value)
+    {
+        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&assets->Sounds[id.Value].State, AssetState_Unloaded, AssetState_Queued);
+        if (currentState == AssetState_Unloaded)
+        {
+            task_with_memory *task = BeginTaskWithMemory(assets->TranState);
+    
+            if (task)
+            {
+                load_sound_work *work = PushStruct(&task->Arena, load_sound_work);
+
+                work->Assets = assets;
+                work->Id = id;
+                work->Sound = PushStruct(&assets->Arena, loaded_sound);
+
+                work->Task = task;
+                work->FinalState = AssetState_Loaded;
+    
+                PlatformAddEntry(assets->TranState->LowPriorityQueue, DoLoadSoundWork, work);
+            }
+        }
+    }
 }
 
 internal bitmap_id
@@ -306,6 +415,15 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
     
     assets->DEBUGUsedBitmapCount = 1;
     assets->DEBUGUsedAssetCount = 0;
+
+    for (uint32 tagType=0;
+         tagType < Tag_Count;
+         ++tagType)
+    {
+        // NOTE: init to some large number
+        assets->TagPeriodRange[tagType] = 1000000.0f;
+    }
+    assets->TagPeriodRange[Tag_FacingDirection] = 2.0f * Pi32;
     
     assets->BitmapCount = 256 * AssetType_Count;
     assets->BitmapInfos = PushArray(arena, assets->BitmapCount, asset_bitmap_info);

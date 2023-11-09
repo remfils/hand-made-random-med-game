@@ -9,6 +9,12 @@ struct loaded_bitmap
     void *Memory;
 };
 
+struct loaded_sound
+{
+    int32 SampleCount;
+    void *Memory;
+};
+
 enum asset_state
 {
     AssetState_Unloaded,
@@ -20,7 +26,11 @@ enum asset_state
 struct asset_slot
 {
     asset_state State;
-    struct loaded_bitmap *Bitmap;
+    union
+    {
+        loaded_bitmap *Bitmap;
+        loaded_sound *Sound;
+    };
 };
 
 enum asset_tag_id
@@ -37,6 +47,11 @@ struct asset_bitmap_info
 {
     char *FileName;
     v2 AlignPercent;
+};
+
+struct asset_sound_info
+{
+    char *FileName;
 };
 
 enum asset_type_id
@@ -102,9 +117,11 @@ struct game_assets
     asset_slot *Bitmaps;
     
     uint32 SoundCount;
+    asset_sound_info *SoundInfos;
     asset_slot *Sounds;
 
     uint32 TagCount;
+    real32 TagPeriodRange[Tag_Count];
     asset_tag *Tags;
     
     uint32 AssetCount;
@@ -129,7 +146,7 @@ struct bitmap_id
 {
     uint32 Value;
 };
-struct audio_id
+struct sound_id
 {
     uint32 Value;
 };
@@ -143,4 +160,4 @@ GetBitmap(game_assets *assets, bitmap_id id)
 
 internal void LoadBitmap(game_assets *assets, bitmap_id id);
 
-internal void LoadSound(game_assets *assets, audio_id id);
+internal void LoadSound(game_assets *assets, sound_id id);
