@@ -637,6 +637,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     BEGIN_TIMED_BLOCK(GameUpdateAndRender);
     
     Assert(sizeof(game_state) <= memory->PermanentStorageSize);
+
     
     game_state *gameState = (game_state *)memory->PermanentStorage;
     
@@ -909,6 +910,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         //LoadAssets(&tranState->Assets, tranState, thread, memory->DEBUG_PlatformReadEntireFile);
 
         tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(64), tranState);
+
+        gameState->TestSound = DEBUGLoadWAV("../data/sound/energetic-piano-uptempo-loop_156bpm_F#_minor.wav", &tranState->TransientArena);
 
         // NOTE: make square for now
         int32 diffuseWidth = 128;
@@ -1639,5 +1642,22 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
 {
     game_state *gameState = (game_state*)memory->PermanentStorage;
-    GameOutputSound(soundBuffer, gameState);
+    // GameOutputSound(soundBuffer, gameState);
+
+    int16 *sampleOut = soundBuffer->Samples;
+
+    real32 toneHz = 256;
+    real32 toneVolume = 1000;
+    real32 wavePeriod = (real32)soundBuffer->SamplesPerSecond / toneHz;
+    
+    for (int sampleIndex = 0; sampleIndex < soundBuffer->SampleCount; ++sampleIndex)
+    {
+        uint32 testSoundIndex = (gameState->TestSampleIndex + sampleIndex) % gameState->TestSound.SampleCount;
+        int16 sampleValue = gameState->TestSound.Samples[0][testSoundIndex];
+        
+        *sampleOut++ = sampleValue;
+        *sampleOut++ = sampleValue;
+    }
+
+    gameState->TestSampleIndex += soundBuffer->SampleCount;
 }

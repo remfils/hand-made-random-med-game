@@ -1,4 +1,4 @@
-* to be done [3/533]
+* to be done [5/533]
 
 ** DONE Handmade Hero Day 135 - Typed Asset Arrays
 - [[https://www.youtube.com/watch?v=meU5RI3J1wc]]
@@ -17,15 +17,27 @@
 исправлен баг с повотором персонажа - сейчас работает хорошо. Начата
 работа по загрузке аудио данных.
 
-** TODO Handmade Hero Day 138 - Loading WAV Files
+** DONE Handmade Hero Day 138 - Loading WAV Files
 - [[https://www.youtube.com/watch?v=RSxUBaoomy0]]
 
-вот статья, которая вроде как хорошо расказывает, как нужно парсить данные из wav файла
+вот статья, которая вроде как хорошо расказывает, как нужно парсить
+данные из wav файла
 
 https://audiocoding.cc/articles/2008-05-22-wav-file-structure/
 
-** TODO Handmade Hero Day 139 - Introduction to Sound Mixing
+а вот статья, которую использовал Кейси в своем видео. По какой то
+причине формат данных отличается
+https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
+
+мои вав файлы +не читаются пока что - они+ в IEEE формате. Читаются
+достаточно просто.
+
+** DONE Handmade Hero Day 139 - Introduction to Sound Mixing
 - [[https://www.youtube.com/watch?v=8KvWx4hzdUs]]
+
+Одна из мыслей, которая пришла - звук никогда не может получится
+реальным на компьютере. На сколько я понимаю, просто не возможно
+сделать так, чтобы звук был либо спереди либо сзади.
 
 ** TODO Handmade Hero Day 140 - Implementing a Sound Mixer
 - [[https://www.youtube.com/watch?v=UuqcgQxpfO8]]

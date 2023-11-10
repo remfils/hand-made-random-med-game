@@ -11,8 +11,9 @@ struct loaded_bitmap
 
 struct loaded_sound
 {
-    int32 SampleCount;
-    void *Memory;
+    uint32 SampleCount;
+    uint32 ChannelCount;
+    int16 *Samples[2];
 };
 
 enum asset_state

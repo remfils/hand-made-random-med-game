@@ -122,6 +122,8 @@ struct WAVE_header
 enum
 {
     WAVE_ChunkId_fmt = RIFF_CODE('f', 'm', 't', ' '),
+    WAVE_ChunkId_data = RIFF_CODE('d', 'a', 't', 'a'),
+    WAVE_ChunkId_fact = RIFF_CODE('f', 'a', 'c', 't'),
     WAVE_ChunkId_RIFF = RIFF_CODE('R', 'I', 'F', 'F'),
     WAVE_ChunkId_WAVE = RIFF_CODE('W', 'A', 'V', 'E'),
 };
@@ -134,21 +136,84 @@ struct WAVE_chunk_header
 
 struct WAVE_fmt_header
 {
-    uint32 Subchunk1Id;    // (4 байта) Содержит символы "fmt " 0x666d7420
-    uint32 Subchunk1Size;  // (4 байта) 16 для формата PCM. Это оставшийся размер подцепочки, начиная с этой позиции.
     uint16 AudioFormat;    // (2 байта) Аудио формат, список допустипых форматов. Для PCM = 1 (то есть, Линейное квантование). Значения, отличающиеся от 1, обозначают некоторый формат сжатия.
     uint16 NumChannels;    // (2 байта) Количество каналов. Моно = 1, Стерео = 2 и т.д.
     uint32 SampleRate;     // (4 байта) Частота дискретизации. 8000 Гц, 44100 Гц и т.д.
     uint32 ByteRate;       // (4 байта) Количество байт, переданных за секунду воспроизведения.
     uint16 BlockAlign;     // (2 байта) Количество байт для одного сэмпла, включая все каналы.
     uint16 BitsPerSample;  // (2 байта) Количество бит в сэмпле. Так называемая "глубина" или точность звучания. 8 бит, 16 бит и т.д.
-    uint32 Subchunk2Id;    // (4 байта) Содержит символы "data" 0x64617461
+    // uint32 Subchunk2Id;    // (4 байта) Содержит символы "data" 0x64617461
+    uint16 cbSize;
+    uint16 wValidBitsPerSample;
     uint32 Subchunk2Size;  // (4 байта) Количество байт в области данных.
+    uint8 SubFormat[16];// wtf?
 };
 #pragma pack(pop)
 
+
+struct riff_iterator
+{
+    uint8 *At;
+    uint8 *Stop;
+};
+
+
+// ParseChunkAt(readResult.Content, header + 1)
+
+inline riff_iterator
+ParseChunkAt(void *at, void *stop)
+{
+    riff_iterator result;
+
+    result.At = (uint8 *)at;
+    result.Stop = (uint8 *)stop;
+
+    return result;
+}
+
+inline bool32
+IsChunkValid(riff_iterator iter)
+{
+    bool32 result = iter.At < iter.Stop;
+    return result;
+}
+
+inline riff_iterator
+NextChunk(riff_iterator iter)
+{
+    WAVE_chunk_header *chunk = (WAVE_chunk_header *)iter.At;
+
+    // uint32 size = (chunk->Size + 1) & ~1;
+    uint32 size = chunk->Size;
+    iter.At += sizeof(WAVE_chunk_header) + size;
+    return iter;
+}
+
+inline void*
+GetChunkData(riff_iterator iter)
+{
+    void *result = iter.At + sizeof(WAVE_chunk_header);
+    return result;
+}
+
+inline uint32
+GetChunkType(riff_iterator iter)
+{
+    WAVE_chunk_header *chunk = (WAVE_chunk_header *)iter.At;
+    uint32 result = chunk->Id;
+    return result;
+}
+
+inline uint32
+GetChunkSize(riff_iterator iter)
+{
+    WAVE_chunk_header *chunk = (WAVE_chunk_header *)iter.At;
+    uint32 result = chunk->Size;
+    return result;
+}
+
 internal loaded_sound
-DEBUGLoadWAV(char *filename)
+DEBUGLoadWAV(char *filename, memory_arena *arena)
 {
     debug_read_file_result readResult = DEBUG_ReadEntireFile(filename);
     
@@ -160,7 +225,72 @@ DEBUGLoadWAV(char *filename)
         Assert(header->ChunkId == WAVE_ChunkId_RIFF);
         Assert(header->Format == WAVE_ChunkId_WAVE);
 
-        // TODO: finish this
+        uint32 channelCount = 0;
+        uint32 sampleDataSize = 0;
+        real32 *sampleData;
+        for (
+             riff_iterator iter = ParseChunkAt(header + 1, (uint8 *)(header + 1) + header->ChunkSize - 4);
+             IsChunkValid(iter);
+             iter = NextChunk(iter)
+             )
+        {
+            switch (GetChunkType(iter))
+            {
+            case WAVE_ChunkId_fmt: {
+                WAVE_fmt_header *fmt = (WAVE_fmt_header *)GetChunkData(iter);
+                channelCount = fmt->NumChannels;
+
+                Assert(fmt->AudioFormat == 3);
+            } break;
+            case WAVE_ChunkId_data: {
+                sampleData = (real32 *)GetChunkData(iter);
+                sampleDataSize = GetChunkSize(iter);
+            } break;
+            case WAVE_ChunkId_fact: {
+                uint32 *numberOfSamplesInChannel = (uint32 *)GetChunkData(iter);
+                int a = 3;
+                // sampleDataSize = GetChunkSize(iter);
+            } break;
+            }
+        }
+
+        #if 1
+        Assert(channelCount && sampleData);
+
+        result.ChannelCount = channelCount;
+        result.SampleCount = sampleDataSize / (channelCount * sizeof(real32)); // TODO: uint16 is correct?
+
+        if (result.ChannelCount == 1)
+        {
+            result.Samples[0] = (int16 *)sampleData;
+            result.Samples[1] = 0;
+        }
+        else if (result.ChannelCount == 2)
+        {
+            result.Samples[0] = PushArray(arena, result.SampleCount, int16);
+            result.Samples[1] = PushArray(arena, result.SampleCount, int16);;
+
+            for (uint32 sampleIndex=0;
+                 sampleIndex < result.SampleCount;
+                 sampleIndex++)
+            {
+                real32 leftChannel = sampleData[2 * sampleIndex];
+                real32 rightChannel = sampleData[2 * sampleIndex + 1];
+
+                result.Samples[0][sampleIndex] = (int16)(leftChannel * 32767.0f);
+                result.Samples[1][sampleIndex] = (int16)(rightChannel * 32767.0f);
+            }
+        }
+        else
+        {
+            // TODO: error
+        }
+
+        #endif
+
+        // TODO: propper load of channels
+        result.ChannelCount = 1;
+        
     }
 
     return result;
@@ -316,7 +446,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(DoLoadSoundWork)
     // TODO: remove this
 
     asset_sound_info *info = work->Assets->SoundInfos + work->Id.Value;
-    *work->Sound = DEBUGLoadWAV(info->FileName);
+    *work->Sound = DEBUGLoadWAV(info->FileName, &work->Assets->Arena);
 
     CompletePreviousWritesBeforeFutureWrites;
     
@@ -448,10 +578,12 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 
     BeginAssetType(assets, AssetType_FamiliarDemo);
     AddBitmapAsset(assets, "../data/test2/familiar_demo.bmp");
-                    /* TODO: fix this if needed?
-                    work->TopDownAlignX = 58;
-                    work->TopDownAlignY = 203;
-                    */
+    /**
+      // TODO: fix this if needed?
+      
+       work->TopDownAlignX = 58;
+       work->TopDownAlignY = 203;
+    */
     EndAssetType(assets);
     
     BeginAssetType(assets, AssetType_WallDemo);
