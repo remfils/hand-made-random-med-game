@@ -57,6 +57,11 @@ struct asset_sound_info
 
 enum asset_type_id
 {
+
+    /****************************************************************************************************
+     * BITMAPS
+     ****************************************************************************************************/
+    
     AssetType_None,
     AssetType_Loaded,
     AssetType_EnemyDemo,
@@ -73,6 +78,19 @@ enum asset_type_id
     AssetType_HumanBody,
     AssetType_HumanShadow,
 
+    /****************************************************************************************************
+     * SOUNDS
+     ****************************************************************************************************/
+    AssetType_FootstepGravel,
+    AssetType_FootstepMud,
+    AssetType_FootstepStone,
+    AssetType_FootstepWood,
+    AssetType_PianoMusic,
+
+    /****************************************************************************************************
+     * Other
+     ****************************************************************************************************/
+    
     AssetType_Unknown,
     AssetType_Count
 };
@@ -136,6 +154,7 @@ struct game_assets
     
     // TODO: remove after asset pack file is done
     uint32 DEBUGUsedBitmapCount;
+    uint32 DEBUGUsedSoundCount;
     uint32 DEBUGUsedAssetCount;
     uint32 DEBUGUsedTagCount;
 
@@ -156,6 +175,13 @@ inline loaded_bitmap*
 GetBitmap(game_assets *assets, bitmap_id id)
 {
     loaded_bitmap *result = assets->Bitmaps[id.Value].Bitmap;
+    return result;
+}
+
+inline loaded_sound*
+GetSound(game_assets *assets, sound_id id)
+{
+    loaded_sound *result = assets->Sounds[id.Value].Sound;
     return result;
 }
 

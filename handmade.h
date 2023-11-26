@@ -186,6 +186,14 @@ struct ground_buffer
     loaded_bitmap Bitmap;
 };
 
+struct playing_sound
+{
+    sound_id Id;
+    real32 Volume[2];
+    int32 SamplesPlayed;
+    playing_sound *Next;
+};
+
 struct game_state
 {
     int XOffset;
@@ -229,8 +237,8 @@ struct game_state
     loaded_bitmap TestDiffuse;
     loaded_bitmap TestNormal;
 
-    loaded_sound TestSound;
-    uint32 TestSampleIndex;
+    playing_sound *FirstPlayingSound;
+    playing_sound *FirstFreePlayingSound;
 };
 
 struct transient_state

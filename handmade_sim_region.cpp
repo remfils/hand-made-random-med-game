@@ -966,7 +966,14 @@ MoveEntity(game_state *gameState, sim_region *simRegion, sim_entity *movingEntit
 
     if (movingEntity->DistanceLimit != 0)
     {
+        if (distanceRemaining == 0.0f) {
+            int a = 0 ;
+        }
         movingEntity->DistanceLimit = distanceRemaining;
+    }
+    else
+    {
+        movingEntity->DistanceLimit = 0.0f;
     }
     
     if (movingEntity->dP.x == 0 && movingEntity->dP.y == 0)

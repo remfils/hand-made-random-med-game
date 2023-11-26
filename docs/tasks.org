@@ -1,7 +1,10 @@
-* to be done [0/528]
+* to be done [1/528]
 
-** TODO Handmade Hero Day 140 - Implementing a Sound Mixer
+** DONE Handmade Hero Day 140 - Implementing a Sound Mixer
 - [[https://www.youtube.com/watch?v=UuqcgQxpfO8]]
+
+Добавлен микшер звука. Можно заказывать проигрование звука по вызову
+функции. Звуки загружаются в отдельном потоке.
 
 ** TODO Handmade Hero Day 141 - Streaming Large Audio in Chunks
 - [[https://www.youtube.com/watch?v=Yvv9nVqGC5w]]

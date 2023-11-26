@@ -227,7 +227,7 @@ DEBUGLoadWAV(char *filename, memory_arena *arena)
 
         uint32 channelCount = 0;
         uint32 sampleDataSize = 0;
-        real32 *sampleData;
+        real32 *sampleData = 0;
         for (
              riff_iterator iter = ParseChunkAt(header + 1, (uint8 *)(header + 1) + header->ChunkSize - 4);
              IsChunkValid(iter);
@@ -367,14 +367,15 @@ RandomAssetFrom(game_assets *assets, asset_type_id assetType, random_series *ser
     return result;
 }
 
-internal bitmap_id
+internal uint32
 BestMatchAsset(game_assets *assets,
                asset_type_id assetType,
                asset_vector *matchVector,
                asset_vector *weightVector
                )
+
 {
-    bitmap_id result = {};
+    uint32 result = 0;
     
     int32 bestIndex = 0;
     real32 bestDiff = Real32Maximum;
@@ -405,7 +406,7 @@ BestMatchAsset(game_assets *assets,
         if (bestDiff > totalWeightedDiff)
         {
             bestDiff = totalWeightedDiff;
-            result.Value = asset->SlotId;
+            result = asset->SlotId;
         }
     }
     
@@ -413,19 +414,54 @@ BestMatchAsset(game_assets *assets,
 }
 
 inline bitmap_id
-GetFirstBitmap(game_assets* assets, asset_type_id assetType)
+BestMatchBitmap(game_assets *assets,
+               asset_type_id assetType,
+               asset_vector *matchVector,
+               asset_vector *weightVector
+               )
 {
-    // TODO: FIX THIS
-    bitmap_id result = {};
+    bitmap_id result = {BestMatchAsset(assets, assetType, matchVector, weightVector)};
+    return result;
+}
 
+inline sound_id
+BestMatchSound(game_assets *assets,
+               asset_type_id assetType,
+               asset_vector *matchVector,
+               asset_vector *weightVector
+               )
+{
+    sound_id result = {BestMatchAsset(assets, assetType, matchVector, weightVector)};
+    return result;
+}
+
+inline uint32
+GetFirstSlotId(game_assets* assets, asset_type_id assetType)
+{
+    uint32 result = 0;
+    
     asset_type *type = assets->AssetTypes + assetType;
 
     if (type->FirstAssetIndex != type->OnePastLastAssetIndex)
     {
         asset *asset = assets->Assets + type->FirstAssetIndex;
-        result.Value = asset->SlotId;
+        result = asset->SlotId;
     }
 
+    return result;
+}
+
+inline bitmap_id
+GetFirstBitmap(game_assets* assets, asset_type_id assetType)
+{
+    bitmap_id result = {GetFirstSlotId(assets, assetType)};
+    return result;
+}
+
+inline sound_id
+GetFirstSound(game_assets* assets, asset_type_id assetType)
+{
+    sound_id result = {GetFirstSlotId(assets, assetType)};
     return result;
 }
 
@@ -517,6 +553,32 @@ AddBitmapAsset(game_assets *assets, char *fileName, v2 alignPercent={0.5f, 0.5f}
     assets->DEBUGCurrentAsset = asset;
 }
 
+internal sound_id
+DEBUGAddSoundInfo(game_assets *assets, char *fileName)
+{
+    sound_id id = {assets->DEBUGUsedSoundCount++};
+
+    asset_sound_info *result = assets->SoundInfos + id.Value;
+    result->FileName = fileName;
+
+    return id;
+}
+
+internal void
+AddSoundAsset(game_assets *assets, char *fileName)
+{
+    Assert(assets->DEBUGCurrentAssetType);
+    Assert(assets->DEBUGCurrentAssetType->OnePastLastAssetIndex < assets->AssetCount);
+    
+    asset *asset = assets->Assets + assets->DEBUGCurrentAssetType->OnePastLastAssetIndex++;
+    asset->FirstTagIndex = assets->DEBUGUsedTagCount;
+    asset->OnePastLastTagIndex = asset->FirstTagIndex;
+    asset->SlotId = DEBUGAddSoundInfo(assets, fileName).Value;
+
+    assets->DEBUGCurrentAsset = asset;
+}
+
+
 internal void
 AddAssetTag(game_assets *assets, asset_tag_id tagId, real32 tagValue)
 {
@@ -559,7 +621,8 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
     assets->BitmapInfos = PushArray(arena, assets->BitmapCount, asset_bitmap_info);
     assets->Bitmaps = PushArray(arena, assets->BitmapCount, asset_slot);
 
-    assets->SoundCount = 1;
+    assets->SoundCount = 256 * AssetType_Count;
+    assets->SoundInfos = PushArray(arena, assets->SoundCount, asset_sound_info);
     assets->Sounds = PushArray(arena, assets->SoundCount, asset_slot);;
     
     assets->AssetCount = assets->BitmapCount + assets->SoundCount;
@@ -624,6 +687,31 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
     AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_down.bmp", heroAlign);
     AddAssetTag(assets, Tag_FacingDirection, -0.5f * Pi32);
     EndAssetType(assets);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    // sounds
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    BeginAssetType(assets, AssetType_FootstepGravel);
+    AddSoundAsset(assets, "../data/sound/footsteps__gravel.wav");
+    EndAssetType(assets);
+
+    BeginAssetType(assets, AssetType_FootstepMud);
+    AddSoundAsset(assets, "../data/sound/footsteps__mud02.wav");
+    EndAssetType(assets);
+    
+    BeginAssetType(assets, AssetType_FootstepStone);
+    AddSoundAsset(assets, "../data/sound/footsteps__stone01.wav");
+    EndAssetType(assets);
+    
+    BeginAssetType(assets, AssetType_FootstepWood);
+    AddSoundAsset(assets, "../data/sound/footsteps__wood01.wav");
+    EndAssetType(assets);
+    
+    BeginAssetType(assets, AssetType_PianoMusic);
+    AddSoundAsset(assets, "../data/sound/energetic-piano-uptempo-loop_156bpm_F#_minor.wav");
+    EndAssetType(assets);
+
 
     return assets;
 }
