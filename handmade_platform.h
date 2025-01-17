@@ -31,6 +31,8 @@ typedef int32_t int32;
 typedef int64_t int64;
 typedef int32 bool32;
 
+typedef float real32;
+typedef double real64;
 
 // shorten notation, TODO: remove rest
 typedef int32 b32;
@@ -43,10 +45,10 @@ typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
 
+typedef float r32;
+typedef double r64;
 
 
-typedef float real32;
-typedef double real64;
 
 #define Pi32 3.1415926535f
 #define Real32Maximum FLT_MAX

@@ -534,7 +534,8 @@ Win32InitDirectSound(HWND window, int32 bufferSize, int32 samplesPerSecond)
             
             DSBUFFERDESC bufferDescription = {};
             bufferDescription.dwSize = sizeof(bufferDescription);
-            bufferDescription.dwFlags = DSBCAPS_GETCURRENTPOSITION2;
+            // NOTE: DSBCAPS_GLOBALFOCUS - option to play sound in background even after window is collapsed
+            bufferDescription.dwFlags = DSBCAPS_GETCURRENTPOSITION2|DSBCAPS_GLOBALFOCUS;
             bufferDescription.dwBufferBytes = bufferSize;
             bufferDescription.lpwfxFormat = &waveFormat;
             HRESULT result = directSound->CreateSoundBuffer(&bufferDescription, &globalSecondaryBuffer, 0);

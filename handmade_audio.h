@@ -4,7 +4,8 @@ struct playing_sound
     v2 CurrentVolume;
     v2 dCurrentVolume;
     v2 TargetVolume;
-    int32 SamplesPlayed;
+    real32 SamplesPlayed;
+    real32 dSample;
     playing_sound *Next;
 };
 

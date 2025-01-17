@@ -283,6 +283,21 @@ PushSize_(memory_arena *arena, memory_index size, memory_index alignment = 4)
     return result;
 }
 
+inline char*
+PushString(memory_arena *arena, char *source)
+{
+    u32 size = 1;
+    // calc char length
+    for (char *c = source; *c; ++c) { size++; }
+    
+    char *dest = (char *)PushSize_(arena, size);
+    for (u32 i = 0; i < size; i++) {
+        dest[i] = source[i];
+    }
+
+    return dest;
+}
+
 #define ZeroStruct(instance) ZeroSize(sizeof(instance), &(instance))
 inline void
 ZeroSize(memory_index size, void *ptr)

@@ -67,6 +67,12 @@ ChangeVolume(audio_state *audioState, playing_sound *sound, real32 fadeDurationI
 }
 
 internal void
+ChangePitch(playing_sound *sound, real32 dSample)
+{
+    sound->dSample = dSample;
+}
+
+internal void
 OutputPlayingSounds(
                     audio_state *audioState,
                     game_sound_output_buffer *soundBuffer,
@@ -113,6 +119,11 @@ OutputPlayingSounds(
             loaded_sound *loadedSound = GetSound(assets, playingSound->Id);
             if (loadedSound)
             {
+
+                real32 dSample = playingSound->dSample;
+                
+                s32 firstSampleIndex = RoundReal32ToInt32(playingSound->SamplesPlayed);
+                
                 asset_sound_info *soundInfo = GetSoundInfo(assets, playingSound->Id);
                 PrefetchSound(assets, soundInfo->NextIdToPlay);
 
@@ -120,7 +131,9 @@ OutputPlayingSounds(
                 v2 dVolume = secondsPerSample * playingSound->dCurrentVolume;
 
                 uint32 samplesToMix = totalSamplesToMix;
-                uint32 samplesRemainingInSound = loadedSound->SampleCount - playingSound->SamplesPlayed;
+                
+                real32 realSampleRemainingInSound = (loadedSound->SampleCount - firstSampleIndex) / dSample;
+                u32 samplesRemainingInSound = RoundReal32ToInt32(realSampleRemainingInSound);
                 if (samplesToMix > samplesRemainingInSound) {
                     samplesToMix = samplesRemainingInSound;
                 }
@@ -129,10 +142,12 @@ OutputPlayingSounds(
                 bool32 volumeEnded[SUPPORTED_CHANNEL_COUNT] = {};
                 for (uint32 chidx=0; chidx < SUPPORTED_CHANNEL_COUNT; chidx++)
                 {
-                     if (dVolume.E[chidx] != 0.0f)
+                    // NOTE: epsilon rounding added
+                    if (dVolume.E[chidx] >= 0.00001f)
                     {
                         real32 volumeDelta = playingSound->TargetVolume.E[chidx] - volume.E[chidx];
                         // rounding of flaot
+                        
                         uint32 volumeSampleCount = (uint32)((volumeDelta / dVolume.E[chidx]) + 0.5f);
                         if (samplesToMix > volumeSampleCount)
                         {
@@ -142,15 +157,20 @@ OutputPlayingSounds(
                     }
                 }
 
-                for (uint32 sampleIndex = playingSound->SamplesPlayed;
-                     sampleIndex < (playingSound->SamplesPlayed + samplesToMix);
-                     ++sampleIndex)
-                {
-                    real32 sampleValue = loadedSound->Samples[0][sampleIndex];
+                real32 samplePosition = playingSound->SamplesPlayed;
+                for (u32 loopIndex = 0; loopIndex < samplesToMix; loopIndex++) {
+                    u32 sampleIndex = FloorReal32ToInt32(samplePosition);
+                    r32 frac = samplePosition - (r32)sampleIndex;
+
+                    r32 sample0 = (r32)loadedSound->Samples[0][sampleIndex];
+                    r32 sample1 = (r32)loadedSound->Samples[0][sampleIndex+1];
+                    r32 sampleValue = Lerp(sample0, frac, sample1);
+                    
                     *dest0++ += volume.E[0] * sampleValue;
                     *dest1++ += volume.E[1] * sampleValue;
 
                     volume += dVolume;
+                    samplePosition += dSample;
                 }
 
                 playingSound->CurrentVolume = volume;
@@ -164,10 +184,10 @@ OutputPlayingSounds(
                     }
                 }
 
-                playingSound->SamplesPlayed += samplesToMix;
+                playingSound->SamplesPlayed = samplePosition;
                 totalSamplesToMix -= samplesToMix;
 
-                if ((uint32)playingSound->SamplesPlayed == loadedSound->SampleCount)
+                if ((u32)playingSound->SamplesPlayed == loadedSound->SampleCount)
                 {
                     if (IsValid(soundInfo->NextIdToPlay))
                     {
