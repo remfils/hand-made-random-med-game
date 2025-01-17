@@ -1323,7 +1323,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i 
             Assert(entry->Bitmap);
 
 #if 0
-            RenderBitmap(outputTarget, entry->Bitmap, basisResult.P.x, basisResult.P.y, entry->Color);
+            RenderBitmap(outputTarget, entry->Bitmap, entry->P.x, entry->P.y, entry->Color);
 #else
 
 #if 0

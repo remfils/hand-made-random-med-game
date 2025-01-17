@@ -213,7 +213,7 @@ GetChunkSize(riff_iterator iter)
 }
 
 internal loaded_sound
-DEBUGLoadWAV(char *filename, memory_arena *arena)
+DEBUGLoadWAV(char *filename, memory_arena *arena, uint32 sectionFirstSampleIndex, uint32 sectionSampleCount)
 {
     debug_read_file_result readResult = DEBUG_ReadEntireFile(filename);
     
@@ -291,6 +291,14 @@ DEBUGLoadWAV(char *filename, memory_arena *arena)
         // TODO: propper load of channels
         result.ChannelCount = 1;
         
+    }
+
+    if (sectionSampleCount) {
+        Assert(sectionFirstSampleIndex + sectionSampleCount <= result.SampleCount);
+        result.SampleCount = sectionSampleCount;
+        for (uint32 chIndex=0; chIndex < result.ChannelCount; chIndex++) {
+            result.Samples[chIndex] += sectionFirstSampleIndex;
+        }
     }
 
     return result;
@@ -482,7 +490,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(DoLoadSoundWork)
     // TODO: remove this
 
     asset_sound_info *info = work->Assets->SoundInfos + work->Id.Value;
-    *work->Sound = DEBUGLoadWAV(info->FileName, &work->Assets->Arena);
+    *work->Sound = DEBUGLoadWAV(info->FileName, &work->Assets->Arena, info->FirstSampleIndex, info->SampleCount);
 
     CompletePreviousWritesBeforeFutureWrites;
     
@@ -554,18 +562,21 @@ AddBitmapAsset(game_assets *assets, char *fileName, v2 alignPercent={0.5f, 0.5f}
 }
 
 internal sound_id
-DEBUGAddSoundInfo(game_assets *assets, char *fileName)
+DEBUGAddSoundInfo(game_assets *assets, char *fileName, uint32 firstSampleIndex=0, uint32 sampleCount=0)
 {
     sound_id id = {assets->DEBUGUsedSoundCount++};
 
     asset_sound_info *result = assets->SoundInfos + id.Value;
     result->FileName = fileName;
+    result->NextIdToPlay.Value = 0;
+    result->FirstSampleIndex = firstSampleIndex;
+    result->SampleCount = sampleCount;
 
     return id;
 }
 
-internal void
-AddSoundAsset(game_assets *assets, char *fileName)
+internal asset*
+AddSoundAsset(game_assets *assets, char *fileName, uint32 firstSampleIndex=0, uint32 sampleCount=0)
 {
     Assert(assets->DEBUGCurrentAssetType);
     Assert(assets->DEBUGCurrentAssetType->OnePastLastAssetIndex < assets->AssetCount);
@@ -573,9 +584,10 @@ AddSoundAsset(game_assets *assets, char *fileName)
     asset *asset = assets->Assets + assets->DEBUGCurrentAssetType->OnePastLastAssetIndex++;
     asset->FirstTagIndex = assets->DEBUGUsedTagCount;
     asset->OnePastLastTagIndex = asset->FirstTagIndex;
-    asset->SlotId = DEBUGAddSoundInfo(assets, fileName).Value;
+    asset->SlotId = DEBUGAddSoundInfo(assets, fileName, firstSampleIndex, sampleCount).Value;
 
     assets->DEBUGCurrentAsset = asset;
+    return asset;
 }
 
 
@@ -707,9 +719,27 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
     BeginAssetType(assets, AssetType_FootstepWood);
     AddSoundAsset(assets, "../data/sound/footsteps__wood01.wav");
     EndAssetType(assets);
-    
+
+
+    uint32 totalMusicFileSamples = 615916;
+    asset* lastAddedSound = 0;
+    uint32 musicChunk = 40000;
     BeginAssetType(assets, AssetType_PianoMusic);
-    AddSoundAsset(assets, "../data/sound/energetic-piano-uptempo-loop_156bpm_F#_minor.wav");
+    for (uint32 sampleIndex=0;
+         sampleIndex < totalMusicFileSamples;
+         sampleIndex += musicChunk
+         )
+    {
+        uint32 samplesToLoad = totalMusicFileSamples - sampleIndex;
+        if (samplesToLoad > musicChunk) {
+            samplesToLoad = musicChunk;
+        }
+        asset* addedAsset = AddSoundAsset(assets, "../data/sound/energetic-piano-uptempo-loop_156bpm_F#_minor.wav", sampleIndex, samplesToLoad);
+        if (lastAddedSound) {
+            assets->SoundInfos[lastAddedSound->SlotId].NextIdToPlay.Value = addedAsset->SlotId;
+        }
+        lastAddedSound = addedAsset;
+    }
     EndAssetType(assets);
 
 

@@ -1155,9 +1155,7 @@ int CALLBACK WinMain(
     //windowClass.hIcon = ??;
     windowClass.lpszClassName = "HandmadeHeroWindowClass";
 
-    //Win32ResizeDIBSection(&globalBackbuffer, 1088, 576);
     Win32ResizeDIBSection(&globalBackbuffer, 1920, 1080);
-
 
     char *param = "thread started";
 
@@ -1167,32 +1165,6 @@ int CALLBACK WinMain(
     platform_work_queue lowPriorityQueue = {};
     Win32MakeQueue(&lowPriorityQueue, 1);
     
-
-#if 0
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 0\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 1\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 2\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 3\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 4\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 5\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 6\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 7\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 8\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 9\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String A 10\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 0\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 1\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 2\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 3\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 4\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 5\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 6\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 7\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 8\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 9\n");
-    Win32AddEntry(&highPriorityQueue, DoWorkerWork, "String B 10\n");
-#endif
-
     Win32CompleteAllWork(&highPriorityQueue);
     
     LARGE_INTEGER perfCounterFrequencyResult;

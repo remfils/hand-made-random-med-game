@@ -1,3 +1,13 @@
+struct bitmap_id
+{
+    uint32 Value;
+};
+struct sound_id
+{
+    uint32 Value;
+};
+
+
 struct loaded_bitmap
 {
     v2 AlignPercent;
@@ -53,6 +63,9 @@ struct asset_bitmap_info
 struct asset_sound_info
 {
     char *FileName;
+    uint32 FirstSampleIndex;
+    uint32 SampleCount;
+    sound_id NextIdToPlay;
 };
 
 enum asset_type_id
@@ -162,15 +175,6 @@ struct game_assets
     asset *DEBUGCurrentAsset;
 };
 
-struct bitmap_id
-{
-    uint32 Value;
-};
-struct sound_id
-{
-    uint32 Value;
-};
-
 inline loaded_bitmap*
 GetBitmap(game_assets *assets, bitmap_id id)
 {
@@ -181,10 +185,35 @@ GetBitmap(game_assets *assets, bitmap_id id)
 inline loaded_sound*
 GetSound(game_assets *assets, sound_id id)
 {
+    Assert(id.Value <= assets->SoundCount);
     loaded_sound *result = assets->Sounds[id.Value].Sound;
     return result;
 }
 
+inline asset_sound_info*
+GetSoundInfo(game_assets *assets, sound_id id)
+{
+    Assert(id.Value <= assets->SoundCount);
+    asset_sound_info *result = assets->SoundInfos + id.Value;
+    return result;
+}
+
+inline bool32
+IsValid(bitmap_id id)
+{
+    bool32 result = id.Value != 0;
+    return result;
+}
+
+inline bool32
+IsValid(sound_id id)
+{
+    bool32 result = id.Value != 0;
+    return result;
+}
+
 internal void LoadBitmap(game_assets *assets, bitmap_id id);
+inline void PrefetchBitmap(game_assets *assets, bitmap_id id) { LoadBitmap(assets, id); };
 
 internal void LoadSound(game_assets *assets, sound_id id);
+inline void PrefetchSound(game_assets *assets, sound_id id) { LoadSound(assets, id); };

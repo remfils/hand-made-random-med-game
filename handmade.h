@@ -79,6 +79,7 @@
 #include "handmade_math.h"
 #include "handmade_assets.h"
 #include "handmade_render_group.h"
+#include "handmade_audio.h"
 #include "random.h"
 
 
@@ -186,14 +187,6 @@ struct ground_buffer
     loaded_bitmap Bitmap;
 };
 
-struct playing_sound
-{
-    sound_id Id;
-    real32 Volume[2];
-    int32 SamplesPlayed;
-    playing_sound *Next;
-};
-
 struct game_state
 {
     int XOffset;
@@ -237,8 +230,7 @@ struct game_state
     loaded_bitmap TestDiffuse;
     loaded_bitmap TestNormal;
 
-    playing_sound *FirstPlayingSound;
-    playing_sound *FirstFreePlayingSound;
+    audio_state AudioState;
 };
 
 struct transient_state
