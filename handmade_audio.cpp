@@ -38,14 +38,32 @@ PlaySound(audio_state *audioState, sound_id id)
     audioState->FirstFreePlayingSound = sound->Next;
 
     sound->SamplesPlayed = 0;
-    sound->Volume[0] = 0.2f;
-    sound->Volume[1] = 0.2f;
+
+    sound->CurrentVolume = sound->TargetVolume = v2{1.0f, 1.0f};
+    sound->dCurrentVolume = v2{0.0f, 0.0f};
+    
     sound->Id = id;
     sound->Next = audioState->FirstPlayingSound;
 
     audioState->FirstPlayingSound = sound;
 
     return sound;
+}
+
+internal void
+ChangeVolume(audio_state *audioState, playing_sound *sound, real32 fadeDurationInSeconds, v2 volume)
+{
+    sound->TargetVolume = volume;
+    
+    if (fadeDurationInSeconds <= 0.0f)
+    {
+        sound->CurrentVolume = sound->TargetVolume;
+    }
+    else
+    {
+        real32 oneOver = 1.f / fadeDurationInSeconds;
+        sound->dCurrentVolume = (sound->TargetVolume - sound->CurrentVolume) * oneOver;
+    }
 }
 
 internal void
@@ -58,8 +76,12 @@ OutputPlayingSounds(
 {
     temporary_memory mixerMemory = BeginTemporaryMemory(tempArena);
 
+    real32 secondsPerSample = 1.0f / (real32) soundBuffer->SamplesPerSecond;
+
     real32 *realChannel_0 = PushArray(tempArena, soundBuffer->SampleCount, real32);
     real32 *realChannel_1 = PushArray(tempArena, soundBuffer->SampleCount, real32);
+
+    #define SUPPORTED_CHANNEL_COUNT 2
 
     // clearout mixer channels
     {
@@ -83,8 +105,8 @@ OutputPlayingSounds(
         playing_sound *playingSound = *playingSoundPtr;
 
         uint32 totalSamplesToMix = soundBuffer->SampleCount;
-        real32 *dest_0 = realChannel_0;
-        real32 *dest_1 = realChannel_1;
+        real32 *dest0 = realChannel_0;
+        real32 *dest1 = realChannel_1;
         
         while (totalSamplesToMix && !isSoundFinished)
         {
@@ -93,9 +115,9 @@ OutputPlayingSounds(
             {
                 asset_sound_info *soundInfo = GetSoundInfo(assets, playingSound->Id);
                 PrefetchSound(assets, soundInfo->NextIdToPlay);
-            
-                real32 vol_0 = playingSound->Volume[0];
-                real32 vol_1 = playingSound->Volume[1];
+
+                v2 volume = playingSound->CurrentVolume;
+                v2 dVolume = secondsPerSample * playingSound->dCurrentVolume;
 
                 uint32 samplesToMix = totalSamplesToMix;
                 uint32 samplesRemainingInSound = loadedSound->SampleCount - playingSound->SamplesPlayed;
@@ -103,13 +125,43 @@ OutputPlayingSounds(
                     samplesToMix = samplesRemainingInSound;
                 }
 
+
+                bool32 volumeEnded[SUPPORTED_CHANNEL_COUNT] = {};
+                for (uint32 chidx=0; chidx < SUPPORTED_CHANNEL_COUNT; chidx++)
+                {
+                     if (dVolume.E[chidx] != 0.0f)
+                    {
+                        real32 volumeDelta = playingSound->TargetVolume.E[chidx] - volume.E[chidx];
+                        // rounding of flaot
+                        uint32 volumeSampleCount = (uint32)((volumeDelta / dVolume.E[chidx]) + 0.5f);
+                        if (samplesToMix > volumeSampleCount)
+                        {
+                            samplesToMix = volumeSampleCount;
+                            volumeEnded[chidx] = true;
+                        }
+                    }
+                }
+
                 for (uint32 sampleIndex = playingSound->SamplesPlayed;
                      sampleIndex < (playingSound->SamplesPlayed + samplesToMix);
                      ++sampleIndex)
                 {
                     real32 sampleValue = loadedSound->Samples[0][sampleIndex];
-                    *dest_0++ += sampleValue * vol_0;
-                    *dest_1++ += sampleValue * vol_1;
+                    *dest0++ += volume.E[0] * sampleValue;
+                    *dest1++ += volume.E[1] * sampleValue;
+
+                    volume += dVolume;
+                }
+
+                playingSound->CurrentVolume = volume;
+
+                // TODO(casey): make better code
+                for (uint32 chidx=0; chidx < SUPPORTED_CHANNEL_COUNT; chidx++)
+                {
+                    if (volumeEnded[chidx]) {
+                        playingSound->CurrentVolume.E[chidx] = playingSound->TargetVolume.E[chidx];
+                        dVolume.E[chidx] = 0.0f;
+                    }
                 }
 
                 playingSound->SamplesPlayed += samplesToMix;
@@ -126,11 +178,6 @@ OutputPlayingSounds(
                     {
                         isSoundFinished = true;
                     }
-                }
-                else
-                {
-                    Assert(totalSamplesToMix == 0);
-                    break;
                 }
             }
             else

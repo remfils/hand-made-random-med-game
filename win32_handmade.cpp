@@ -1155,7 +1155,10 @@ int CALLBACK WinMain(
     //windowClass.hIcon = ??;
     windowClass.lpszClassName = "HandmadeHeroWindowClass";
 
-    Win32ResizeDIBSection(&globalBackbuffer, 1920, 1080);
+
+    Win32ResizeDIBSection(&globalBackbuffer, 960, 540);
+    
+    // Win32ResizeDIBSection(&globalBackbuffer, 1920, 1080);
 
     char *param = "thread started";
 
