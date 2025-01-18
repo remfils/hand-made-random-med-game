@@ -152,6 +152,7 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
             destB = _mm_mul_ps(_mm_sqrt_ps(destB), val255_4x);
             destA = _mm_mul_ps(destA, val255_4x);
 
+            // rounding, cvt == convert
             __m128i intR = _mm_cvtps_epi32(destR);
             __m128i intB = _mm_cvtps_epi32(destB);
             __m128i intG = _mm_cvtps_epi32(destG);
@@ -654,6 +655,7 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 __m128 tx_4x = _mm_add_ps(pixelMarginOffset_4x, _mm_mul_ps(u_4x, width_4x));
                 __m128 ty_4x = _mm_add_ps(pixelMarginOffset_4x, _mm_mul_ps(v_4x, height_4x));
 
+                // truncating
                 __m128i imgX_4x = _mm_cvttps_epi32(tx_4x);
                 __m128i imgY_4x = _mm_cvttps_epi32(ty_4x);
 

@@ -1,4 +1,14 @@
-* to be done [4/528]
+* что точно нужно понять
+
+- как делать дебаг тулзы
+- как делать интерфейс
+- как работать с OpenGL
+- шейдеры
+- меню
+- катсцены
+- генерация уровней?
+
+* to be done [5/528]
 
 ** DONE Handmade Hero Day 140 - Implementing a Sound Mixer
 - [[https://www.youtube.com/watch?v=UuqcgQxpfO8]]
@@ -17,8 +27,15 @@
 
 для изменения частоты БЕЗ изменения длительности сигнала Cylindrical Resmapling
 
-** TODO Handmade Hero Day 144 - SSE Mixer Pre and Post Loops
+** DONE Handmade Hero Day 144 - SSE Mixer Pre and Post Loops
 - [[https://www.youtube.com/watch?v=l3zbzEYRLJc]]
+
+twos complement
+
+идея, что для целых чисел можно отрицательные числа записывать с 1 впереди и считать их в "обратном" порядке
+
+1111 - -1
+1110 - -2
 
 ** TODO Handmade Hero Day 145 - SSE Mixer Main Loop
 - [[https://www.youtube.com/watch?v=W3rrlUEaW1E]]

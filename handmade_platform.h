@@ -124,6 +124,7 @@ struct game_offscreen_buffer
 
 struct game_sound_output_buffer
 {
+    // NOTE|IMPORTANT: samples must be padded to a multiple of 4
     int16 *Samples;
     int SampleCount;
     int SamplesPerSecond;
@@ -209,6 +210,10 @@ struct platform_work_queue;
 typedef void platform_work_queue_callback(platform_work_queue *queue, void *data);
 typedef void platform_add_entry(platform_work_queue *queue, platform_work_queue_callback *callback, void *data);
 typedef void platform_complete_all_work(platform_work_queue *queue);
+
+#define AlignPow2(value, alignment) ((value + ((alignment - 1))) & ~((alignment) -1))
+#define Align4(value) ((value + 3) & ~3)
+#define Align16(value) ((value + 15) & ~15)
 
 
 #define PLATFORM_WORK_QUEUE_CALLBACK(name) void name(platform_work_queue *queue, void *data)

@@ -1236,7 +1236,8 @@ int CALLBACK WinMain(
             LARGE_INTEGER flipWallClock = lastCounter;
 
 
-            int16 *samples = (int16 *)VirtualAlloc(0, SoundOutput.SecondaryBufferSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            u32 maxPossibleOverrun = 2*4*sizeof(u16);
+            int16 *samples = (int16 *)VirtualAlloc(0, SoundOutput.SecondaryBufferSize + maxPossibleOverrun, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
             game_memory  gameMemory = {};
             gameMemory.PermanentStorageSize = Megabytes(64);

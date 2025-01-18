@@ -80,25 +80,32 @@ OutputPlayingSounds(
                     memory_arena *tempArena
                     )
 {
+    #define SUPPORTED_CHANNEL_COUNT 2
+
+    u32 sampleCount = Align4(soundBuffer->SampleCount);
+    u32 sampleCount4 = sampleCount / 4;
+
     temporary_memory mixerMemory = BeginTemporaryMemory(tempArena);
 
     real32 secondsPerSample = 1.0f / (real32) soundBuffer->SamplesPerSecond;
 
-    real32 *realChannel_0 = PushArray(tempArena, soundBuffer->SampleCount, real32);
-    real32 *realChannel_1 = PushArray(tempArena, soundBuffer->SampleCount, real32);
+    __m128 *realChannel0 = PushArray(tempArena, sampleCount4, __m128, 16);
+    __m128 *realChannel1 = PushArray(tempArena, sampleCount4, __m128, 16);
 
-    #define SUPPORTED_CHANNEL_COUNT 2
 
     // clearout mixer channels
+    __m128 zero = _mm_set1_ps(0.0f);
     {
-        real32 *dest_0 = realChannel_0;
-        real32 *dest_1 = realChannel_1;
-        for (int sampleIndex=0;
-             sampleIndex < soundBuffer->SampleCount;
+        __m128 *dest_0 = realChannel0;
+        __m128 *dest_1 = realChannel1;
+
+        
+        for (u32 sampleIndex=0;
+             sampleIndex < sampleCount4;
              sampleIndex++)
         {
-            *dest_0++ = 0.0f;
-            *dest_1++ = 0.0f;
+            _mm_store_ps((float *)dest_0++, zero);
+            _mm_store_ps((float *)dest_1++, zero);
         }
     }
 
@@ -111,8 +118,8 @@ OutputPlayingSounds(
         playing_sound *playingSound = *playingSoundPtr;
 
         uint32 totalSamplesToMix = soundBuffer->SampleCount;
-        real32 *dest0 = realChannel_0;
-        real32 *dest1 = realChannel_1;
+        real32 *dest0 = (real32*)realChannel0;
+        real32 *dest1 = (real32*)realChannel1;
         
         while (totalSamplesToMix && !isSoundFinished)
         {
@@ -223,21 +230,28 @@ OutputPlayingSounds(
         }
     }
 
-    // convert to 16bits
     {
-        real32 *source_0 = realChannel_0;
-        real32 *source_1 = realChannel_1;
+        __m128 *source0 = realChannel0;
+        __m128 *source1 = realChannel1;
 
-        int16 *sampleOut = soundBuffer->Samples;
-        for (int sampleIndex = 0;
-             sampleIndex < soundBuffer->SampleCount;
+        __m128i *sampleOut = (__m128i *)soundBuffer->Samples;
+        for (u32 sampleIndex = 0;
+             sampleIndex < sampleCount4;
              ++sampleIndex)
         {
-            *sampleOut++ = (int16)(*source_0 + 0.5f);
-            *sampleOut++ = (int16)(*source_1 + 0.5f);
+            __m128 s0 = _mm_load_ps((float *)source0++);
+            __m128 s1 = _mm_load_ps((float *)source1++);
+            
+            // convert to 16bit ints with high saturation
+            __m128i l = _mm_cvtps_epi32(s0);
+            __m128i r = _mm_cvtps_epi32(s1);
 
-            source_0++;
-            source_1++;
+            // interleave L + R channels
+            __m128i lr0 = _mm_unpacklo_epi32(l, r);
+            __m128i lr1 = _mm_unpackhi_epi32(l, r);
+
+            // pack into output
+            *sampleOut++ = _mm_packs_epi32(lr0, lr1);
         }
     }
 
