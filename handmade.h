@@ -1,3 +1,8 @@
+#if !defined(HANDMADE_H)
+#define HANDMADE_H
+
+
+
 /*
   HANDMADE_INTERNAL:
   	0 - build for public release
@@ -368,3 +373,4 @@ SubArena(memory_arena *result, memory_arena *arena, memory_index size, memory_in
 /* void GameGetSoundSamples(game_memory *memory, game_sound_output_buffer *soundBuffer); */
 internal task_with_memory* BeginTaskWithMemory(transient_state *tranState);
 internal void EndTaskWithMemory(task_with_memory *task);
+#endif

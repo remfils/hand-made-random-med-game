@@ -1,3 +1,6 @@
+#if !defined(HANDMADE_ASSETS_H)
+#define HANDMADE_ASSETS_H
+
 struct bitmap_id
 {
     uint32 Value;
@@ -217,3 +220,5 @@ inline void PrefetchBitmap(game_assets *assets, bitmap_id id) { LoadBitmap(asset
 
 internal void LoadSound(game_assets *assets, sound_id id);
 inline void PrefetchSound(game_assets *assets, sound_id id) { LoadSound(assets, id); };
+
+#endif

@@ -1,3 +1,7 @@
+#if !defined(WIN32_HANDMADE_H)
+#define WIN32_HANDMADE_H
+
+
 struct win32_game_code
 {
     HMODULE HandmadeModule;
@@ -68,3 +72,5 @@ struct win32_state
     uint64 GameMemorySize;
     win32_replay_buffer ReplayBuffers[4];
 };
+
+#endif

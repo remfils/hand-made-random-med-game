@@ -1,3 +1,7 @@
+#if !defined(HANDMADE_RENDER_GROUP_H)
+#define HANDMADE_RENDER_GROUP_H
+
+
 /****************************************************************************************************
 
 NOTE
@@ -192,3 +196,4 @@ Unpack4x8(uint32 packed)
     };
     return result;
 }
+#endif

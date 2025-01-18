@@ -1,4 +1,5 @@
 #if !defined(HANDMADE_MATH_H)
+#define HANDMADE_MATH_H
 
 union v2
 {
@@ -150,5 +151,4 @@ SafeRatio_1(real32 numerator, real32 divisor)
 #include "handmade_math_rectangle3.h"
 
 
-#define HANDMADE_MATH_H
 #endif

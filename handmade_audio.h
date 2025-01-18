@@ -1,3 +1,7 @@
+#if !defined(HANDMADE_AUDIO_H)
+#define HANDMADE_AUDIO_H
+
+
 struct playing_sound
 {
     sound_id Id;
@@ -15,3 +19,4 @@ struct audio_state
     playing_sound *FirstPlayingSound;
     playing_sound *FirstFreePlayingSound;  
 };
+#endif

@@ -1,3 +1,6 @@
+#if !defined(HANDMADE_MATH_RECTANGLE3_H)
+#define HANDMADE_MATH_RECTANGLE3_H
+
 inline rectangle3
 AddRadiusTo(rectangle3 rect, v3 dim)
 {
@@ -144,3 +147,5 @@ GetDim(rectangle3 rect)
     v3 result = rect.Max - rect.Min;
     return result;
 }
+
+#endif

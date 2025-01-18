@@ -1,3 +1,7 @@
+#if !defined(HANDMADE_PLATFORM_H)
+#define HANDMADE_PLATFORM_H
+
+
 #if _MSC_VER
 #define COMPILER_MSVC 1
 #endif
@@ -11,7 +15,9 @@
 #include <intrin.h>
 #endif
 
+#if !defined(internal)
 #define internal static
+#endif
 #define local_persist static
 #define global_variable static
 
@@ -230,7 +236,7 @@ typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 
 
-platform_work_queue *RenderQueue;
+extern platform_work_queue *RenderQueue;
 global_variable platform_add_entry *PlatformAddEntry;
 global_variable platform_complete_all_work *PlatformCompleteAllWork;
 
@@ -271,3 +277,4 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 #define GAME_GET_SOUND_SAMPLES(name) void name(game_memory *memory, game_sound_output_buffer *soundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
+#endif

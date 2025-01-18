@@ -1,3 +1,6 @@
+#if !defined(RANDOM_H)
+#define RANDOM_H
+
 #define MAX_RANDOM_NUMBER 3999869
 #define MIN_RANDOM_NUMBER 3818
 
@@ -578,3 +581,5 @@ RandomBetween(random_series *series, uint32 min, uint32 max)
     uint32 result = min + (uint32)(NextRandomUInt32(series) % (max + 1 - min));
     return result;
 }
+
+#endif

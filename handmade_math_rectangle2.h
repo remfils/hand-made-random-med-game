@@ -1,3 +1,7 @@
+#if !defined(HANDMADE_MATH_RECTANGLE2_H)
+#define HANDMADE_MATH_RECTANGLE2_H
+
+
 inline rectangle2
 AddRadiusTo(rectangle2 rect, real32 radiusW, real32 radiusH)
 {
@@ -152,3 +156,5 @@ InvertedInfinityRectangle(void)
 
     return result;
 }
+
+#endif
