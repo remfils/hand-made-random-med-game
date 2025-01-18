@@ -1236,6 +1236,7 @@ int CALLBACK WinMain(
             LARGE_INTEGER flipWallClock = lastCounter;
 
 
+            // TODO: remove this
             u32 maxPossibleOverrun = 2*4*sizeof(u16);
             int16 *samples = (int16 *)VirtualAlloc(0, SoundOutput.SecondaryBufferSize + maxPossibleOverrun, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
@@ -1613,9 +1614,10 @@ int CALLBACK WinMain(
                         targetCursor = writeCursor + expectedBytesPerFrame + SoundOutput.SafetyBytes;
                     }
                     targetCursor = targetCursor % SoundOutput.SecondaryBufferSize;
-                    
+
+                    bytesToWrite = 0;
                     if (byteToLock > targetCursor) {
-                        bytesToWrite = (SoundOutput.SecondaryBufferSize - byteToLock);
+                        bytesToWrite = SoundOutput.SecondaryBufferSize - byteToLock;
                         bytesToWrite += targetCursor;
                     } else {
                         bytesToWrite = targetCursor - byteToLock;
@@ -1623,7 +1625,9 @@ int CALLBACK WinMain(
 
                     game_sound_output_buffer soundBuffer = {};
                     soundBuffer.SamplesPerSecond = SoundOutput.SamplesPerSecond;
-                    soundBuffer.SampleCount = bytesToWrite / SoundOutput.BytesPerSample;
+                    soundBuffer.SampleCount = Align8(bytesToWrite / SoundOutput.BytesPerSample);
+                    // align bytesToWrite by 8
+                    bytesToWrite = soundBuffer.SampleCount * SoundOutput.BytesPerSample;
                     soundBuffer.Samples = samples;
 
                     if (game.GetSoundSamples)

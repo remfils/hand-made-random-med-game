@@ -219,6 +219,7 @@ typedef void platform_complete_all_work(platform_work_queue *queue);
 
 #define AlignPow2(value, alignment) ((value + ((alignment - 1))) & ~((alignment) -1))
 #define Align4(value) ((value + 3) & ~3)
+#define Align8(value) ((value + 7) & ~7)
 #define Align16(value) ((value + 15) & ~15)
 
 

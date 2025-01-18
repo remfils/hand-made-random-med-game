@@ -24,6 +24,7 @@ struct loaded_bitmap
 
 struct loaded_sound
 {
+    // NOTE: loaded sound assets has to be 8 alligned
     uint32 SampleCount;
     uint32 ChannelCount;
     int16 *Samples[2];

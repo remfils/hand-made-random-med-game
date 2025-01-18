@@ -258,7 +258,7 @@ DEBUGLoadWAV(char *filename, memory_arena *arena, uint32 sectionFirstSampleIndex
         Assert(channelCount && sampleData);
 
         result.ChannelCount = channelCount;
-        result.SampleCount = sampleDataSize / (channelCount * sizeof(real32)); // TODO: uint16 is correct?
+        u32 sampleCount = sampleDataSize / (channelCount * sizeof(real32)); // TODO: uint16 in Casey code is correct?
 
         if (result.ChannelCount == 1)
         {
@@ -267,11 +267,11 @@ DEBUGLoadWAV(char *filename, memory_arena *arena, uint32 sectionFirstSampleIndex
         }
         else if (result.ChannelCount == 2)
         {
-            result.Samples[0] = PushArray(arena, result.SampleCount, int16);
-            result.Samples[1] = PushArray(arena, result.SampleCount, int16);;
+            result.Samples[0] = PushArray(arena, sampleCount, int16);
+            result.Samples[1] = PushArray(arena, sampleCount, int16);;
 
             for (uint32 sampleIndex=0;
-                 sampleIndex < result.SampleCount;
+                 sampleIndex < sampleCount;
                  sampleIndex++)
             {
                 real32 leftChannel = sampleData[2 * sampleIndex];
@@ -289,16 +289,31 @@ DEBUGLoadWAV(char *filename, memory_arena *arena, uint32 sectionFirstSampleIndex
         #endif
 
         // TODO: propper load of channels
+        b32 atEnd = true;
         result.ChannelCount = 1;
         
-    }
-
-    if (sectionSampleCount) {
-        Assert(sectionFirstSampleIndex + sectionSampleCount <= result.SampleCount);
-        result.SampleCount = sectionSampleCount;
-        for (uint32 chIndex=0; chIndex < result.ChannelCount; chIndex++) {
-            result.Samples[chIndex] += sectionFirstSampleIndex;
+        if (sectionSampleCount) {
+            Assert(sectionFirstSampleIndex + sectionSampleCount <= sampleCount);
+            atEnd = ((sectionFirstSampleIndex + sectionSampleCount) == sampleCount);
+            sampleCount = sectionSampleCount;
+            for (uint32 chIndex=0; chIndex < result.ChannelCount; chIndex++) {
+                result.Samples[chIndex] += sectionFirstSampleIndex;
+            }
         }
+        if (atEnd) {
+            // TODO: all sounds have to be padded with their subsequent
+            // sound out to 8 samples past their end.
+            for (u32 i=0; i < result.ChannelCount; i++)
+            {
+                for (u32 sampleIndex = sampleCount; sampleIndex < sampleCount + 8; sampleIndex++)
+                {
+                    result.Samples[i][sampleIndex] = 0;
+                }
+            }
+            
+        }
+
+        result.SampleCount = sampleCount;
     }
 
     return result;

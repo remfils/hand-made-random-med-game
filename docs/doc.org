@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [5/528]
+* to be done [6/528]
 
 ** DONE Handmade Hero Day 140 - Implementing a Sound Mixer
 - [[https://www.youtube.com/watch?v=UuqcgQxpfO8]]
@@ -37,7 +37,7 @@ twos complement
 1111 - -1
 1110 - -2
 
-** TODO Handmade Hero Day 145 - SSE Mixer Main Loop
+** DONE Handmade Hero Day 145 - SSE Mixer Main Loop
 - [[https://www.youtube.com/watch?v=W3rrlUEaW1E]]
 
 ** TODO Handmade Hero Day 146 - Accumulation vs. Explicit Calculation
