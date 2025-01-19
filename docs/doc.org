@@ -8,44 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [6/528]
-
-** DONE Handmade Hero Day 140 - Implementing a Sound Mixer
-- [[https://www.youtube.com/watch?v=UuqcgQxpfO8]]
-
-Добавлен микшер звука. Можно заказывать проигрование звука по вызову
-функции. Звуки загружаются в отдельном потоке.
-
-** DONE Handmade Hero Day 141 - Streaming Large Audio in Chunks
-- [[https://www.youtube.com/watch?v=Yvv9nVqGC5w]]
-
-** DONE Handmade Hero Day 142 - Per-sample Volume Interpolation
-- [[https://www.youtube.com/watch?v=XxReVrByBYw]]
-
-** DONE Handmade Hero Day 143 - Pitch Shifting in the Mixer
-- [[https://www.youtube.com/watch?v=OOR8A_7JwIY]]
-
-для изменения частоты БЕЗ изменения длительности сигнала Cylindrical Resmapling
-
-** DONE Handmade Hero Day 144 - SSE Mixer Pre and Post Loops
-- [[https://www.youtube.com/watch?v=l3zbzEYRLJc]]
-
-twos complement
-
-идея, что для целых чисел можно отрицательные числа записывать с 1 впереди и считать их в "обратном" порядке
-
-1111 - -1
-1110 - -2
-
-** DONE Handmade Hero Day 145 - SSE Mixer Main Loop
-- [[https://www.youtube.com/watch?v=W3rrlUEaW1E]]
-
-** TODO Handmade Hero Day 146 - Accumulation vs. Explicit Calculation
-- [[https://www.youtube.com/watch?v=YlKPcSwXh54]]
-
-** TODO Handmade Hero Day 147 - Defining the Asset File
-- [[https://www.youtube.com/watch?v=n0RRz3NlHuo]]
-
+* to be done [0/520]
 ** TODO Handmade Hero Day 148 - Writing the Asset File Header
 - [[https://www.youtube.com/watch?v=UNXHK8O-B_g]]
 
@@ -1655,7 +1618,7 @@ twos complement
 - [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
 
 
-* done [121/121]
+* done [161/161]
 ** DONE Handmade Hero - Announcement Trailer
 - [[yt:A2dxjOjWHxQ]]
 
@@ -2638,3 +2601,45 @@ https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
 реальным на компьютере. На сколько я понимаю, просто не возможно
 сделать так, чтобы звук был либо спереди либо сзади.
 
+** DONE Handmade Hero Day 140 - Implementing a Sound Mixer
+- [[https://www.youtube.com/watch?v=UuqcgQxpfO8]]
+
+Добавлен микшер звука. Можно заказывать проигрование звука по вызову
+функции. Звуки загружаются в отдельном потоке.
+
+** DONE Handmade Hero Day 141 - Streaming Large Audio in Chunks
+- [[https://www.youtube.com/watch?v=Yvv9nVqGC5w]]
+
+** DONE Handmade Hero Day 142 - Per-sample Volume Interpolation
+- [[https://www.youtube.com/watch?v=XxReVrByBYw]]
+
+** DONE Handmade Hero Day 143 - Pitch Shifting in the Mixer
+- [[https://www.youtube.com/watch?v=OOR8A_7JwIY]]
+
+для изменения частоты БЕЗ изменения длительности сигнала Cylindrical Resmapling
+
+** DONE Handmade Hero Day 144 - SSE Mixer Pre and Post Loops
+- [[https://www.youtube.com/watch?v=l3zbzEYRLJc]]
+
+twos complement
+
+идея, что для целых чисел можно отрицательные числа записывать с 1 впереди и считать их в "обратном" порядке
+
+1111 - -1
+1110 - -2
+
+** DONE Handmade Hero Day 145 - SSE Mixer Main Loop
+- [[https://www.youtube.com/watch?v=W3rrlUEaW1E]]
+
+** DONE Handmade Hero Day 146 - Accumulation vs. Explicit Calculation
+- [[https://www.youtube.com/watch?v=YlKPcSwXh54]]
+
+** DONE Handmade Hero Day 147 - Defining the Asset File
+- [[https://www.youtube.com/watch?v=n0RRz3NlHuo]]
+
+основные штуки о которых нужно думать при работе с ассетами
+
+- как выпускать расширения/плагины
+
+На сколько понимаю, сейчас есть возможность сделать функционал, где
+расширение полностью переписывает *ВСЕ* текстуры/аудио для игры
