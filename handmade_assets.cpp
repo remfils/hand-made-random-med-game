@@ -611,7 +611,6 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 
     SubArena(&assets->Arena, arena, assetSize);
     
-    assets->DEBUGUsedBitmapCount = 1;
     assets->DEBUGUsedAssetCount = 0;
 
     for (uint32 tagType=0;

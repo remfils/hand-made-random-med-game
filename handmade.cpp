@@ -894,7 +894,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         // TODO: sound plays really bad for some reason. With stutters...
         playing_sound *snd = PlaySound(&gameState->AudioState, GetFirstSound(tranState->Assets, AssetType_PianoMusic));
-        ChangeVolume(&gameState->AudioState, snd, 3, v2{0.0f, 0.0f});
+        ChangeVolume(&gameState->AudioState, snd, 10, v2{0.0f, 0.0f});
         ChangePitch(snd, 1.2f);
 
         // NOTE: make square for now

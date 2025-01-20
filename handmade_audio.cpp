@@ -159,26 +159,25 @@ OutputPlayingSounds(
                 uint32 chunksToMix = totalChunksToMix;
                 real32 realChunksRemainingInSound = (loadedSound->SampleCount - RoundReal32ToInt32(playingSound->SamplesPlayed)) / dSampleChunk;
                 u32 chunksRemainingInSound = RoundReal32ToInt32(realChunksRemainingInSound);
-                b32 inputEnded = false;
                 if (chunksToMix > chunksRemainingInSound) {
                     chunksToMix = chunksRemainingInSound;
-                    inputEnded = true;
                 }
 
-                bool32 volumeEnded[SUPPORTED_CHANNEL_COUNT] = {};
+                // TODO: fix volume bug
+                u32 volumeEnded[SUPPORTED_CHANNEL_COUNT] = {};
                 for (uint32 chidx=0; chidx < SUPPORTED_CHANNEL_COUNT; chidx++)
                 {
                     // NOTE: epsilon rounding added
-                    if (dVolume.E[chidx] >= 0.00001f)
+                    if (dVolume.E[chidx] != 0.0f)
                     {
                         real32 volumeDelta = playingSound->TargetVolume.E[chidx] - volume.E[chidx];
                         // rounding of flaot
                         
                         uint32 volumeChunkCount = (uint32)(((volumeDelta / dVolumeChunk.E[chidx]) + 0.5f));
-                        if (chunksToMix > volumeChunkCount)
+                        if (chunksToMix >= volumeChunkCount)
                         {
                             chunksToMix = volumeChunkCount;
-                            volumeEnded[chidx] = true;
+                            volumeEnded[chidx] = volumeChunkCount;
                         }
                     }
                 }
@@ -227,9 +226,9 @@ OutputPlayingSounds(
                 // TODO(casey): make better code
                 for (uint32 chidx=0; chidx < SUPPORTED_CHANNEL_COUNT; chidx++)
                 {
-                    if (volumeEnded[chidx]) {
+                    if (volumeEnded[chidx] == chunksToMix) {
                         playingSound->CurrentVolume.E[chidx] = playingSound->TargetVolume.E[chidx];
-                        dVolume.E[chidx] = 0.0f;
+                        playingSound->dCurrentVolume.E[chidx] = 0.0f;
                     }
                 }
 
@@ -237,7 +236,7 @@ OutputPlayingSounds(
                 totalChunksToMix -= chunksToMix;
                 
                 // TODO: this is no an acceptable check for the end
-                if (inputEnded)
+                if (chunksToMix == chunksRemainingInSound)
                 {
                     if (IsValid(soundInfo->NextIdToPlay))
                     {

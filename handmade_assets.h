@@ -5,18 +5,18 @@
 
 struct bitmap_id
 {
-    uint32 Value;
+    u32 Value;
 };
 struct sound_id
 {
-    uint32 Value;
+    u32 Value;
 };
 
 
 struct loaded_bitmap
 {
     v2 AlignPercent;
-    real32 WidthOverHeight;
+    r32 WidthOverHeight;
     
     int32 Width;
     int32 Height;
@@ -27,8 +27,8 @@ struct loaded_bitmap
 struct loaded_sound
 {
     // NOTE: loaded sound assets has to be 8 alligned
-    uint32 SampleCount;
-    uint32 ChannelCount;
+    u32 SampleCount;
+    u32 ChannelCount;
     int16 *Samples[2];
 };
 
@@ -40,32 +40,21 @@ enum asset_state
     AssetState_Locked,
 };
 
-enum asset_tag_id
-{
-    Tag_Smoothness,
-    Tag_Flatness,
-    /* NOTE: angle in radians off of due right */
-    Tag_FacingDirection,
-
-    Tag_Count
-};
-
-
 struct asset_tag
 {
-    uint32 Id;
-    real32 Value;
+    u32 Id;
+    r32 Value;
 };
 
 struct asset_vector
 {
-    real32 E[Tag_Count];
+    r32 E[Tag_Count];
 };
 
 struct asset_type
 {
-    uint32 FirstAssetIndex;
-    uint32 OnePastLastAssetIndex;
+    u32 FirstAssetIndex;
+    u32 OnePastLastAssetIndex;
 };
 
 struct asset_bitmap_info
@@ -77,8 +66,8 @@ struct asset_bitmap_info
 struct asset_sound_info
 {
     char *FileName;
-    uint32 FirstSampleIndex;
-    uint32 SampleCount;
+    u32 FirstSampleIndex;
+    u32 SampleCount;
     sound_id NextIdToPlay;
 };
 
@@ -94,8 +83,8 @@ struct asset_slot
 
 struct asset
 {
-    uint32 FirstTagIndex;
-    uint32 OnePastLastTagIndex;
+    u32 FirstTagIndex;
+    u32 OnePastLastTagIndex;
 
     union
     {
@@ -106,8 +95,8 @@ struct asset
 
 struct asset_group
 {
-    uint32 FirstTagIndex;
-    uint32 OnePastLastTagIndex;
+    u32 FirstTagIndex;
+    u32 OnePastLastTagIndex;
 };
 
 struct game_assets
@@ -118,11 +107,11 @@ struct game_assets
     
     asset_slot *Slots;
 
-    uint32 TagCount;
-    real32 TagPeriodRange[Tag_Count];
+    u32 TagCount;
+    r32 TagPeriodRange[Tag_Count];
     asset_tag *Tags;
     
-    uint32 AssetCount;
+    u32 AssetCount;
     asset *Assets;
 
     asset_type AssetTypes[AssetType_Count];
@@ -132,10 +121,8 @@ struct game_assets
     */
     
     // TODO: remove after asset pack file is done
-    uint32 DEBUGUsedBitmapCount;
-    uint32 DEBUGUsedSoundCount;
-    uint32 DEBUGUsedAssetCount;
-    uint32 DEBUGUsedTagCount;
+    u32 DEBUGUsedAssetCount;
+    u32 DEBUGUsedTagCount;
 
     asset_type *DEBUGCurrentAssetType;
     asset *DEBUGCurrentAsset;

@@ -3,150 +3,104 @@
 
 #include "handmade_platform.h"
 #include "handmade_asset_type_id.h"
+#include "handmade_file_formats.h"
+#include "test_asset_builder.h"
+
 
 FILE *out;
 
-struct asset_bitmap_info
-{
-    char *FileName;
-    r32 AlignPercent[2];
-};
-
-struct asset_sound_info
-{
-    char *FileName;
-    uint32 FirstSampleIndex;
-    uint32 SampleCount;
-    u32 NextIdToPlay;
-};
-
-struct asset
-{
-    uint32 FirstTagIndex;
-    uint32 OnePastLastTagIndex;
-    u64 DataOffsetId;
-};
-
-struct asset_tag
-{
-    uint32 Id;
-    real32 Value;
-};
-
-struct asset_type
-{
-    uint32 FirstAssetIndex;
-    uint32 OnePastLastAssetIndex;
-};
-
-#define VERY_LARGE_NUMBER 4096
-
-uint32 BitmapCount;
-uint32 SoundCount;
-uint32 AssetCount;
-uint32 TagCount;
-asset_bitmap_info BitmapInfos[VERY_LARGE_NUMBER];
-asset_sound_info SoundInfos[VERY_LARGE_NUMBER];
-asset Assets[VERY_LARGE_NUMBER];
-asset_tag Tags[VERY_LARGE_NUMBER];
-    
-
-asset_type AssetTypes[AssetType_Count];
-
-u32 DEBUGUsedBitmapCount;
-u32 DEBUGUsedSoundCount;
-u32 DEBUGUsedAssetCount;
-u32 DEBUGUsedTagCount;
-asset_type *DEBUGCurrentAssetType;
-asset *DEBUGCurrentAsset;
-
-
-
-struct bitmap_asset
-{
-    char *filename;
-    r32 alignment[2];
-};
-
 internal void 
-BeginAssetType(asset_type_id id)
+BeginAssetType(game_assets *assets, asset_type_id id)
 {
-    DEBUGCurrentAssetType = AssetTypes + id;
-    DEBUGCurrentAssetType->FirstAssetIndex = DEBUGUsedAssetCount;
-    DEBUGCurrentAssetType->OnePastLastAssetIndex = DEBUGCurrentAssetType->FirstAssetIndex;
+    assets->DEBUGCurrentAssetType = assets->AssetTypes + id;
+    assets->DEBUGCurrentAssetType->TypeId = id;
+    assets->DEBUGCurrentAssetType->FirstAssetIndex = assets->DEBUGUsedAssetCount;
+    assets->DEBUGCurrentAssetType->OnePastLastAssetIndex = assets->DEBUGCurrentAssetType->FirstAssetIndex;
+}
+
+internal bitmap_id
+AddBitmapAsset(game_assets *assets, char *fileName, r32 alignPercentX=0.5f, r32 alignPercentY=0.5f)
+{
+    Assert(assets->DEBUGCurrentAssetType);
+
+    u32 assetIndex = assets->DEBUGCurrentAssetType->OnePastLastAssetIndex++;
+    asset *asset = assets->Assets + assetIndex;
+    asset->FirstTagIndex = assets->DEBUGUsedTagCount;
+    asset->OnePastLastTagIndex = asset->FirstTagIndex;
+    asset->Bitmap.AlignPercent[0] = alignPercentX;
+    asset->Bitmap.AlignPercent[1] = alignPercentY;
+    asset->Bitmap.FileName = fileName;
+
+    assets->DEBUGCurrentAsset = asset;
+    return {assetIndex};
+}
+
+internal sound_id
+AddSoundAsset(game_assets *assets, char *fileName, uint32 firstSampleIndex=0, uint32 sampleCount=0)
+{
+    Assert(assets->DEBUGCurrentAssetType);
+
+    u32 assetIndex = assets->DEBUGCurrentAssetType->OnePastLastAssetIndex++;
+    asset *asset = assets->Assets + assetIndex;
+    asset->FirstTagIndex = assets->DEBUGUsedTagCount;
+    asset->OnePastLastTagIndex = asset->FirstTagIndex;
+
+    asset->Sound.FileName = fileName;
+    asset->Sound.NextIdToPlay.Value = 0;
+    asset->Sound.FirstSampleIndex = firstSampleIndex;
+    asset->Sound.SampleCount = sampleCount;
+
+    assets->DEBUGCurrentAsset = asset;
+    return {assetIndex};
+}
+
+
+internal void
+AddAssetTag(game_assets *assets, asset_tag_id tagId, real32 tagValue)
+{
+    Assert(assets->DEBUGCurrentAsset);
+    ++assets->DEBUGCurrentAsset->OnePastLastTagIndex;
+    hha_tag *tag = assets->Tags + assets->TagCount++;
+    tag->Id = tagId;
+    tag->Value = tagValue;
 }
 
 internal void
-AddBitmapAsset(char *fileName, r32 alignPercentX, r32 allignPercentY)
+EndAssetType(game_assets *assets)
 {
-    Assert(DEBUGCurrentAssetType);
-    Assert(DEBUGCurrentAssetType->OnePastLastAssetIndex < assetCount);
-    
-    asset *asset = Assets + DEBUGCurrentAssetType->OnePastLastAssetIndex++;
-    asset->FirstTagIndex = DEBUGUsedTagCount;
-    asset->OnePastLastTagIndex = asset->FirstTagIndex;
-
-    /*
-      bitmap_id id = {DEBUGUsedBitmapCount++};
-
-    asset_bitmap_info *result = BitmapInfos + id.Value;
-    result->AlignPercent = alignPercent;
-    result->FileName = PushString(&assets->Arena, fileName);
-
-    return id;
-     */
-    // asset->SlotId = DEBUGAddBitmapInfo(Assets, fileName, ).Value;
-
-    DEBUGCurrentAsset = asset;
-}
-
-internal asset*
-AddSoundAsset(char *fileName, uint32 firstSampleIndex=0, uint32 sampleCount=0)
-{
-    Assert(DEBUGCurrentAssetType);
-    Assert(DEBUGCurrentAssetType->OnePastLastAssetIndex < AssetCount);
-    
-    asset *asset = Assets + DEBUGCurrentAssetType->OnePastLastAssetIndex++;
-    asset->FirstTagIndex = DEBUGUsedTagCount;
-    asset->OnePastLastTagIndex = asset->FirstTagIndex;
-
-    
-    asset->SlotId = DEBUGAddSoundInfo(Assets, fileName, firstSampleIndex, sampleCount).Value;
-    /*
-      sound_id id = {DEBUGUsedSoundCount++};
-
-      asset_sound_info *result = SoundInfos + id.Value;
-      result->FileName = PushString(&assets->Arena, fileName);
-      result->NextIdToPlay.Value = 0;
-      result->FirstSampleIndex = firstSampleIndex;
-      result->SampleCount = sampleCount;
-
-      return id;
-     */
-
-    DEBUGCurrentAsset = asset;
-    return asset;
+    assets->DEBUGUsedAssetCount = assets->DEBUGCurrentAssetType->OnePastLastAssetIndex;
+    assets->DEBUGCurrentAssetType = 0;
+    assets->DEBUGCurrentAsset = 0;
 }
 
 int
 main(int argCount, char **args)
 {
-    out = fopen("test.hha", "wb");
-
-    if (out)
-    {
-        
-        fclose(out);
-    }
     
-    #if 0
+    #if 1
+
+    game_assets assetsV = {};
+    assetsV.TagCount = 0;
+    assetsV.AssetCount = 1;
+    assetsV.DEBUGUsedAssetCount = 0;
+    assetsV.DEBUGUsedTagCount = 0;
+    assetsV.DEBUGCurrentAssetType = 0;
+    assetsV.DEBUGCurrentAsset = 0;
+
+    /*
+    assetsV.Tags = 0;
+    assetsV.AssetTypes = 0;
+    assetsV.Assets = 0;
+    */
+    
+    game_assets *assets = &assetsV;
     
     BeginAssetType(assets, AssetType_Loaded);
     AddBitmapAsset(assets, "../data/new-bg-code.bmp");
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_EnemyDemo);
-    AddBitmapAsset(assets, "../data/test2/enemy_demo.bmp", ToV2(0.516949177f, 0.0616113730f));
+    AddBitmapAsset(assets, "../data/test2/enemy_demo.bmp", 0.516949177f, 0.0616113730f);
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_FamiliarDemo);
@@ -160,11 +114,11 @@ main(int argCount, char **args)
     EndAssetType(assets);
     
     BeginAssetType(assets, AssetType_WallDemo);
-    AddBitmapAsset(assets, "../data/test2/wall_demo.bmp", ToV2(0.5f, 0.484375f));
+    AddBitmapAsset(assets, "../data/test2/wall_demo.bmp", 0.5f, 0.484375f);
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_SwordDemo);
-    AddBitmapAsset(assets, "../data/test2/sword_demo.bmp", ToV2(0.479999989f, 0.0317460336f));
+    AddBitmapAsset(assets, "../data/test2/sword_demo.bmp", 0.479999989f, 0.0317460336f);
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_Grass);
@@ -177,24 +131,18 @@ main(int argCount, char **args)
     AddBitmapAsset(assets, "../data/ground002.bmp");
     EndAssetType(assets);
 
-    TranState = tranState;
-
 
     BeginAssetType(assets, AssetType_HumanBody);
-    v2 heroAlign = ToV2(0.508474588f, 0.07109005f);
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_right.bmp", heroAlign);
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_right.bmp", 0.508474588f, 0.07109005f);
     AddAssetTag(assets, Tag_FacingDirection, 0.0f);
 
-    heroAlign = ToV2(0.508474588f, 0.118483409f);
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_up.bmp", heroAlign);
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_up.bmp", 0.508474588f, 0.118483409f);
     AddAssetTag(assets, Tag_FacingDirection, 0.5f * Pi32);
 
-    heroAlign = ToV2(0.508474588f, 0.07109005f);
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_left.bmp", heroAlign);
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_left.bmp", 0.508474588f, 0.07109005f);
     AddAssetTag(assets, Tag_FacingDirection, Pi32);
 
-    heroAlign = ToV2(0.508474588f, 0.118483409f);
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_down.bmp", heroAlign);
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_down.bmp", 0.508474588f, 0.118483409f);
     AddAssetTag(assets, Tag_FacingDirection, -0.5f * Pi32);
     EndAssetType(assets);
 
@@ -232,13 +180,48 @@ main(int argCount, char **args)
         if (samplesToLoad > musicChunk) {
             samplesToLoad = musicChunk;
         }
-        asset* addedAsset = AddSoundAsset(assets, "../data/sound/energetic-piano-uptempo-loop_156bpm_F#_minor.wav", sampleIndex, samplesToLoad);
-        if (lastAddedSound) {
-            SoundInfos[lastAddedSound->SlotId].NextIdToPlay.Value = addedAsset->SlotId;
+        sound_id addedAssetId = AddSoundAsset(assets, "../data/sound/energetic-piano-uptempo-loop_156bpm_F#_minor.wav", sampleIndex, samplesToLoad);
+        if (lastAddedSound && addedAssetId.Value) {
+            lastAddedSound->Sound.NextIdToPlay = addedAssetId;
         }
-        lastAddedSound = addedAsset;
+        lastAddedSound = &assets->Assets[addedAssetId.Value];
     }
     EndAssetType(assets);
     #endif
 
+
+    out = fopen("test.hha", "wb");
+
+    if (out)
+    {
+        hha_header header = {};
+        header.MagicValue = HHA_MAGIC_VALUE;
+        header.Version = HHA_VERSION;
+        header.TagCount = assets->TagCount;
+        header.AssetCount = assets->AssetCount;
+        header.AssetTypeEntryCount = assets->AssetCount;
+
+        header.TagOffset = sizeof(header);
+        header.AssetTypeEntryOffset = header.AssetOffset + header.AssetTypeEntryCount * sizeof(hha_tag);
+
+        header.AssetOffset = header.AssetTypeEntryOffset + header.AssetTypeEntryCount * sizeof(hha_asset_type);
+
+        fwrite(&header, sizeof(hha_header), 1, out);
+
+
+        u32 tagArraySize = header.TagCount * sizeof(hha_tag);
+        u32 assetTypeArraySize = header.TagCount * sizeof(hha_asset_type);
+        u32 assetArraySize = header.TagCount * sizeof(hha_asset);
+
+        fwrite(&assets->Tags, tagArraySize, 1, out);
+        fwrite(&assets->AssetTypes, assetTypeArraySize, 1, out);
+        //fwrite(assets, assetArraySize, 1, out);
+        
+        fclose(out);
+    }
+    else
+    {
+        printf("ERROR: can't open file");
+    }
+    
 }
