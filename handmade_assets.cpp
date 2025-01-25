@@ -1,3 +1,5 @@
+
+#if 0
 #pragma pack(push, 1)
 struct bitmap_header {
     uint16 FileType;
@@ -23,6 +25,8 @@ struct bitmap_header {
 };
 #pragma pack(pop)
 
+
+// TODO: remove once assets are done
 internal loaded_bitmap
 DEBUGLoadBMP(char *filename, v2 alignPercent=ToV2(0.5f, 0.5f))
 {
@@ -319,6 +323,23 @@ DEBUGLoadWAV(char *filename, memory_arena *arena, uint32 sectionFirstSampleIndex
     return result;
 }
 
+#endif
+
+// TODO: remove once assets are done
+internal loaded_bitmap
+DEBUGLoadBMP(char *filename, v2 alignPercent=ToV2(0.5f, 0.5f))
+{
+    loaded_bitmap result = {};
+    return result;
+}
+
+internal loaded_sound
+DEBUGLoadWAV(char *filename, memory_arena *arena, uint32 sectionFirstSampleIndex, uint32 sectionSampleCount)
+{
+    loaded_sound result = {};
+    return result;
+}
+
 struct load_bitmap_work
 {
     game_assets *Assets;
@@ -539,6 +560,7 @@ LoadSound(game_assets *assets, sound_id id)
     }
 }
 
+#if 0
 internal void 
 BeginAssetType(game_assets *assets, asset_type_id id)
 {
@@ -603,6 +625,7 @@ EndAssetType(game_assets *assets)
     assets->DEBUGCurrentAsset = 0;
 }
 
+#endif
 
 internal game_assets*
 AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state *tranState)
@@ -611,7 +634,7 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 
     SubArena(&assets->Arena, arena, assetSize);
     
-    assets->DEBUGUsedAssetCount = 0;
+    //assets->DEBUGUsedAssetCount = 0;
 
     for (uint32 tagType=0;
          tagType < Tag_Count;
@@ -621,13 +644,42 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
         assets->TagPeriodRange[tagType] = 1000000.0f;
     }
     assets->TagPeriodRange[Tag_FacingDirection] = 2.0f * Pi32;
-    
-    assets->AssetCount = 256 * AssetType_Count;
-    assets->Assets = PushArray(arena, assets->AssetCount, asset);
-    assets->Slots = PushArray(arena, assets->AssetCount, asset_slot);
 
-    assets->TagCount = 1024 * AssetType_Count;
-    assets->Tags = PushArray(arena, assets->TagCount, asset_tag);
+    debug_read_file_result fileResult = DEBUG_ReadEntireFile("test.hha");
+    if (fileResult.ContentSize != 0)
+    {
+        hha_header *assetHeader = (hha_header *)fileResult.Content;
+
+        Assert(assetHeader->MagicValue == HHA_MAGIC_VALUE);
+        Assert(assetHeader->Version == HHA_VERSION);
+        
+        assets->AssetCount = assetHeader->AssetCount;
+        assets->Assets = PushArray(arena, assets->AssetCount, asset);
+        assets->Slots = PushArray(arena, assets->AssetCount, asset_slot);
+
+        assets->TagCount = assetHeader->TagCount;
+        assets->Tags = PushArray(arena, assets->TagCount, asset_tag);
+
+
+        hha_tag *HHATags = (hha_tag *)((u8 *)fileResult.Content + assetHeader->TagOffset);
+        
+        // TODO: flat loaded vs iterations
+        for (u32 tagIndex=0; tagIndex < assetHeader->TagCount; tagIndex++)
+        {
+            hha_tag *source = HHATags + tagIndex;
+            asset_tag *dest = assets->Tags + tagIndex;
+
+            dest->Id = source->Id;
+            dest->Value = source->Value;
+        }
+
+        for (u32 assetIndex=0; assetIndex < assetHeader->AssetCount; assetIndex++)
+        {
+            
+        }
+    }
+
+    #if 0
     
     BeginAssetType(assets, AssetType_Loaded);
     AddBitmapAsset(assets, "../data/new-bg-code.bmp");
@@ -639,12 +691,6 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 
     BeginAssetType(assets, AssetType_FamiliarDemo);
     AddBitmapAsset(assets, "../data/test2/familiar_demo.bmp");
-    /**
-      // TODO: fix this if needed?
-      
-       work->TopDownAlignX = 58;
-       work->TopDownAlignY = 203;
-    */
     EndAssetType(assets);
     
     BeginAssetType(assets, AssetType_WallDemo);
@@ -728,6 +774,9 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
     }
     EndAssetType(assets);
 
+    #endif
+
 
     return assets;
 }
+

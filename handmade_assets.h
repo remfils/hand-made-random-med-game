@@ -116,6 +116,7 @@ struct game_assets
 
     asset_type AssetTypes[AssetType_Count];
 
+    #if 0
     /*
     hero_bitmaps Hero[4];
     */
@@ -126,6 +127,7 @@ struct game_assets
 
     asset_type *DEBUGCurrentAssetType;
     asset *DEBUGCurrentAsset;
+    #endif
 };
 
 inline loaded_bitmap*

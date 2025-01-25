@@ -11,9 +11,7 @@ AtomicCompareExchange(uint32 volatile *value, uint32 expected, uint32 newValue)
 #else
 #endif
 
-
-// todo: remove math.h
-
+// TODO: move to math
 inline real32
 FloorReal32(real32 val)
 {

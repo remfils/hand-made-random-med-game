@@ -7,16 +7,39 @@ struct sound_id
     u32 Value;
 };
 
+#pragma pack(push, 1)
+struct bitmap_header
+{
+    uint16 FileType;
+    uint32 FileSize;
+    uint16 Reserved1;
+    uint16 Reserved2;
+    uint32 BitmapOffset;
+    uint32 Size;
+    int32 Width;
+    int32 Height;
+    uint16 Planes;
+    uint16 BitsPerPixel;
+    uint32 Compression; // wtf
+    uint32 ImageSize; // wtf
+    uint32 XPixelsPerMeter; // wtf
+    uint32 YPixelsPerMeter; // wtf
+    uint32 ColorsInColorTable; // wtf
+    uint32 ImportantColorCount; // wtf
+    uint32 RedMask;
+    uint32 GreenMask;
+    uint32 BlueMask;
+    uint32 AlphaMask;
+};
+#pragma pack(pop)
 
 struct loaded_bitmap
 {
-    r32 AlignPercent[2];
-    r32 WidthOverHeight;
-    
     int32 Width;
     int32 Height;
     int32 Pitch;
     void *Memory;
+    void *Free;
 };
 
 struct loaded_sound
@@ -25,6 +48,7 @@ struct loaded_sound
     u32 SampleCount;
     u32 ChannelCount;
     int16 *Samples[2];
+    void *Free;
 };
 
 enum asset_state
@@ -40,30 +64,23 @@ struct asset_vector
     r32 E[Tag_Count];
 };
 
-struct asset_bitmap_info
-{
-    char *FileName;
-    r32 AlignPercent[2];
-};
-
 struct asset_sound_info
 {
-    char *FileName;
-    u32 FirstSampleIndex;
-    u32 SampleCount;
-    sound_id NextIdToPlay;
+    
 };
 
-struct asset
+enum asset_file_type
 {
-    u32 FirstTagIndex;
-    u32 OnePastLastTagIndex;
+    AssetFileType_None,
+    AssetFileType_Sound,
+    AssetFileType_Bitmap
+};
 
-    union
-    {
-        asset_bitmap_info Bitmap;
-        asset_sound_info Sound;
-    };
+struct source_asset
+{
+    asset_file_type AssetFileType;
+    char *FileName;
+    u32 FirstSampleIndex;
 };
 
 struct asset_group
@@ -82,12 +99,14 @@ struct game_assets
     hha_asset_type AssetTypes[AssetType_Count];
 
     u32 AssetCount;
-    asset Assets[VERY_LARGE_NUMBER];
+    source_asset AssetSource[VERY_LARGE_NUMBER];
+
+    hha_asset AssetData[VERY_LARGE_NUMBER];
 
     // TODO: remove after asset pack file is done
     u32 DEBUGUsedAssetCount;
     u32 DEBUGUsedTagCount;
 
     hha_asset_type *DEBUGCurrentAssetType;
-    asset *DEBUGCurrentAsset;
+    u32 AssetIndex;
 };

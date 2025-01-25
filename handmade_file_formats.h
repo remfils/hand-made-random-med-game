@@ -33,16 +33,16 @@ struct hha_bitmap
 
 struct hha_sound
 {
-    u32 FirstSampleIndex;
     u32 SampleCount;
     u32 NextIdToPlay;
+    u32 ChannelCount;
 };
 
 struct hha_asset
 {
     u64 DataOffset;
     u32 FirstTagIndex;
-    u32 OnePastLastAssetIndex;
+    u32 OnePastLastTagIndex;
     union
     {
         hha_bitmap Bitmap;

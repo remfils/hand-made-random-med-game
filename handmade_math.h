@@ -143,6 +143,36 @@ SafeRatio_1(real32 numerator, real32 divisor)
     return result;
 }
 
+inline v4
+SRGB255_ToLinear1(v4 color)
+{
+    v4 result;
+
+    real32 inv255 = 1.0f / 255.0f;
+
+    result.r = Square(color.r * inv255);
+    result.g = Square(color.g * inv255);
+    result.b = Square(color.b * inv255);
+    result.a = color.a * inv255;
+    
+    return result;
+}
+
+inline v4
+Linear_1_ToSRGB255(v4 color)
+{
+    v4 result;
+
+    real32 val255 = 255.0f;
+    
+    result.r = SquareRoot(color.r) * val255;
+    result.g = SquareRoot(color.g) * val255;
+    result.b = SquareRoot(color.b) * val255;
+    result.a = color.a * val255;
+
+    return result;
+}
+
 
 #include "handmade_math_v2.h"
 #include "handmade_math_v3.h"

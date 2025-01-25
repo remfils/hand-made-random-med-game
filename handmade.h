@@ -85,6 +85,7 @@
 #include "handmade_assets.h"
 #include "handmade_render_group.h"
 #include "handmade_audio.h"
+#include "handmade_file_formats.h"
 #include "random.h"
 
 
