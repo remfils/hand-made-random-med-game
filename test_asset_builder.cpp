@@ -16,7 +16,7 @@ FILE *out;
 internal void 
 BeginAssetType(game_assets *assets, asset_type_id id)
 {
-    assets->AssetTypeCount++;
+    // assets->AssetTypeCount++; // NOTE: assettype has to be static
     assets->DEBUGCurrentAssetType = assets->AssetTypes + id;
     assets->DEBUGCurrentAssetType->TypeId = id;
     assets->DEBUGCurrentAssetType->FirstAssetIndex = assets->DEBUGUsedAssetCount;
@@ -24,7 +24,7 @@ BeginAssetType(game_assets *assets, asset_type_id id)
 }
 
 internal bitmap_id
-AddBitmapAsset(game_assets *assets, char *fileName, r32 alignPercentX=0.5f, r32 alignPercentY=0.5f)
+AddBitmapAsset(game_assets *assets, char *fileName, v2 alignPercentage={0.5f, 0.5f})
 {
     Assert(assets->DEBUGCurrentAssetType);
 
@@ -34,10 +34,9 @@ AddBitmapAsset(game_assets *assets, char *fileName, r32 alignPercentX=0.5f, r32 
     assetSrc->AssetFileType = AssetFileType_Bitmap;
 
     hha_asset *assetDst = assets->AssetData + assetIndex;
-    assetDst->FirstTagIndex = assets->DEBUGUsedTagCount;
+    assetDst->FirstTagIndex = assets->TagCount;
     assetDst->OnePastLastTagIndex = assetDst->FirstTagIndex;
-    assetDst->Bitmap.AlignPercentage[0] = alignPercentX;
-    assetDst->Bitmap.AlignPercentage[1] = alignPercentY;
+    assetDst->Bitmap.AlignPercentage = alignPercentage;
 
     assets->AssetCount++;
     assets->AssetIndex = assetIndex;
@@ -56,9 +55,9 @@ AddSoundAsset(game_assets *assets, char *fileName, uint32 firstSampleIndex=0, ui
     assetSrc->FirstSampleIndex = firstSampleIndex;
     
     hha_asset *assetDst = assets->AssetData + assetIndex;
-    assetDst->FirstTagIndex = assets->DEBUGUsedTagCount;
+    assetDst->FirstTagIndex = assets->TagCount;
     assetDst->OnePastLastTagIndex = assetDst->FirstTagIndex;
-    assetDst->Sound.NextIdToPlay = 0;
+    assetDst->Sound.NextIdToPlay.Value = 0;
     assetDst->Sound.SampleCount = sampleCount;
 
     assets->AssetIndex = assetIndex;
@@ -70,11 +69,9 @@ AddSoundAsset(game_assets *assets, char *fileName, uint32 firstSampleIndex=0, ui
 internal void
 AddAssetTag(game_assets *assets, asset_tag_id tagId, real32 tagValue)
 {
-    Assert(assets->DEBUGCurrentAsset);
-
     hha_asset *asset = assets->AssetData + assets->AssetIndex;
     
-    ++asset->OnePastLastTagIndex;
+    asset->OnePastLastTagIndex++;
     hha_tag *tag = assets->Tags + assets->TagCount++;
     tag->Id = tagId;
     tag->Value = tagValue;
@@ -118,7 +115,7 @@ ReadEntireFile(char *fileName)
     
     return result;
 }
-    
+
 
 internal loaded_bitmap
 LoadBMP(char *filename)
@@ -139,7 +136,7 @@ LoadBMP(char *filename)
         result.Width = header->Width;
         result.Height = header->Height;
 
-        uint8 *pixels = (uint8 *)((uint8 *)content + header->BitmapOffset);
+        uint8 *pixels = (u8 *)((u8 *)content + header->BitmapOffset);
         result.Memory = pixels;
 
         uint32 redMask = header->RedMask;
@@ -323,9 +320,9 @@ LoadWAV(char *filename, uint32 sectionFirstSampleIndex, uint32 sectionSampleCoun
         Assert(header->ChunkId == WAVE_ChunkId_RIFF);
         Assert(header->Format == WAVE_ChunkId_WAVE);
 
-        uint32 channelCount = 0;
-        uint32 sampleDataSize = 0;
-        real32 *sampleData = 0;
+        u32 channelCount = 0;
+        u32 sampleDataSize = 0;
+        r32 *sampleData = 0;
         for (
              riff_iterator iter = ParseChunkAt(header + 1, (uint8 *)(header + 1) + header->ChunkSize - 4);
              IsChunkValid(iter);
@@ -341,7 +338,7 @@ LoadWAV(char *filename, uint32 sectionFirstSampleIndex, uint32 sectionSampleCoun
                 Assert(fmt->AudioFormat == 3);
             } break;
             case WAVE_ChunkId_data: {
-                sampleData = (real32 *)GetChunkData(iter);
+                sampleData = (r32*)GetChunkData(iter);
                 sampleDataSize = GetChunkSize(iter);
             } break;
             case WAVE_ChunkId_fact: {
@@ -356,26 +353,24 @@ LoadWAV(char *filename, uint32 sectionFirstSampleIndex, uint32 sectionSampleCoun
         Assert(channelCount && sampleData);
 
         result.ChannelCount = channelCount;
-        u32 sampleCount = sampleDataSize / (channelCount * sizeof(real32)); // TODO: uint16 in Casey code is correct?
+        u32 sampleCount = sampleDataSize / (channelCount * sizeof(r32));
 
         // TODO: more channels
-        result.Samples[0] = (int16 *)sampleData;
-        result.Samples[1] = 0;
-
-        /*
         if (result.ChannelCount == 1)
         {
-            
+            result.Samples[0] = (s16*)sampleData;
+            result.Samples[1] = 0;
         }
         else if (result.ChannelCount == 2)
         {
-            result.Samples[0] = PushArray(arena, sampleCount, s16);
-            result.Samples[1] = PushArray(arena, sampleCount, s16);
+            result.Samples[0] = (s16 *)sampleData;
+            result.Samples[1] = (s16 *)sampleData + sampleCount;
 
             for (uint32 sampleIndex=0;
                  sampleIndex < sampleCount;
                  sampleIndex++)
             {
+                // TODO: wtf?
                 real32 leftChannel = sampleData[2 * sampleIndex];
                 real32 rightChannel = sampleData[2 * sampleIndex + 1];
 
@@ -387,7 +382,6 @@ LoadWAV(char *filename, uint32 sectionFirstSampleIndex, uint32 sectionSampleCoun
         {
             // TODO: error
         }
-        */
 
         #endif
 
@@ -436,12 +430,6 @@ main(int argCount, char **args)
     assetsV.DEBUGCurrentAssetType = 0;
     assetsV.AssetIndex = 0;
 
-    /*
-    assetsV.Tags = 0;
-    assetsV.AssetTypes = 0;
-    assetsV.Assets = 0;
-    */
-    
     game_assets *assets = &assetsV;
     
     BeginAssetType(assets, AssetType_Loaded);
@@ -449,7 +437,7 @@ main(int argCount, char **args)
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_EnemyDemo);
-    AddBitmapAsset(assets, "../data/test2/enemy_demo.bmp", 0.516949177f, 0.0616113730f);
+    AddBitmapAsset(assets, "../data/test2/enemy_demo.bmp", {0.516949177f, 0.0616113730f});
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_FamiliarDemo);
@@ -463,11 +451,11 @@ main(int argCount, char **args)
     EndAssetType(assets);
     
     BeginAssetType(assets, AssetType_WallDemo);
-    AddBitmapAsset(assets, "../data/test2/wall_demo.bmp", 0.5f, 0.484375f);
+    AddBitmapAsset(assets, "../data/test2/wall_demo.bmp", {0.5f, 0.484375f});
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_SwordDemo);
-    AddBitmapAsset(assets, "../data/test2/sword_demo.bmp", 0.479999989f, 0.0317460336f);
+    AddBitmapAsset(assets, "../data/test2/sword_demo.bmp", {0.479999989f, 0.0317460336f});
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_Grass);
@@ -482,16 +470,16 @@ main(int argCount, char **args)
 
 
     BeginAssetType(assets, AssetType_HumanBody);
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_right.bmp", 0.508474588f, 0.07109005f);
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_right.bmp", {0.508474588f, 0.07109005f});
     AddAssetTag(assets, Tag_FacingDirection, 0.0f);
 
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_up.bmp", 0.508474588f, 0.118483409f);
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_up.bmp", {0.508474588f, 0.118483409f});
     AddAssetTag(assets, Tag_FacingDirection, 0.5f * Pi32);
 
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_left.bmp", 0.508474588f, 0.07109005f);
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_left.bmp", {0.508474588f, 0.07109005f});
     AddAssetTag(assets, Tag_FacingDirection, Pi32);
 
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_down.bmp", 0.508474588f, 0.118483409f);
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_down.bmp", {0.508474588f, 0.118483409f});
     AddAssetTag(assets, Tag_FacingDirection, -0.5f * Pi32);
     EndAssetType(assets);
 
@@ -531,7 +519,7 @@ main(int argCount, char **args)
         }
         sound_id addedAssetId = AddSoundAsset(assets, "../data/sound/energetic-piano-uptempo-loop_156bpm_F#_minor.wav", sampleIndex, samplesToLoad);
         if (addedAssetId.Value) {
-            assets->AssetData[lastAddedSound.Value].Sound.NextIdToPlay = addedAssetId.Value;
+            assets->AssetData[lastAddedSound.Value].Sound.NextIdToPlay = addedAssetId;
         }
         lastAddedSound = addedAssetId;
     }
@@ -548,15 +536,15 @@ main(int argCount, char **args)
         header.Version = HHA_VERSION;
         header.TagCount = assets->TagCount;
         header.AssetCount = assets->AssetCount;
-        header.AssetTypeEntryCount = assets->AssetTypeCount;
+        header.AssetTypeCount = AssetType_Count;
 
         header.TagOffset = sizeof(header);
-        header.AssetTypeEntryOffset = header.TagOffset + header.TagCount * sizeof(hha_tag);
-        header.AssetOffset = header.AssetTypeEntryOffset + header.AssetTypeEntryCount * sizeof(hha_asset_type);
+        header.AssetTypeOffset = header.TagOffset + header.TagCount * sizeof(hha_tag);
+        header.AssetOffset = header.AssetTypeOffset + header.AssetTypeCount * sizeof(hha_asset_type);
 
  
         u32 tagArraySize = header.TagCount * sizeof(hha_tag);
-        u32 assetTypeArraySize = header.AssetTypeEntryCount * sizeof(hha_asset_type);
+        u32 assetTypeArraySize = header.AssetTypeCount * sizeof(hha_asset_type);
         u32 assetArraySize = header.AssetCount * sizeof(hha_asset);
 
         fwrite(&header, sizeof(hha_header), 1, out);
@@ -598,7 +586,7 @@ main(int argCount, char **args)
                 assetDst->Bitmap.Dim[1] = bmp.Height;
 
                 Assert((bmp.Width * 4) == bmp.Pitch);
-                fwrite(bmp.Free, bmp.Width * bmp.Height * 4, 1, out);
+                fwrite(bmp.Memory, bmp.Width * bmp.Height * 4, 1, out);
                 
                 free(bmp.Free);
             }

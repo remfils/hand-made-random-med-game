@@ -2,6 +2,16 @@
 #define HANDMADE_FILE_FORMATS_H
 
 #pragma pack(push, 1)
+
+struct bitmap_id
+{
+    u32 Value;
+};
+struct sound_id
+{
+    u32 Value;
+};
+
 struct hha_header
 {
 #define HHA_MAGIC_VALUE 0x10F2C
@@ -12,11 +22,11 @@ struct hha_header
 
     u32 TagCount;
     u32 AssetCount;
-    u32 AssetTypeEntryCount;
+    u32 AssetTypeCount;
 
     u64 TagOffset;
     u64 AssetOffset;
-    u64 AssetTypeEntryOffset;
+    u64 AssetTypeOffset;
 };
 
 struct hha_tag
@@ -28,13 +38,13 @@ struct hha_tag
 struct hha_bitmap
 {
     u32 Dim[2];
-    r32 AlignPercentage[2];
+    v2 AlignPercentage;
 };
 
 struct hha_sound
 {
     u32 SampleCount;
-    u32 NextIdToPlay;
+    sound_id NextIdToPlay;
     u32 ChannelCount;
 };
 

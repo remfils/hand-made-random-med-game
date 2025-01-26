@@ -1,12 +1,3 @@
-struct bitmap_id
-{
-    u32 Value;
-};
-struct sound_id
-{
-    u32 Value;
-};
-
 #pragma pack(push, 1)
 struct bitmap_header
 {

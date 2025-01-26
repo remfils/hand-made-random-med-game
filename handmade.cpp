@@ -890,7 +890,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         //LoadAssets(&tranState->Assets, tranState, thread, memory->DEBUG_PlatformReadEntireFile);
 
-        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(64), tranState);
+        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(250), tranState);
 
         // TODO: sound plays really bad for some reason. With stutters...
         playing_sound *snd = PlaySound(&gameState->AudioState, GetFirstSound(tranState->Assets, AssetType_PianoMusic));

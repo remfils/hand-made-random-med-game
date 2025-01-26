@@ -3,16 +3,6 @@
 
 #include "handmade_asset_type_id.h"
 
-struct bitmap_id
-{
-    u32 Value;
-};
-struct sound_id
-{
-    u32 Value;
-};
-
-
 struct loaded_bitmap
 {
     v2 AlignPercent;
@@ -57,6 +47,7 @@ struct asset_type
     u32 OnePastLastAssetIndex;
 };
 
+/*
 struct asset_bitmap_info
 {
     char *FileName;
@@ -70,6 +61,7 @@ struct asset_sound_info
     u32 SampleCount;
     sound_id NextIdToPlay;
 };
+*/
 
 struct asset_slot
 {
@@ -81,27 +73,27 @@ struct asset_slot
     };
 };
 
-struct asset
-{
-    u32 FirstTagIndex;
-    u32 OnePastLastTagIndex;
-
-    union
-    {
-        asset_bitmap_info Bitmap;
-        asset_sound_info Sound;
-    };
-};
-
 struct asset_group
 {
     u32 FirstTagIndex;
     u32 OnePastLastTagIndex;
 };
 
+struct asset_file
+{
+    // TODO: remove assetTypeArray to transient (thread stacks...)
+    hha_header Header;
+    platform_file_handle Handle;
+    hha_asset_type *assetTypeArray;
+    u32 TagBase;
+};
+
 struct game_assets
 {
     struct transient_state *TranState;
+
+    u32 FileCount;
+    asset_file *Files;
     
     memory_arena Arena;
     
@@ -109,10 +101,13 @@ struct game_assets
 
     u32 TagCount;
     r32 TagPeriodRange[Tag_Count];
-    asset_tag *Tags;
+    hha_tag *Tags;
     
     u32 AssetCount;
-    asset *Assets;
+    hha_asset *Assets;
+
+
+    u8 *HHAContent;
 
     asset_type AssetTypes[AssetType_Count];
 
@@ -145,11 +140,11 @@ GetSound(game_assets *assets, sound_id id)
     return result;
 }
 
-inline asset_sound_info*
+inline hha_sound*
 GetSoundInfo(game_assets *assets, sound_id id)
 {
     Assert(id.Value <= assets->AssetCount);
-    asset_sound_info *result = &assets->Assets[id.Value].Sound;
+    hha_sound *result = &assets->Assets[id.Value].Sound;
     return result;
 }
 
