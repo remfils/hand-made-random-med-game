@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [3/520]
+* to be done [4/520]
 ** DONE Handmade Hero Day 148 - Writing the Asset File Header
 - [[https://www.youtube.com/watch?v=UNXHK8O-B_g]]
 
@@ -21,7 +21,7 @@ https://youtu.be/CNTlpoYdKF8?t=2840
 ** DONE Handmade Hero Day 150 - Loading Assets from the Asset File
 - [[https://www.youtube.com/watch?v=h2GoVMArDro]]
 
-** TODO Handmade Hero Day 151 - New Platform File API
+** DONE Handmade Hero Day 151 - New Platform File API
 - [[https://www.youtube.com/watch?v=NFptGMDCO0k]]
 
 ** TODO Handmade Hero Day 152 - New Win32 File API Implementation
