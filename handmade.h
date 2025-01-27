@@ -375,3 +375,6 @@ SubArena(memory_arena *result, memory_arena *arena, memory_index size, memory_in
 internal task_with_memory* BeginTaskWithMemory(transient_state *tranState);
 internal void EndTaskWithMemory(task_with_memory *task);
 #endif
+
+
+global_variable platform_api PlatformAPI;

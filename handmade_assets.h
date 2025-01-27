@@ -83,8 +83,8 @@ struct asset_file
 {
     // TODO: remove assetTypeArray to transient (thread stacks...)
     hha_header Header;
-    platform_file_handle Handle;
-    hha_asset_type *assetTypeArray;
+    platform_file_handle *Handle;
+    hha_asset_type *AssetTypes;
     u32 TagBase;
 };
 
@@ -128,15 +128,16 @@ struct game_assets
 inline loaded_bitmap*
 GetBitmap(game_assets *assets, bitmap_id id)
 {
-    loaded_bitmap *result = assets->Slots[id.Value].Bitmap;
+    asset_slot *slot = assets->Slots + id.Value;
+    loaded_bitmap *result = (slot->State >= AssetState_Loaded) ? slot->Bitmap : 0;
     return result;
 }
 
 inline loaded_sound*
 GetSound(game_assets *assets, sound_id id)
 {
-    Assert(id.Value <= assets->AssetCount);
-    loaded_sound *result = assets->Slots[id.Value].Sound;
+    asset_slot *slot = assets->Slots + id.Value;
+    loaded_sound *result = (slot->State >= AssetState_Loaded) ? slot->Sound : 0;
     return result;
 }
 

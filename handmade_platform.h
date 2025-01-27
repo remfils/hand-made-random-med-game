@@ -212,6 +212,36 @@ struct game_input
     game_controller_input Controllers[5];
 };
 
+struct platform_file_handle
+{
+    b32 HasErrors;  
+};
+
+struct platform_file_group
+{
+    u32 FileCount;
+    void *Data;
+};
+
+#define PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(name) platform_file_group name(char *type)
+typedef PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(platform_get_all_files_of_type_begin);
+
+#define PLATFORM_GET_ALL_FILES_OF_TYPE_END(name) void name(platform_file_group group)
+typedef PLATFORM_GET_ALL_FILES_OF_TYPE_END(platform_get_all_files_of_type_end);
+
+#define PLATFORM_OPEN_FILE(name) platform_file_handle *name(platform_file_group group, u32 fileIndex)
+typedef PLATFORM_OPEN_FILE(platform_open_file);
+
+#define PLATFORM_READ_DATA_FROM_FILE(name) void name(platform_file_handle *handle, u64 offset, u64 size, void *dest)
+typedef PLATFORM_READ_DATA_FROM_FILE(platform_read_data_from_file);
+
+#define PLATFORM_FILE_ERROR(name) void name(platform_file_handle *handle, char *message)
+typedef PLATFORM_FILE_ERROR(platform_file_error);
+
+    
+#define PlatformNoFileErrors(Handle) ((Handle)->HasErrors)
+
+
 struct platform_work_queue;
 typedef void platform_work_queue_callback(platform_work_queue *queue, void *data);
 typedef void platform_add_entry(platform_work_queue *queue, platform_work_queue_callback *callback, void *data);
@@ -238,12 +268,22 @@ typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 
 
 extern platform_work_queue *RenderQueue;
-global_variable platform_add_entry *PlatformAddEntry;
-global_variable platform_complete_all_work *PlatformCompleteAllWork;
 
-global_variable debug_platform_read_entire_file *DEBUG_ReadEntireFile;
-global_variable debug_platform_free_file_memory *DEBUG_PlatformFreeFileMemory;
-global_variable debug_platform_write_entire_file *DEBUG_PlatformWriteEntireFile;
+struct platform_api
+{
+    platform_add_entry *AddEntry;
+    platform_complete_all_work *CompleteAllWork;
+    
+    platform_get_all_files_of_type_begin *GetAllFilesOfTypeBegin;
+    platform_get_all_files_of_type_end *GetAllFilesOfTypeEnd;
+    platform_open_file *OpenFile;
+    platform_read_data_from_file *ReadDataFromFile;
+    platform_file_error *FileError;
+
+    debug_platform_free_file_memory *DEBUG_FreeFileMemory;
+    debug_platform_read_entire_file *DEBUG_ReadEntireFile;
+    debug_platform_write_entire_file *DEBUG_WriteEntireFile;
+};
 
 struct game_memory
 {
@@ -253,16 +293,13 @@ struct game_memory
 
     platform_work_queue *HighPriorityQueue;
     platform_work_queue *LowPriorityQueue;
-    platform_add_entry *PlatformAddEntry;
-    platform_complete_all_work *PlatformCompleteAllWork;
+
+    platform_api PlatformAPI;
+
 
     uint64 TransientStorageSize;
     void *TransientStorage; // should be initialized to zero
     
-    debug_platform_free_file_memory *DEBUG_PlatformFreeFileMemory;
-    debug_platform_read_entire_file *DEBUG_PlatformReadEntireFile;
-    debug_platform_write_entire_file *DEBUG_PlatformWriteEntireFile;
-
 #if HANDMADE_SLOW
     debug_cycle_counter DebugCounters[DebugCounter_Count];
 #endif

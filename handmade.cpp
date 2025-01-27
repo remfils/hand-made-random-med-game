@@ -354,7 +354,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             work->RenderGroup = renderGroup;
             work->Task = task;
         
-            PlatformAddEntry(tranState->LowPriorityQueue, DoFillGrounChunkWork, work);
+            PlatformAPI.AddEntry(tranState->LowPriorityQueue, DoFillGrounChunkWork, work);
         }
         else {
             groundBuffer->P = NullPosition();
@@ -601,12 +601,7 @@ game_memory *DebugGlobalMemory;
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
-    PlatformAddEntry = memory->PlatformAddEntry;
-    PlatformCompleteAllWork = memory->PlatformCompleteAllWork;
-    
-    DEBUG_PlatformFreeFileMemory = memory->DEBUG_PlatformFreeFileMemory;
-    DEBUG_ReadEntireFile = memory->DEBUG_PlatformReadEntireFile;
-    DEBUG_PlatformWriteEntireFile = memory->DEBUG_PlatformWriteEntireFile;
+    PlatformAPI = memory->PlatformAPI;
 
     #if HANDMADE_SLOW
     DebugGlobalMemory = memory;

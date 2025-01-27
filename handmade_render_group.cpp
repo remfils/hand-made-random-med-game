@@ -1271,11 +1271,11 @@ TiledRenderGroup(platform_work_queue *renderQueue, loaded_bitmap *outputTarget, 
             workItem->OutputTarget = outputTarget;
 
 
-            PlatformAddEntry(renderQueue, DoTiledRenderWork , workItem);
+            PlatformAPI.AddEntry(renderQueue, DoTiledRenderWork , workItem);
         }
     }
 
-    PlatformCompleteAllWork(renderQueue);
+    PlatformAPI.CompleteAllWork(renderQueue);
 }
 
 internal void

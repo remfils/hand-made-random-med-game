@@ -1092,6 +1092,33 @@ Win32CompleteAllWork(platform_work_queue *queue)
     queue->CompletionGoal = 0;
 }
 
+internal PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin)
+{
+    platform_file_group result = {};
+    return result;
+}
+
+internal PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd)
+{
+    
+}
+
+internal PLATFORM_OPEN_FILE(Win32OpenFile)
+{
+    platform_file_handle *result = 0;
+    return result;
+}
+
+internal PLATFORM_READ_DATA_FROM_FILE(Win32ReadDataFromFile)
+{
+    
+}
+
+internal PLATFORM_FILE_ERROR(Win32FileError)
+{
+    
+}
+
 DWORD WINAPI
 ThreadProc(LPVOID lpParameter)
 {
@@ -1246,17 +1273,24 @@ int CALLBACK WinMain(
 
             gameMemory.HighPriorityQueue = &highPriorityQueue;
             gameMemory.LowPriorityQueue = &lowPriorityQueue;
-            gameMemory.PlatformAddEntry = Win32AddEntry;
-            gameMemory.PlatformCompleteAllWork = Win32CompleteAllWork;
+            
+            gameMemory.PlatformAPI.AddEntry = Win32AddEntry;
+            gameMemory.PlatformAPI.CompleteAllWork = Win32CompleteAllWork;
+
+            gameMemory.PlatformAPI.GetAllFilesOfTypeBegin = Win32GetAllFilesOfTypeBegin;
+            gameMemory.PlatformAPI.GetAllFilesOfTypeEnd = Win32GetAllFilesOfTypeEnd;
+            gameMemory.PlatformAPI.OpenFile = Win32OpenFile;
+            gameMemory.PlatformAPI.ReadDataFromFile = Win32ReadDataFromFile;
+            gameMemory.PlatformAPI.FileError = Win32FileError;
 
             // platform specific functions
 #if HANDMADE_INTERNAL
             int debugSoundCursorsIndex = 0;
             win32_debug_sound debugSoundCursors[15] = {0};
             
-            gameMemory.DEBUG_PlatformFreeFileMemory = Debug_PlatformFreeFileMemory;
-            gameMemory.DEBUG_PlatformReadEntireFile = Debug_PlatformReadEntireFile;
-            gameMemory.DEBUG_PlatformWriteEntireFile = Debug_PlatformWriteEntireFile;
+            gameMemory.PlatformAPI.DEBUG_FreeFileMemory = Debug_PlatformFreeFileMemory;
+            gameMemory.PlatformAPI.DEBUG_ReadEntireFile = Debug_PlatformReadEntireFile;
+            gameMemory.PlatformAPI.DEBUG_WriteEntireFile = Debug_PlatformWriteEntireFile;
 #endif
             
 
