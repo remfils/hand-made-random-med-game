@@ -316,6 +316,18 @@ ZeroSize(memory_index size, void *ptr)
     }
 }
 
+
+inline void
+Copy(memory_index size, void*source, void *dest)
+{
+    u8 *s = (u8 *)source;
+    u8 *d = (u8 *)dest;
+
+    while (size--) { *d++ = *s++; }
+}
+
+
+
 inline temporary_memory
 BeginTemporaryMemory(memory_arena *arena)
 {

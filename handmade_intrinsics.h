@@ -1,6 +1,7 @@
 #if COMPILER_MSVC
 
 #define CompletePreviousWritesBeforeFutureWrites _WriteBarrier();
+#define CompletePreviousReadsBeforeFutureReads _ReadBarrier();
 
 inline uint32
 AtomicCompareExchange(uint32 volatile *value, uint32 expected, uint32 newValue)

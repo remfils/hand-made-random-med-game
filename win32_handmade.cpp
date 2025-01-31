@@ -344,11 +344,9 @@ DEBUG_PLATFORM_READ_ENTIRE_FILE(Debug_PlatformReadEntireFile)
                     Debug_PlatformFreeFileMemory(result.Content);
                     result.Content = 0;
                 }
-
             }
             else
             {
-            
             }
         }
         else
@@ -1095,6 +1093,10 @@ Win32CompleteAllWork(platform_work_queue *queue)
 internal PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin)
 {
     platform_file_group result = {};
+
+    //TODO: finish this
+
+    result.FileCount = 1;
     return result;
 }
 
@@ -1103,20 +1105,63 @@ internal PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd)
     
 }
 
-internal PLATFORM_OPEN_FILE(Win32OpenFile)
+struct win32_platform_file_handle
 {
-    platform_file_handle *result = 0;
-    return result;
-}
-
-internal PLATFORM_READ_DATA_FROM_FILE(Win32ReadDataFromFile)
-{
+    // NOTE: THIS HAS TO BE FIRST 
+    platform_file_handle H;
     
-}
+    HANDLE Win32Handle;
+};
 
 internal PLATFORM_FILE_ERROR(Win32FileError)
 {
-    
+    win32_platform_file_handle *w32Handle = (win32_platform_file_handle *)handle;
+    w32Handle->H.NoErrors = false;
+
+    #if HANDMADE_INTERNAL
+    OutputDebugStringA("win32 file error:");
+    OutputDebugStringA(message);
+    OutputDebugStringA("\n");
+    #endif
+}
+internal PLATFORM_OPEN_FILE(Win32OpenFile)
+{
+    // TODO: better memory menagment. HeadAlloc => special win32 mem areana
+    char *fileName = "test.hha";
+    win32_platform_file_handle *result = (win32_platform_file_handle *)VirtualAlloc(0, sizeof(win32_platform_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+    if (result) {
+        result->Win32Handle = CreateFileA(fileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+        result->H.NoErrors = result->Win32Handle != INVALID_HANDLE_VALUE;
+    }
+
+    return (platform_file_handle *)result;
+}
+
+// NOTE|TODO: Win32CloseFile
+
+internal PLATFORM_READ_DATA_FROM_FILE(Win32ReadDataFromFile)
+{
+    win32_platform_file_handle *w32Handle = (win32_platform_file_handle *)handle;
+
+    if (PlatformNoFileErrors(handle))
+    {
+        OVERLAPPED overlapped = {};
+        overlapped.Offset = (u32)(offset >> 0 & 0xFFFFFFFF);
+        overlapped.OffsetHigh = (u32)(offset >> 32 & 0xFFFFFFFF);
+
+        uint32 fileSize32 = SafeTruncateUInt64(size);
+
+        DWORD bytesRead;
+        if (ReadFile(w32Handle->Win32Handle, dest, fileSize32, &bytesRead, &overlapped) && (fileSize32 == bytesRead))
+        {
+            // NOTE: file read ok
+        }
+        else
+        {
+            Win32FileError(&w32Handle->H, "Failed reading file");
+        }
+    }
 }
 
 DWORD WINAPI

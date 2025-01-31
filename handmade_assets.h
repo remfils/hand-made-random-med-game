@@ -19,6 +19,7 @@ struct loaded_sound
     // NOTE: loaded sound assets has to be 8 alligned
     u32 SampleCount;
     u32 ChannelCount;
+    void *Memory;
     int16 *Samples[2];
 };
 
@@ -88,6 +89,12 @@ struct asset_file
     u32 TagBase;
 };
 
+struct asset
+{
+    u32 FileIndex;
+    hha_asset HHA;
+};
+
 struct game_assets
 {
     struct transient_state *TranState;
@@ -104,7 +111,7 @@ struct game_assets
     hha_tag *Tags;
     
     u32 AssetCount;
-    hha_asset *Assets;
+    asset *Assets;
 
 
     u8 *HHAContent;
@@ -129,7 +136,14 @@ inline loaded_bitmap*
 GetBitmap(game_assets *assets, bitmap_id id)
 {
     asset_slot *slot = assets->Slots + id.Value;
-    loaded_bitmap *result = (slot->State >= AssetState_Loaded) ? slot->Bitmap : 0;
+
+    loaded_bitmap *result = 0;
+
+    if (slot->State >= AssetState_Loaded)
+    {
+        CompletePreviousReadsBeforeFutureReads;
+        result = slot->Bitmap;
+    }
     return result;
 }
 
@@ -137,7 +151,13 @@ inline loaded_sound*
 GetSound(game_assets *assets, sound_id id)
 {
     asset_slot *slot = assets->Slots + id.Value;
-    loaded_sound *result = (slot->State >= AssetState_Loaded) ? slot->Sound : 0;
+    loaded_sound *result = 0;
+
+    if (slot->State >= AssetState_Loaded)
+    {
+        CompletePreviousReadsBeforeFutureReads;
+        result = slot->Sound;
+    }
     return result;
 }
 
@@ -145,7 +165,7 @@ inline hha_sound*
 GetSoundInfo(game_assets *assets, sound_id id)
 {
     Assert(id.Value <= assets->AssetCount);
-    hha_sound *result = &assets->Assets[id.Value].Sound;
+    hha_sound *result = &assets->Assets[id.Value].HHA.Sound;
     return result;
 }
 
