@@ -1090,29 +1090,55 @@ Win32CompleteAllWork(platform_work_queue *queue)
     queue->CompletionGoal = 0;
 }
 
+struct win32_platform_file_handle
+{
+    platform_file_handle H;
+    HANDLE Win32Handle;
+};
+
+struct win32_platform_file_group
+{
+    platform_file_group H;
+    HANDLE FoundHandle;
+    WIN32_FIND_DATAA Data;
+};
+
 internal PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin)
 {
-    platform_file_group result = {};
+    win32_platform_file_group *win32FileGroup = (win32_platform_file_group *)
+        VirtualAlloc(0, sizeof(win32_platform_file_group), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-    //TODO: finish this
-    // TODO: sound doesnt work
-    result.FileCount = 3;
+    win32FileGroup->H.FileCount = 0;
 
-    return result;
+    WIN32_FIND_DATAA foundData;
+
+    HANDLE searchHandle = FindFirstFileA(wildcard, &foundData);
+
+    if (searchHandle != INVALID_HANDLE_VALUE) {
+        do {
+            ++win32FileGroup->H.FileCount;
+        } while (FindNextFileA(searchHandle, &foundData));
+
+        FindClose(searchHandle);
+    }
+
+    win32FileGroup->FoundHandle = FindFirstFileA(wildcard, &win32FileGroup->Data);
+    
+    return (platform_file_group *)win32FileGroup;
 }
 
 internal PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd)
 {
-    
-}
+    win32_platform_file_group *win32FileGroup = (win32_platform_file_group *)group;
 
-struct win32_platform_file_handle
-{
-    // NOTE: THIS HAS TO BE FIRST 
-    platform_file_handle H;
-    
-    HANDLE Win32Handle;
-};
+    if (win32FileGroup) {
+        if (win32FileGroup->FoundHandle != INVALID_HANDLE_VALUE) {
+            FindClose(win32FileGroup->FoundHandle);
+        }
+        
+        VirtualFree(win32FileGroup, 0, MEM_RELEASE);
+    }
+}
 
 internal PLATFORM_FILE_ERROR(Win32FileError)
 {
@@ -1125,24 +1151,31 @@ internal PLATFORM_FILE_ERROR(Win32FileError)
     OutputDebugStringA("\n");
     #endif
 }
-internal PLATFORM_OPEN_FILE(Win32OpenFile)
+internal PLATFORM_OPEN_NEXT_FILE(Win32OpenNextFile)
 {
     // TODO: better memory menagment. HeadAlloc => special win32 mem areana
-    char *fileName = 0;
-    if (fileIndex == 0) {
-        fileName = "test1.hha";
-    } else if (fileIndex == 1) {
-        fileName = "test2.hha";
-    } else if (fileIndex == 2) {
-        fileName = "test3.hha";
-    }
-    win32_platform_file_handle *result = (win32_platform_file_handle *)VirtualAlloc(0, sizeof(win32_platform_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    win32_platform_file_handle *result = 0;
 
-    if (result) {
-        result->Win32Handle = CreateFileA(fileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-        result->H.NoErrors = result->Win32Handle != INVALID_HANDLE_VALUE;
-    }
+    win32_platform_file_group *win32FileGroup = (win32_platform_file_group *)group;
 
+    if (win32FileGroup) {
+        if (win32FileGroup->FoundHandle != INVALID_HANDLE_VALUE) {
+            result = (win32_platform_file_handle *)VirtualAlloc(0, sizeof(win32_platform_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+
+            if (result) {
+                result->Win32Handle = CreateFileA(win32FileGroup->Data.cFileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+                result->H.NoErrors = result->Win32Handle != INVALID_HANDLE_VALUE;
+            }
+
+            if (FindNextFileA(win32FileGroup->FoundHandle, &win32FileGroup->Data)) {
+                // TODO: do nothing?
+            } else {
+                FindClose(win32FileGroup->FoundHandle);
+                win32FileGroup->FoundHandle = INVALID_HANDLE_VALUE;
+            }
+        }
+    }
+    
     return (platform_file_handle *)result;
 }
 
@@ -1332,7 +1365,7 @@ int CALLBACK WinMain(
 
             gameMemory.PlatformAPI.GetAllFilesOfTypeBegin = Win32GetAllFilesOfTypeBegin;
             gameMemory.PlatformAPI.GetAllFilesOfTypeEnd = Win32GetAllFilesOfTypeEnd;
-            gameMemory.PlatformAPI.OpenFile = Win32OpenFile;
+            gameMemory.PlatformAPI.OpenNextFile = Win32OpenNextFile;
             gameMemory.PlatformAPI.ReadDataFromFile = Win32ReadDataFromFile;
             gameMemory.PlatformAPI.FileError = Win32FileError;
 

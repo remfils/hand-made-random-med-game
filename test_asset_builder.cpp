@@ -344,8 +344,6 @@ LoadWAV(char *filename, uint32 sectionFirstSampleIndex, uint32 sectionSampleCoun
             } break;
             case WAVE_ChunkId_fact: {
                 uint32 *numberOfSamplesInChannel = (uint32 *)GetChunkData(iter);
-                int a = 3;
-                // sampleDataSize = GetChunkSize(iter);
             } break;
             }
         }

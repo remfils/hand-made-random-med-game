@@ -99,13 +99,13 @@ LoadSound(game_assets *assets, sound_id id)
                 hha_sound *info = &asset->HHA.Sound;
                 loaded_sound *sound = PushStruct(&assets->Arena, loaded_sound);
 
-                u32 channelSize = sound->ChannelCount * sizeof(s16);
-
                 sound->SampleCount = info->SampleCount;
                 sound->ChannelCount = info->ChannelCount;
+
+                u32 channelSize = sound->ChannelCount * sizeof(s16);
                 u32 memorySize = sound->SampleCount * channelSize;
 
-                void *memory = PushSize(&task->Arena, memorySize);
+                void *memory = PushSize(&assets->Arena, memorySize);
 
                 s16 *soundAt = (s16 *)memory;
                 for (u32 i=0; i < sound->ChannelCount; i++)
@@ -274,13 +274,13 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 
 
     {
-        platform_file_group fileGroup = PlatformAPI.GetAllFilesOfTypeBegin("hha");
-        assets->FileCount = fileGroup.FileCount;
+        platform_file_group *fileGroup = PlatformAPI.GetAllFilesOfTypeBegin("*.hha");
+        assets->FileCount = fileGroup->FileCount;
         assets->Files = PushArray(arena, assets->FileCount, asset_file);
         for (u32 i=0; i < assets->FileCount; i++)
         {
             asset_file *file = assets->Files + i;
-            file->Handle = PlatformAPI.OpenFile(fileGroup, i);
+            file->Handle = PlatformAPI.OpenNextFile(fileGroup);
             file->TagBase = assets->TagCount;
             
             ZeroStruct(file->Header);
