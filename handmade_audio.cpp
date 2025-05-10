@@ -128,8 +128,8 @@ OutputPlayingSounds(
             loaded_sound *loadedSound = GetSound(assets, playingSound->Id);
             if (loadedSound)
             {
-                hha_sound *soundInfo = GetSoundInfo(assets, playingSound->Id);
-                PrefetchSound(assets, soundInfo->NextIdToPlay);
+                sound_id nextSoundInChain = GetNextSoundInChain(assets, playingSound->Id);
+                PrefetchSound(assets, nextSoundInChain);
 
                 v2 volume = playingSound->CurrentVolume;
                 v2 dVolume = secondsPerSample * playingSound->dCurrentVolume;
@@ -238,9 +238,9 @@ OutputPlayingSounds(
                 // TODO: this is no an acceptable check for the end
                 if (chunksToMix == chunksRemainingInSound)
                 {
-                    if (IsValid(soundInfo->NextIdToPlay))
+                    if (IsValid(nextSoundInChain))
                     {
-                        playingSound->Id = soundInfo->NextIdToPlay;
+                        playingSound->Id = nextSoundInChain;
                         playingSound->SamplesPlayed -= (real32)loadedSound->SampleCount;
                     }
                     else

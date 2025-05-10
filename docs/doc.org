@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [5/520]
+* to be done [6/520]
 ** DONE Handmade Hero Day 148 - Writing the Asset File Header
 - [[https://www.youtube.com/watch?v=UNXHK8O-B_g]]
 
@@ -27,9 +27,10 @@ https://youtu.be/CNTlpoYdKF8?t=2840
 ** DONE Handmade Hero Day 152 - New Win32 File API Implementation
 - [[https://www.youtube.com/watch?v=hRYrqGBmfOA]]
 
-После реализации стало очень плохо загружаться.
+После реализации стало очень плохо загружаться. Теги работают плохо,
+изображения грузяться очень странно.
 
-** TODO Handmade Hero Day 153 - Merging Multiple Asset Files
+** DONE Handmade Hero Day 153 - Merging Multiple Asset Files
 - [[https://www.youtube.com/watch?v=9sb8mv6q7WE]]
 
 ** TODO Handmade Hero Day 154 - Finding Asset Files with Win32

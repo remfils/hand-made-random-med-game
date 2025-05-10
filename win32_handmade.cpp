@@ -1095,8 +1095,9 @@ internal PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin)
     platform_file_group result = {};
 
     //TODO: finish this
+    // TODO: sound doesnt work
+    result.FileCount = 3;
 
-    result.FileCount = 1;
     return result;
 }
 
@@ -1127,7 +1128,14 @@ internal PLATFORM_FILE_ERROR(Win32FileError)
 internal PLATFORM_OPEN_FILE(Win32OpenFile)
 {
     // TODO: better memory menagment. HeadAlloc => special win32 mem areana
-    char *fileName = "test.hha";
+    char *fileName = 0;
+    if (fileIndex == 0) {
+        fileName = "test1.hha";
+    } else if (fileIndex == 1) {
+        fileName = "test2.hha";
+    } else if (fileIndex == 2) {
+        fileName = "test3.hha";
+    }
     win32_platform_file_handle *result = (win32_platform_file_handle *)VirtualAlloc(0, sizeof(win32_platform_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
     if (result) {

@@ -1177,14 +1177,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             matchVector.E[Tag_FacingDirection] = (real32)simEntity->FacingDirection;
             asset_vector weightVector = {};
             weightVector.E[Tag_FacingDirection] = 1.0f;
-            
-            
+
             low_entity *lowEntity = gameState->LowEntities + simEntity->StorageIndex;
 
             // TODO: draw entities on one Z-plane
-
-            hero_bitmap_ids heroBitmapIds;// = &tranState->Assets->Hero[simEntity->FacingDirection];
-            heroBitmapIds.Character = BestMatchBitmap(renderGroup->Assets, AssetType_HumanBody, &matchVector, &weightVector);
 
             move_spec moveSpec = DefaultMoveSpec();
             v3 ddp = {};
@@ -1336,6 +1332,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             case EntityType_Hero:
             {
+                // TODO|NOTE: is this correct?
+                hero_bitmap_ids heroBitmapIds;// = &tranState->Assets->Hero[simEntity->FacingDirection];
+                heroBitmapIds.Character = BestMatchBitmap(renderGroup->Assets, AssetType_HumanBody, &matchVector, &weightVector);
+
                 PushBitmap(renderGroup, heroBitmapIds.Character, 1.6f, ToV3(0, 0, 0));
 
                 sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;

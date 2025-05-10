@@ -35,6 +35,13 @@ struct hha_tag
     r32 Value;
 };
 
+enum hha_sound_chain
+{
+    HHASoundChain_None,
+    HHASoundChain_Loop,
+    HHASoundChain_Advance,
+};
+
 struct hha_bitmap
 {
     u32 Dim[2];
@@ -44,7 +51,7 @@ struct hha_bitmap
 struct hha_sound
 {
     u32 SampleCount;
-    sound_id NextIdToPlay;
+    hha_sound_chain Chain;
     u32 ChannelCount;
 };
 
