@@ -1349,7 +1349,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                 // spawn particles
 
-                for (u32 particleSpawnIndex = 0; particleSpawnIndex < 2; particleSpawnIndex++)
+                for (u32 particleSpawnIndex = 0; particleSpawnIndex < 1; particleSpawnIndex++)
                 {
                     particle *part = gameState->Particles + gameState->NextParticle++;
                     
@@ -1357,15 +1357,56 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         gameState->NextParticle = 0;
                     }
 
-                    part->P = ToV3(
+                    part->P = ToV3(RandomBetween(&gameState->ParticleEntropy, -(r32)0.1f, (r32)0.1f),
                                    RandomBetween(&gameState->ParticleEntropy, -(r32)0.1f, (r32)0.1f),
-                                   RandomBetween(&gameState->ParticleEntropy, -(r32)0.1f, (r32)0.1f),
-                                   0
-                                   );
-                    part->dP = ToV3(
-                                    RandomBetween(&gameState->ParticleEntropy, -(r32)1.0f, (r32)1.0f), 1.0f, RandomBetween(&gameState->ParticleEntropy, -(r32)1.0f, (r32)1.0f));
+                                   0);
+                    part->dP = ToV3(RandomBetween(&gameState->ParticleEntropy, -(r32)0.1f, (r32)0.1f),
+                                    5.0f,
+                                    0.0f);
+                    part->ddP = ToV3(0.0f, -9.4f, 0.0f);
                     part->Color = ToV4(1,1,1,1);
-                    part->dColor = ToV4(0, 0, 0, -0.8f);
+                    part->dColor = ToV4(0, 0, 0, -0.3f);
+                }
+                
+                ZeroStruct(gameState->ParticleCells);
+
+                r32 cellDim = 0.1f;
+                r32 invCellDim = 1.0f / cellDim;
+                v3 gridOrigin = ToV3(-0.5f * 16 * cellDim, 0.0f, 0.0f);
+
+                for (u32 particleIndex = 0;
+                     particleIndex < ArrayCount(gameState->Particles);
+                     particleIndex++)
+                {
+                    particle *part = gameState->Particles + particleIndex;
+
+                    v3 p = (part->P - gridOrigin) * invCellDim;
+
+                    s32 cellX = TruncateReal32ToInt32(p.x);
+                    s32 cellY = TruncateReal32ToInt32(p.y);
+
+                    if (cellX < 0) cellX = 0;
+                    if (cellX > 15) cellX = 15;
+                    if (cellY < 0) cellY = 0;
+                    if (cellY > 15) cellY = 15;
+
+                    particle_cell *cell = &gameState->ParticleCells[cellY][cellX];
+                    cell->Density += part->Color.a;
+                    cell->VelocityTimeDensity += cell->Density * part->dP;
+                }
+
+
+                for (u32 cellX=0; cellX<16; cellX++)
+                {
+                    for (u32 cellY=0; cellY<16; cellY++)
+                    {
+                        particle_cell *cell = &gameState->ParticleCells[cellY][cellX];
+                        
+                        v3 offset = cellDim * ToV3((r32)cellX, (r32)cellY, 0.0f) + gridOrigin;
+                        r32 value = Clamp01MapToRange(0.0f, cell->Density, 16.0f);
+                        
+                        PushPieceRect(renderGroup, offset, ToV2(cellDim, cellDim), ToV4(value, value, value, 1.0f));
+                    }
                 }
 
                 // NOTE: particle system test
@@ -1375,10 +1416,55 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 {
                     particle *part = gameState->Particles + particleIndex;
 
+                    v3 p = (part->P - gridOrigin) * invCellDim;
+
+                    s32 cellX = TruncateReal32ToInt32(p.x);
+                    s32 cellY = TruncateReal32ToInt32(p.y);
+
+                    if (cellX < 1) cellX = 1;
+                    if (cellX > 14) cellX = 14;
+                    if (cellY < 1) cellY = 1;
+                    if (cellY > 14) cellY = 14;
+
+                    particle_cell *cellCenter = &gameState->ParticleCells[cellY][cellX];
+                    particle_cell *cellUp = &gameState->ParticleCells[cellY-1][cellX];
+                    particle_cell *cellDown = &gameState->ParticleCells[cellY+1][cellX];
+                    particle_cell *cellLeft = &gameState->ParticleCells[cellY][cellX-1];
+                    particle_cell *cellRight = &gameState->ParticleCells[cellY][cellX+1];
+
+                    v3 dispersion = {};
+                    r32 dispersionCoef = 1.0f;
+
+                    dispersion += dispersionCoef * (cellCenter->Density - cellLeft->Density)* ToV3(-1.0f, 0, 0);
+                    dispersion += dispersionCoef * (cellCenter->Density - cellRight->Density)* ToV3(1.0f, 0, 0);
+                    dispersion += dispersionCoef * (cellCenter->Density - cellUp->Density)* ToV3(0, -1.0f, 0);
+                    dispersion += dispersionCoef * (cellCenter->Density - cellDown->Density)* ToV3(0.0f, 1.0f, 0);
+
+                    v3 ddP = part->ddP + dispersion;
+
                     // NOTE: simulate particle forward in time
 
-                    part->P += part->dP * input->DtForFrame;
+                    part->P += 0.5f * Square(input->DtForFrame) * ddP + input->DtForFrame * part->dP;
+                    part->dP += input->DtForFrame * ddP;
                     part->Color += part->dColor * input->DtForFrame;
+
+                    if (part->P.y < 0.0f) {
+                        part->P.y = 0.0f;
+                        part->dP.y = -0.4f*part->dP.y;
+                    }
+
+                    if (part->dP.y < 0.0f && part->P.y > 1.0f) {
+                        part->ddP.x += input->DtForFrame * part->dP.x;
+                    }
+
+                    /*
+
+                    if (part->P.y < 1.0f) {
+                        part->ddP.x = part->ddP.x * 0.9f;
+                    }
+                    */
+
+                    part->P.y = AbsoluteValue(part->P.y);
 
                     v4 pColor = part->Color;
 

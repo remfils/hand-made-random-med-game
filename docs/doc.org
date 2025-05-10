@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [8/520]
+* to be done [9/520]
 ** DONE Handmade Hero Day 148 - Writing the Asset File Header
 - [[https://www.youtube.com/watch?v=UNXHK8O-B_g]]
 
@@ -41,7 +41,7 @@ FindFirstFileA = dir *.hha
 ** DONE Handmade Hero Day 155 - Introduction to Particle Systems
 - [[https://www.youtube.com/watch?v=G6OGKP3MaUI]]
 
-** TODO Handmade Hero Day 156 - Lagrangian vs. Eulerian Simulation
+** DONE Handmade Hero Day 156 - Lagrangian vs. Eulerian Simulation
 - [[https://www.youtube.com/watch?v=HH_iaJairW8]]
 
 ** TODO Handmade Hero Day 157 - Introduction to General Purpose Allocation

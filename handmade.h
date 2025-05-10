@@ -193,10 +193,17 @@ struct ground_buffer
     loaded_bitmap Bitmap;
 };
 
+struct particle_cell
+{
+    r32 Density;
+    v3 VelocityTimeDensity;
+};
+
 struct particle
 {
     v3 P;
     v3 dP;
+    v3 ddP;
     v4 dColor;
     v4 Color;
 };
@@ -248,7 +255,10 @@ struct game_state
 
     u32 NextParticle;
     particle Particles[64];
+    particle_cell ParticleCells[16][16];
     random_series ParticleEntropy;
+
+    
 };
 
 struct transient_state
