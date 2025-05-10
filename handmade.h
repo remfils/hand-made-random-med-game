@@ -193,6 +193,14 @@ struct ground_buffer
     loaded_bitmap Bitmap;
 };
 
+struct particle
+{
+    v3 P;
+    v3 dP;
+    v4 dColor;
+    v4 Color;
+};
+
 struct game_state
 {
     int XOffset;
@@ -237,6 +245,10 @@ struct game_state
     loaded_bitmap TestNormal;
 
     audio_state AudioState;
+
+    u32 NextParticle;
+    particle Particles[64];
+    random_series ParticleEntropy;
 };
 
 struct transient_state

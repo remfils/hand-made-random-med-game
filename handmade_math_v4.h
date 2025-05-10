@@ -55,6 +55,24 @@ operator+(v4 a, v4 b)
 }
 
 inline v4
+operator+=(v4 &b, v4 a)
+{
+    b = b + a;
+    return b;
+}
+
+inline v4
+operator-(v4 a, v4 b)
+{
+    v4 res;
+    res.x = a.x - b.x;
+    res.y = a.y - b.y;
+    res.z = a.z - b.z;
+    res.w = a.w - b.w;
+    return res;
+}
+
+inline v4
 operator*(v4 b, real32 a)
 {
     v4 res;

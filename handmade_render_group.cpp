@@ -943,7 +943,7 @@ PushBitmap(render_group *grp, loaded_bitmap *bmp, real32 height, v3 offset, v4 c
             renderEntry->P = basisResult.P;
             renderEntry->Size = basisResult.Scale * size;
             renderEntry->Bitmap = bmp;
-            color.a = grp->GlobalAlpha;
+            color.a = color.a * grp->GlobalAlpha;
             renderEntry->Color = color;
         }
     }

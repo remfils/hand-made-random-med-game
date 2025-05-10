@@ -621,6 +621,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         // TODO: remove
         gameState->TypicalFloorHeight = 3.0f;
+
+        gameState->ParticleEntropy = CreateRandomSeed(1234);
         
         uint32 tilesPerScreenWidth = 17;
         uint32 tilesPerScreenHeight = 9;
@@ -888,9 +890,11 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(250), tranState);
 
         // TODO: sound plays really bad for some reason. With stutters...
+        /*
         playing_sound *snd = PlaySound(&gameState->AudioState, GetFirstSound(tranState->Assets, AssetType_PianoMusic));
         ChangeVolume(&gameState->AudioState, snd, 10, v2{0.0f, 0.0f});
         ChangePitch(snd, 1.2f);
+        */
 
         // NOTE: make square for now
         int32 diffuseWidth = 128;
@@ -1342,6 +1346,51 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 1.0f));
 
                 PushHitpoints(renderGroup, simEntity);
+
+                // spawn particles
+
+                for (u32 particleSpawnIndex = 0; particleSpawnIndex < 2; particleSpawnIndex++)
+                {
+                    particle *part = gameState->Particles + gameState->NextParticle++;
+                    
+                    if (gameState->NextParticle >= ArrayCount(gameState->Particles)) {
+                        gameState->NextParticle = 0;
+                    }
+
+                    part->P = ToV3(
+                                   RandomBetween(&gameState->ParticleEntropy, -(r32)0.1f, (r32)0.1f),
+                                   RandomBetween(&gameState->ParticleEntropy, -(r32)0.1f, (r32)0.1f),
+                                   0
+                                   );
+                    part->dP = ToV3(
+                                    RandomBetween(&gameState->ParticleEntropy, -(r32)1.0f, (r32)1.0f), 1.0f, RandomBetween(&gameState->ParticleEntropy, -(r32)1.0f, (r32)1.0f));
+                    part->Color = ToV4(1,1,1,1);
+                    part->dColor = ToV4(0, 0, 0, -0.8f);
+                }
+
+                // NOTE: particle system test
+                for (u32 particleIndex = 0;
+                     particleIndex < ArrayCount(gameState->Particles);
+                     particleIndex++)
+                {
+                    particle *part = gameState->Particles + particleIndex;
+
+                    // NOTE: simulate particle forward in time
+
+                    part->P += part->dP * input->DtForFrame;
+                    part->Color += part->dColor * input->DtForFrame;
+
+                    v4 pColor = part->Color;
+
+                    pColor.a = Clamp01(pColor.a);
+
+                    if (pColor.a > 0.9f) {
+                        pColor.a = 0.9f * Clamp01MapToRange(1.0f, pColor.a, 0.9f);
+                    }
+
+                    // NOTE: render particle
+                    PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_SwordDemo), 0.3f, part->P, part->Color);
+                }
             } break;
             case EntityType_Monster:
             {
@@ -1558,10 +1607,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     v2 origin = screenCenter - V2i(50, 50);
 
-    v2 xAxis = (real32)gameState->TestDiffuse.Width * V2(Cos(angle), Sin(angle));
+    v2 xAxis = (real32)gameState->TestDiffuse.Width * ToV2(Cos(angle), Sin(angle));
     v2 yAxis = Perp(xAxis);// V2i(0, gameState->TestDiffuse.Height);
 
-    xAxis = (real32)gameState->TestDiffuse.Width * V2(1.0f, 0.0);
+    xAxis = (real32)gameState->TestDiffuse.Width * ToV2(1.0f, 0.0);
     yAxis = Perp(xAxis);
 
     // v2 xAxis = V2(200.0f, 0);
@@ -1569,7 +1618,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // v4 color = { (Sin(4.0f * angle) + 1.0f) / 2.0f, 0.0f, 1, (Cos(4.0f * angle) + 1.0f) / 2.0f};
     v4 color = {1.0f, 1.0f, 1.0f, 1.0f};
 
-    v2 mapP = V2(20.0f, 20.0f);
+    v2 mapP = ToV2(20.0f, 20.0f);
     
     /*
     xAxis = (real32)gameState->TestDiffuse.Width * V2(Cos(angle), Sin(angle));
@@ -1592,7 +1641,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         
         PushCoordinateSystem(renderGroup, mapP, xAxis, yAxis, color, level, 0,0,0,0);
 
-        mapP += yAxis + V2(0.0f, 6.0f);
+        mapP += yAxis + ToV2(0.0f, 6.0f);
     }
 
     #endif
@@ -1607,6 +1656,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // PushSaturationFilter(renderGroup, 0.5f + Cos(2.0f * angle) * 0.5f);
 
     TiledRenderGroup(tranState->HighPriorityQueue, drawBuffer, renderGroup);
+
 
     EndSim(simRegion, gameState);
 

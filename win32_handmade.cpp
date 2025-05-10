@@ -1288,7 +1288,7 @@ int CALLBACK WinMain(
     QueryPerformanceFrequency(&perfCounterFrequencyResult);
     GlobalPerfCounterFrequency = perfCounterFrequencyResult.QuadPart;
 
-    reload_dlls = false;
+    reload_dlls = true;
 
     int monitorRefreshHz = 60;
 
@@ -1476,12 +1476,11 @@ int CALLBACK WinMain(
                     if (!Win32IsFileExists(lockFullFilePath)) {
                         Win32UnloadGameCode(&game);
                         game = Win32LoadGameCode(sourceDLLFullPath, tmpDLLFullPath);
+
+                        newInput->ExecutableReloaded = true;
                       }
                   }
-
-                  newInput->ExecutableReloaded = true;
-
-                  reload_dlls = false;
+                  //reload_dlls = false;
                 }
 
                 RemfilsStartStep(stepState, "MOS");
