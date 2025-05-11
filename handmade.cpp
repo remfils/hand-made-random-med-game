@@ -386,10 +386,10 @@ MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, int32 alignX, in
 {
     loaded_bitmap result;
 
-    result.Width = width;
-    result.Height = height;
+    result.Width = SafeTruncateToUInt16(width);
+    result.Height = SafeTruncateToUInt16(height);
     result.WidthOverHeight = SafeRatio_1((real32)result.Width, (real32)result.Height);
-    result.Pitch = width * BITMAP_BYTES_PER_PIXEL;
+    result.Pitch = SafeTruncateToUInt16(width * BITMAP_BYTES_PER_PIXEL);
 
     result.AlignPercent = ToV2(
                              (real32)alignX / (real32)result.Width,
@@ -1057,9 +1057,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     loaded_bitmap drawBuffer_ = {};
     loaded_bitmap *drawBuffer = &drawBuffer_;
     drawBuffer->Memory = buffer->Memory;
-    drawBuffer->Width = buffer->Width;
-    drawBuffer->Height = buffer->Height;
-    drawBuffer->Pitch = buffer->Pitch;
+    drawBuffer->Width = SafeTruncateToUInt16(buffer->Width);
+    drawBuffer->Height = SafeTruncateToUInt16(buffer->Height);
+    drawBuffer->Pitch = SafeTruncateToUInt16(buffer->Pitch);
 
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     // TODO: how much push buffer should be

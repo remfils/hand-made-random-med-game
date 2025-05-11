@@ -26,9 +26,9 @@ struct bitmap_header
 
 struct loaded_bitmap
 {
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
+    s16 Width;
+    s16 Height;
+    s16 Pitch;
     void *Memory;
     void *Free;
 };
@@ -36,9 +36,9 @@ struct loaded_bitmap
 struct loaded_sound
 {
     // NOTE: loaded sound assets has to be 8 alligned
+    s16 *Samples[2];
     u32 SampleCount;
     u32 ChannelCount;
-    int16 *Samples[2];
     void *Free;
 };
 

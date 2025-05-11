@@ -5,22 +5,22 @@
 
 struct loaded_bitmap
 {
+    void *Memory;
     v2 AlignPercent;
     r32 WidthOverHeight;
     
-    int32 Width;
-    int32 Height;
-    int32 Pitch;
-    void *Memory;
+    u16 Width;
+    u16 Height;
+    u16 Pitch;
 };
 
 struct loaded_sound
 {
+    // TODO: this could be shrunk to 12 bytes
     // NOTE: loaded sound assets has to be 8 alligned
+    s16 *Samples[2];
     u32 SampleCount;
     u32 ChannelCount;
-    void *Memory;
-    int16 *Samples[2];
 };
 
 enum asset_state
@@ -69,8 +69,8 @@ struct asset_slot
     asset_state State;
     union
     {
-        loaded_bitmap *Bitmap;
-        loaded_sound *Sound;
+        loaded_bitmap Bitmap;
+        loaded_sound Sound;
     };
 };
 
@@ -142,7 +142,7 @@ GetBitmap(game_assets *assets, bitmap_id id)
     if (slot->State >= AssetState_Loaded)
     {
         CompletePreviousReadsBeforeFutureReads;
-        result = slot->Bitmap;
+        result = &slot->Bitmap;
     }
     return result;
 }
@@ -156,7 +156,7 @@ GetSound(game_assets *assets, sound_id id)
     if (slot->State >= AssetState_Loaded)
     {
         CompletePreviousReadsBeforeFutureReads;
-        result = slot->Sound;
+        result = &slot->Sound;
     }
     return result;
 }

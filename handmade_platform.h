@@ -314,4 +314,23 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 #define GAME_GET_SOUND_SAMPLES(name) void name(game_memory *memory, game_sound_output_buffer *soundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
+
+inline uint32
+SafeTruncateUInt64(uint64 value)
+{
+    Assert(value <= 0xFFFFFFFF);
+    uint32 result = (uint32)value;
+    return (result);
+}
+
+inline u16
+SafeTruncateToUInt16(s32 value)
+{
+    Assert(value <= 65535);
+    Assert(value >= 0);
+    u16 result = (s16)value;
+    return (result);
+}
+
+
 #endif

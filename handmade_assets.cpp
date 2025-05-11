@@ -42,7 +42,8 @@ LoadBitmap(game_assets *assets, bitmap_id id)
 {
     if (id.Value)
     {
-        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&assets->Slots[id.Value].State, AssetState_Unloaded, AssetState_Queued);
+        asset_slot *slot = assets->Slots + id.Value;
+        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&slot->State, AssetState_Unloaded, AssetState_Queued);
         if (currentState == AssetState_Unloaded)
         {
             task_with_memory *task = BeginTaskWithMemory(assets->TranState);
@@ -51,13 +52,13 @@ LoadBitmap(game_assets *assets, bitmap_id id)
             {
                 asset *asset = assets->Assets + id.Value;
                 hha_bitmap *info = &asset->HHA.Bitmap;
-                loaded_bitmap *bitmap = PushStruct(&assets->Arena, loaded_bitmap);
+                loaded_bitmap *bitmap = &slot->Bitmap;
 
                 bitmap->AlignPercent = info->AlignPercentage;
-                bitmap->Width = info->Dim[0];
-                bitmap->Height = info->Dim[1];
+                bitmap->Width = SafeTruncateToUInt16(info->Dim[0]);
+                bitmap->Height = SafeTruncateToUInt16(info->Dim[1]);
                 bitmap->WidthOverHeight = (r32)info->Dim[0] / (r32)info->Dim[1];
-                bitmap->Pitch = info->Dim[0] * 4; // NOTE: convention
+                bitmap->Pitch = SafeTruncateToUInt16(info->Dim[0] * 4); // NOTE: convention
 
                 // TODO: memorySize should be with size?
                 u32 memorySize = bitmap->Pitch * bitmap->Height;
@@ -67,8 +68,7 @@ LoadBitmap(game_assets *assets, bitmap_id id)
                 load_asset_work *work = PushStruct(&task->Arena, load_asset_work);
 
                 work->Task = task;
-                work->Slot = assets->Slots + id.Value;
-                work->Slot->Bitmap = bitmap;
+                work->Slot = slot;
                 
                 work->Handle = GetFileHandle(assets, asset->FileIndex);
                 work->Offset = asset->HHA.DataOffset;
@@ -88,7 +88,8 @@ LoadSound(game_assets *assets, sound_id id)
 {
     if (id.Value)
     {
-        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&assets->Slots[id.Value].State, AssetState_Unloaded, AssetState_Queued);
+        asset_slot *slot = assets->Slots + id.Value;
+        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&slot->State, AssetState_Unloaded, AssetState_Queued);
         if (currentState == AssetState_Unloaded)
         {
             task_with_memory *task = BeginTaskWithMemory(assets->TranState);
@@ -97,7 +98,7 @@ LoadSound(game_assets *assets, sound_id id)
             {
                 asset *asset = assets->Assets + id.Value;
                 hha_sound *info = &asset->HHA.Sound;
-                loaded_sound *sound = PushStruct(&assets->Arena, loaded_sound);
+                loaded_sound *sound = &slot->Sound;
 
                 sound->SampleCount = info->SampleCount;
                 sound->ChannelCount = info->ChannelCount;
@@ -117,8 +118,7 @@ LoadSound(game_assets *assets, sound_id id)
                 load_asset_work *work = PushStruct(&task->Arena, load_asset_work);
 
                 work->Task = task;
-                work->Slot = assets->Slots + id.Value;
-                work->Slot->Sound = sound;
+                work->Slot = slot;
                 
                 work->Handle = GetFileHandle(assets, asset->FileIndex);
                 work->Offset = asset->HHA.DataOffset;
