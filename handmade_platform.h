@@ -237,6 +237,12 @@ typedef PLATFORM_READ_DATA_FROM_FILE(platform_read_data_from_file);
 #define PLATFORM_FILE_ERROR(name) void name(platform_file_handle *handle, char *message)
 typedef PLATFORM_FILE_ERROR(platform_file_error);
 
+#define PLATFORM_ALLOCATE_MEMORY(name) void* name(memory_index size)
+typedef PLATFORM_ALLOCATE_MEMORY(platform_allocate_memory);
+
+#define PLATFORM_FREE_MEMORY(name) void name(void* memory)
+typedef PLATFORM_FREE_MEMORY(platform_free_memory);
+
     
 #define PlatformNoFileErrors(Handle) ((Handle)->NoErrors)
 
@@ -278,6 +284,9 @@ struct platform_api
     platform_open_next_file *OpenNextFile;
     platform_read_data_from_file *ReadDataFromFile;
     platform_file_error *FileError;
+
+    platform_allocate_memory *AllocateMemory;
+    platform_free_memory *FreeMemory;
 
     debug_platform_free_file_memory *DEBUG_FreeFileMemory;
     debug_platform_read_entire_file *DEBUG_ReadEntireFile;
@@ -330,6 +339,16 @@ SafeTruncateToUInt16(s32 value)
     Assert(value >= 0);
     u16 result = (s16)value;
     return (result);
+}
+
+inline s16
+SafeTruncateToInt16(s16 value)
+{
+    Assert(value <= 32767);
+    Assert(value >= -32768);
+    s16 result = (s16)value;
+    return (result);
+    
 }
 
 

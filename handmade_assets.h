@@ -29,6 +29,11 @@ enum asset_state
     AssetState_Queued,
     AssetState_Loaded,
     AssetState_Locked,
+
+    AssetState_Mask = 0xFF,
+    AssetState_Bitmap = 0x2000,
+    AssetState_Sound = 0x1000,
+    AssetState_TypeMask = 0xF000
 };
 
 struct asset_tag
@@ -66,7 +71,7 @@ struct asset_sound_info
 
 struct asset_slot
 {
-    asset_state State;
+    u32 State;
     union
     {
         loaded_bitmap Bitmap;
@@ -78,6 +83,14 @@ struct asset_group
 {
     u32 FirstTagIndex;
     u32 OnePastLastTagIndex;
+};
+
+struct asset_memory_header
+{
+    asset_memory_header *Next;
+    asset_memory_header *Prev;
+    u32 SlotIndex;
+    u32 Reserved;
 };
 
 struct asset_file
@@ -103,6 +116,11 @@ struct game_assets
     asset_file *Files;
     
     memory_arena Arena;
+
+    u64 TotalMemoryUsed;
+    u64 TargetMemoryUsed;
+    // NOTE: end of the list will be least used
+    asset_memory_header LoadedAssetsSentinel;
     
     asset_slot *Slots;
 
@@ -132,6 +150,20 @@ struct game_assets
     #endif
 };
 
+inline u32
+GetSlotState(asset_slot *slot)
+{
+    u32 result = slot->State & AssetState_Mask; // take the bottom bits;
+    return result;
+}
+
+inline u32
+GetSlotType(asset_slot *slot)
+{
+    u32 result = slot->State & AssetState_TypeMask; // take the top bits;
+    return result;
+}
+
 inline loaded_bitmap*
 GetBitmap(game_assets *assets, bitmap_id id)
 {
@@ -139,7 +171,7 @@ GetBitmap(game_assets *assets, bitmap_id id)
 
     loaded_bitmap *result = 0;
 
-    if (slot->State >= AssetState_Loaded)
+    if (GetSlotState(slot) >= AssetState_Loaded)
     {
         CompletePreviousReadsBeforeFutureReads;
         result = &slot->Bitmap;
@@ -153,7 +185,7 @@ GetSound(game_assets *assets, sound_id id)
     asset_slot *slot = assets->Slots + id.Value;
     loaded_sound *result = 0;
 
-    if (slot->State >= AssetState_Loaded)
+    if (GetSlotState(slot) >= AssetState_Loaded)
     {
         CompletePreviousReadsBeforeFutureReads;
         result = &slot->Sound;
@@ -211,3 +243,4 @@ GetNextSoundInChain(game_assets *assets, sound_id id)
 }
 
 #endif
+

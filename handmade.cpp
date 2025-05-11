@@ -897,7 +897,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         //LoadAssets(&tranState->Assets, tranState, thread, memory->DEBUG_PlatformReadEntireFile);
 
-        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(250), tranState);
+        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Kilobytes(512), tranState);
 
         // TODO: sound plays really bad for some reason. With stutters...
         /*
@@ -1760,10 +1760,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     EndTemporaryMemory(simMemory);
     EndTemporaryMemory(renderMemory);
+
+    EvictAssetsAsNecessary(tranState->Assets);
+    
     CheckArena(&gameState->WorldArena);
     CheckArena(&tranState->TransientArena);
 
-    
     END_TIMED_BLOCK(GameUpdateAndRender);
 }
 

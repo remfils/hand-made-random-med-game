@@ -8,14 +8,16 @@
 - катсцены
 - генерация уровней?
 
-* to be done [1/511]
+* to be done [2/511]
 ** DONE Handmade Hero Day 157 - Introduction to General Purpose Allocation
 - [[https://www.youtube.com/watch?v=MvDUe2evkHg]]
 
 - fixed size allocation
 
-** TODO Handmade Hero Day 158 - Tracking Asset Usage
+** DONE Handmade Hero Day 158 - Tracking Asset Usage
 - [[https://www.youtube.com/watch?v=D5JG3XGPf8Y]]
+
+not really works for some reason
 
 ** TODO Handmade Hero Day 159 - Cleaning Up the Loaded Asset Infrastructure
 - [[https://www.youtube.com/watch?v=ZrAoRHSTzMY]]

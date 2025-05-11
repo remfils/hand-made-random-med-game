@@ -1250,6 +1250,19 @@ Win32MakeQueue(platform_work_queue * queue, uint32 threadCount)
     }
 }
 
+PLATFORM_ALLOCATE_MEMORY(Win32AllocateMemory)
+{
+    void *result = VirtualAlloc(0, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    return result;
+}
+
+PLATFORM_FREE_MEMORY(Win32FreeMemory)
+{
+    if (memory) {
+        VirtualFree(memory, 0, MEM_RELEASE);
+    }
+}
+
 
 int CALLBACK WinMain(
     HINSTANCE instance,
@@ -1368,6 +1381,8 @@ int CALLBACK WinMain(
             gameMemory.PlatformAPI.OpenNextFile = Win32OpenNextFile;
             gameMemory.PlatformAPI.ReadDataFromFile = Win32ReadDataFromFile;
             gameMemory.PlatformAPI.FileError = Win32FileError;
+            gameMemory.PlatformAPI.AllocateMemory = Win32AllocateMemory;
+            gameMemory.PlatformAPI.FreeMemory = Win32FreeMemory;
 
             // platform specific functions
 #if HANDMADE_INTERNAL
