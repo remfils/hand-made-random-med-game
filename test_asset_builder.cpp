@@ -565,6 +565,12 @@ void WriteNonHeroFiles()
     AddBitmapAsset(assets, "../data/ground002.bmp");
     EndAssetType(assets);
 
+    BeginAssetType(assets, AssetType_ParticleStar);
+    AddBitmapAsset(assets, "../data/particle_star__001.bmp");
+    AddBitmapAsset(assets, "../data/particle_star__002.bmp");
+    AddBitmapAsset(assets, "../data/particle_star__003.bmp");
+    EndAssetType(assets);
+
     WriteAssetsFile(assets, "test2.hha");
 }
 

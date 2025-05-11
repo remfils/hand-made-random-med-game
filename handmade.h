@@ -206,6 +206,8 @@ struct particle
     v3 ddP;
     v4 dColor;
     v4 Color;
+    r32 Height;
+    bitmap_id BitmapId;
 };
 
 struct game_state

@@ -180,6 +180,14 @@ AddWall(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
     return lowEntityResult;
 }
 
+internal add_low_entity_result
+AddDebugParticleEmmiter(game_state *gameState, uint32 absX, uint32 absY, uint32 absZ)
+{
+    world_position pos = ChunkPositionFromTilePosition(gameState->World, absX, absY, absZ);
+    add_low_entity_result lowEntityResult = AddLowEntity(gameState, EntityType_ParticleEmmiter, pos);
+    return lowEntityResult;
+}
+
 
 
 internal sim_entity_collision_volume_group *
@@ -864,6 +872,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         
         AddMonster(gameState, newCameraP.ChunkX+4, newCameraP.ChunkY+4, newCameraP.ChunkZ);
 
+        AddDebugParticleEmmiter(gameState, newCameraP.ChunkX+6, newCameraP.ChunkY+4, newCameraP.ChunkZ);
+
         memory->IsInitialized = true;
     }
 
@@ -1320,35 +1330,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             renderGroup->Transform.OffsetP = GetEntityGroundPoint(simEntity);
 
             switch (simEntity->Type) {
-            case EntityType_Wall:
+            case EntityType_ParticleEmmiter:
             {
-                v4 wallColor = {1,1,1,1};
-                // real32 halfDepth = simEntity->Collision->TotalVolume.Dim.z * 0.5f;
-                // if (simEntity->P.z < halfDepth && simEntity->P.z > -0.5f*halfDepth) {
-                //     wallColor.a = 1.0f;
-                // }
-                
-                PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_WallDemo), 1.4f, ToV3(0,0, 0), wallColor);
-            } break;
-            case EntityType_Sword:
-            {
-                PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_SwordDemo), 0.5f, ToV3(0,0,0));
-            } break;
-            case EntityType_Hero:
-            {
-                // TODO|NOTE: is this correct?
-                hero_bitmap_ids heroBitmapIds;// = &tranState->Assets->Hero[simEntity->FacingDirection];
-                heroBitmapIds.Character = BestMatchBitmap(renderGroup->Assets, AssetType_HumanBody, &matchVector, &weightVector);
-
-                PushBitmap(renderGroup, heroBitmapIds.Character, 1.6f, ToV3(0, 0, 0));
-
-                sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
-                PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 1.0f));
-
-                PushHitpoints(renderGroup, simEntity);
-
-                // spawn particles
-
                 for (u32 particleSpawnIndex = 0; particleSpawnIndex < 1; particleSpawnIndex++)
                 {
                     particle *part = gameState->Particles + gameState->NextParticle++;
@@ -1366,6 +1349,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     part->ddP = ToV3(0.0f, -9.4f, 0.0f);
                     part->Color = ToV4(1,1,1,1);
                     part->dColor = ToV4(0, 0, 0, -0.3f);
+                    part->Height = RandomBetween(&gameState->ParticleEntropy, (r32)0.1f, (r32)0.2f);
+                    part->BitmapId = RandomAssetFrom(tranState->Assets, AssetType_ParticleStar, &gameState->ParticleEntropy);
                 }
                 
                 ZeroStruct(gameState->ParticleCells);
@@ -1405,7 +1390,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         v3 offset = cellDim * ToV3((r32)cellX, (r32)cellY, 0.0f) + gridOrigin;
                         r32 value = Clamp01MapToRange(0.0f, cell->Density, 16.0f);
                         
-                        PushPieceRect(renderGroup, offset, ToV2(cellDim, cellDim), ToV4(value, value, value, 1.0f));
+                        //PushPieceRect(renderGroup, offset, ToV2(cellDim, cellDim), ToV4(value, value, value, 1.0f));
                     }
                 }
 
@@ -1459,9 +1444,9 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
                     /*
 
-                    if (part->P.y < 1.0f) {
-                        part->ddP.x = part->ddP.x * 0.9f;
-                    }
+                      if (part->P.y < 1.0f) {
+                      part->ddP.x = part->ddP.x * 0.9f;
+                      }
                     */
 
                     part->P.y = AbsoluteValue(part->P.y);
@@ -1475,8 +1460,35 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     }
 
                     // NOTE: render particle
-                    PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_SwordDemo), 0.3f, part->P, part->Color);
+                    PushBitmap(renderGroup, part->BitmapId, part->Height, part->P, part->Color);
                 }
+            } break;
+            case EntityType_Wall:
+            {
+                v4 wallColor = {1,1,1,1};
+                // real32 halfDepth = simEntity->Collision->TotalVolume.Dim.z * 0.5f;
+                // if (simEntity->P.z < halfDepth && simEntity->P.z > -0.5f*halfDepth) {
+                //     wallColor.a = 1.0f;
+                // }
+                
+                PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_WallDemo), 1.4f, ToV3(0,0, 0), wallColor);
+            } break;
+            case EntityType_Sword:
+            {
+                PushBitmap(renderGroup, GetFirstBitmap(renderGroup->Assets, AssetType_SwordDemo), 0.5f, ToV3(0,0,0));
+            } break;
+            case EntityType_Hero:
+            {
+                // TODO|NOTE: is this correct?
+                hero_bitmap_ids heroBitmapIds;// = &tranState->Assets->Hero[simEntity->FacingDirection];
+                heroBitmapIds.Character = BestMatchBitmap(renderGroup->Assets, AssetType_HumanBody, &matchVector, &weightVector);
+
+                PushBitmap(renderGroup, heroBitmapIds.Character, 1.6f, ToV3(0, 0, 0));
+
+                sim_entity_collision_volume *volume = &simEntity->Collision->TotalVolume;
+                PushPieceRectOutline(renderGroup, volume->Offset, volume->Dim.xy, ToV4(0, 0.3f, 0.3f, 1.0f));
+
+                PushHitpoints(renderGroup, simEntity);
             } break;
             case EntityType_Monster:
             {

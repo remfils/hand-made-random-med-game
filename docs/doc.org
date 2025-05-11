@@ -8,42 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [9/520]
-** DONE Handmade Hero Day 148 - Writing the Asset File Header
-- [[https://www.youtube.com/watch?v=UNXHK8O-B_g]]
-
-** DONE Handmade Hero Day 149 - Writing Assets to the Asset File
-- [[https://www.youtube.com/watch?v=CNTlpoYdKF8]]
-
-продолжить
-https://youtu.be/CNTlpoYdKF8?t=2840
-
-** DONE Handmade Hero Day 150 - Loading Assets from the Asset File
-- [[https://www.youtube.com/watch?v=h2GoVMArDro]]
-
-** DONE Handmade Hero Day 151 - New Platform File API
-- [[https://www.youtube.com/watch?v=NFptGMDCO0k]]
-
-** DONE Handmade Hero Day 152 - New Win32 File API Implementation
-- [[https://www.youtube.com/watch?v=hRYrqGBmfOA]]
-
-После реализации стало очень плохо загружаться. Теги работают плохо,
-изображения грузяться очень странно.
-
-** DONE Handmade Hero Day 153 - Merging Multiple Asset Files
-- [[https://www.youtube.com/watch?v=9sb8mv6q7WE]]
-
-** DONE Handmade Hero Day 154 - Finding Asset Files with Win32
-- [[https://www.youtube.com/watch?v=vrZkMo77BI8]]
-
-FindFirstFileA = dir *.hha
-
-** DONE Handmade Hero Day 155 - Introduction to Particle Systems
-- [[https://www.youtube.com/watch?v=G6OGKP3MaUI]]
-
-** DONE Handmade Hero Day 156 - Lagrangian vs. Eulerian Simulation
-- [[https://www.youtube.com/watch?v=HH_iaJairW8]]
-
+* to be done [0/511]
 ** TODO Handmade Hero Day 157 - Introduction to General Purpose Allocation
 - [[https://www.youtube.com/watch?v=MvDUe2evkHg]]
 
@@ -1625,7 +1590,6 @@ FindFirstFileA = dir *.hha
 ** TODO Prepress Rant - #PrintersDeserveCredit!!
 - [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
 
-
 * done [161/161]
 ** DONE Handmade Hero - Announcement Trailer
 - [[yt:A2dxjOjWHxQ]]
@@ -2651,3 +2615,39 @@ twos complement
 
 На сколько понимаю, сейчас есть возможность сделать функционал, где
 расширение полностью переписывает *ВСЕ* текстуры/аудио для игры
+
+** DONE Handmade Hero Day 148 - Writing the Asset File Header
+- [[https://www.youtube.com/watch?v=UNXHK8O-B_g]]
+
+** DONE Handmade Hero Day 149 - Writing Assets to the Asset File
+- [[https://www.youtube.com/watch?v=CNTlpoYdKF8]]
+
+продолжить
+https://youtu.be/CNTlpoYdKF8?t=2840
+
+** DONE Handmade Hero Day 150 - Loading Assets from the Asset File
+- [[https://www.youtube.com/watch?v=h2GoVMArDro]]
+
+** DONE Handmade Hero Day 151 - New Platform File API
+- [[https://www.youtube.com/watch?v=NFptGMDCO0k]]
+
+** DONE Handmade Hero Day 152 - New Win32 File API Implementation
+- [[https://www.youtube.com/watch?v=hRYrqGBmfOA]]
+
+После реализации стало очень плохо загружаться. Теги работают плохо,
+изображения грузяться очень странно.
+
+** DONE Handmade Hero Day 153 - Merging Multiple Asset Files
+- [[https://www.youtube.com/watch?v=9sb8mv6q7WE]]
+
+** DONE Handmade Hero Day 154 - Finding Asset Files with Win32
+- [[https://www.youtube.com/watch?v=vrZkMo77BI8]]
+
+FindFirstFileA = dir *.hha
+
+** DONE Handmade Hero Day 155 - Introduction to Particle Systems
+- [[https://www.youtube.com/watch?v=G6OGKP3MaUI]]
+
+** DONE Handmade Hero Day 156 - Lagrangian vs. Eulerian Simulation
+- [[https://www.youtube.com/watch?v=HH_iaJairW8]]
+

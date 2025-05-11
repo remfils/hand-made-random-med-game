@@ -32,7 +32,8 @@ enum entity_type
     EntityType_Familiar,
     EntityType_Monster,
     EntityType_Sword,
-    EntityType_Stairwell
+    EntityType_Stairwell,
+    EntityType_ParticleEmmiter
 };
 
 struct sim_entity;

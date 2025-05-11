@@ -24,6 +24,7 @@ enum asset_type_id
     AssetType_FamiliarDemo,
     AssetType_WallDemo,
     AssetType_SwordDemo,
+    AssetType_ParticleStar,
 
     /* arrays */
     AssetType_Grass,
