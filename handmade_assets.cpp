@@ -7,7 +7,7 @@ struct load_asset_work
     u64 Size;
     void *Destination;
 
-    asset_slot *Slot;
+    asset *Asset;
     u32 FinalState;
 };
 
@@ -25,7 +25,7 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(DoLoadAssetWork)
     {
         
     }
-    work->Slot->State = work->FinalState;
+    work->Asset->State = work->FinalState;
 
     EndTaskWithMemory(work->Task);
 }
@@ -64,38 +64,9 @@ struct asset_memory_size
     u32 Section;
 };
 
-inline asset_memory_size
-GetSizeOfAsset(game_assets *assets, u32 type, u32 slotIndex)
+inline void
+InsertAssetHeaderAtFront(game_assets *assets, asset_memory_header *header)
 {
-    asset_memory_size result = {};
-
-    asset *asset = assets->Assets + slotIndex;
-    if (type == AssetState_Sound) {
-        hha_sound *info = &asset->HHA.Sound;
-        
-        result.Section = info->ChannelCount * sizeof(s16);
-        result.Data = info->SampleCount * result.Section;
-    } else {
-        Assert(type == AssetState_Bitmap);
-        hha_bitmap *info = &asset->HHA.Bitmap;
-
-        u32 w = SafeTruncateToUInt16(info->Dim[0]);
-        u32 h = SafeTruncateToUInt16(info->Dim[1]);
-        result.Section = SafeTruncateToUInt16(w * 4);
-        result.Data = h * result.Section;
-    }
-
-    result.Total = result.Data + sizeof(asset_memory_header);
-    return result;
-}
-
-internal void
-AddAssetHeaderToList(game_assets *assets, void *memory, asset_memory_size size, u32 slotIndex)
-{
-    asset_memory_header *header = (asset_memory_header *)((u8 *) memory + size.Data);
-
-    header->SlotIndex = slotIndex;
-
     asset_memory_header *sentinel = &assets->LoadedAssetsSentinel;
 
     header->Next = sentinel->Next;
@@ -103,6 +74,17 @@ AddAssetHeaderToList(game_assets *assets, void *memory, asset_memory_size size, 
 
     header->Next->Prev = header;
     header->Prev->Next = header;
+}
+
+internal void
+AddAssetHeaderToList(game_assets *assets, u32 assetIndex, asset_memory_size size)
+{
+    asset_memory_header *header = assets->Assets[assetIndex].Header;
+
+    header->AssetIndex = assetIndex;
+    header->TotalSize = size.Total;
+
+    InsertAssetHeaderAtFront(assets, header);
 }
 
 internal void
@@ -115,23 +97,30 @@ RemoveAssetHeaderFromList(asset_memory_header *header)
 }
 
 internal void
-LoadBitmap(game_assets *assets, bitmap_id id)
+LoadBitmap(game_assets *assets, bitmap_id id, b32 locked)
 {
     if (id.Value)
     {
-        asset_slot *slot = assets->Slots + id.Value;
-        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&slot->State, AssetState_Unloaded, AssetState_Queued);
+        asset *asset = assets->Assets + id.Value;
+        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&asset->State, AssetState_Unloaded, AssetState_Queued);
         if (currentState == AssetState_Unloaded)
         {
             task_with_memory *task = BeginTaskWithMemory(assets->TranState);
     
             if (task)
             {
-                asset *asset = assets->Assets + id.Value;
                 hha_bitmap *info = &asset->HHA.Bitmap;
-                loaded_bitmap *bitmap = &slot->Bitmap;
 
-                asset_memory_size memorySize = GetSizeOfAsset(assets, AssetState_Bitmap, id.Value);
+                asset_memory_size memorySize = {};
+                u32 w = SafeTruncateToUInt16(info->Dim[0]);
+                u32 h = SafeTruncateToUInt16(info->Dim[1]);
+                memorySize.Section = SafeTruncateToUInt16(w * 4);
+                memorySize.Data = h * memorySize.Section;
+                memorySize.Total = memorySize.Data + sizeof(asset_memory_header);
+                
+                asset->Header = (asset_memory_header *)AcquireAssetMemory(assets, memorySize.Total);
+
+                loaded_bitmap *bitmap = &asset->Header->Bitmap;
 
                 bitmap->AlignPercent = info->AlignPercentage;
                 bitmap->Width = SafeTruncateToUInt16(info->Dim[0]);
@@ -139,26 +128,28 @@ LoadBitmap(game_assets *assets, bitmap_id id)
                 bitmap->WidthOverHeight = (r32)info->Dim[0] / (r32)info->Dim[1];
                 bitmap->Pitch = SafeTruncateToUInt16(memorySize.Section); // NOTE: convention
 
-                // TODO: memorySize should be with size?
-                
-
-                bitmap->Memory = AcquireAssetMemory(assets, memorySize.Total);
-
-                AddAssetHeaderToList(assets, bitmap->Memory, memorySize, id.Value);
+                bitmap->Memory = asset->Header + 1;
 
                 load_asset_work *work = PushStruct(&task->Arena, load_asset_work);
 
                 work->Task = task;
-                work->Slot = slot;
+                work->Asset = asset;
                 
                 work->Handle = GetFileHandle(assets, asset->FileIndex);
                 work->Offset = asset->HHA.DataOffset;
                 work->Size = memorySize.Data;
                 work->Destination = bitmap->Memory;
                 
-                work->FinalState = (AssetState_Bitmap | AssetState_Loaded);
+                work->FinalState = AssetState_Loaded | (locked ? AssetState_Lock : 0);
+
+                if (!locked) {
+                    AddAssetHeaderToList(assets, id.Value, memorySize );
+                }
     
                 PlatformAPI.AddEntry(assets->TranState->LowPriorityQueue, DoLoadAssetWork, work);
+            } else {
+                // NOTE: if task to load not found return to unloaded
+                AtomicCompareExchange((uint32 *)&asset->State, AssetState_Queued, AssetState_Unloaded);
             }
         }
     }
@@ -169,27 +160,33 @@ LoadSound(game_assets *assets, sound_id id)
 {
     if (id.Value)
     {
-        asset_slot *slot = assets->Slots + id.Value;
-        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&slot->State, AssetState_Unloaded, AssetState_Queued);
+        asset *asset = assets->Assets + id.Value;
+        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&asset->State, AssetState_Unloaded, AssetState_Queued);
         if (currentState == AssetState_Unloaded)
         {
             task_with_memory *task = BeginTaskWithMemory(assets->TranState);
     
             if (task)
             {
-                asset *asset = assets->Assets + id.Value;
                 hha_sound *info = &asset->HHA.Sound;
-                loaded_sound *sound = &slot->Sound;
+
+                asset_memory_size memorySize = {};
+                memorySize.Section = info->ChannelCount * sizeof(s16);
+                memorySize.Data = info->SampleCount * memorySize.Section;
+                memorySize.Total = memorySize.Data + sizeof(asset_memory_header);
+                asset->Header = (asset_memory_header *)AcquireAssetMemory(assets, memorySize.Total);
+
+                loaded_sound *sound = &asset->Header->Sound;
 
                 sound->SampleCount = info->SampleCount;
                 sound->ChannelCount = info->ChannelCount;
 
-                asset_memory_size memorySize = GetSizeOfAsset(assets, AssetState_Sound, id.Value);
+                
                 u32 channelSize = memorySize.Section;
                 
-                void *memory = AcquireAssetMemory(assets, memorySize.Total);
+                void *memory = asset->Header+1;
 
-                AddAssetHeaderToList(assets, memory, memorySize, id.Value);
+                AddAssetHeaderToList(assets, id.Value, memorySize);
 
                 s16 *soundAt = (s16 *)memory;
                 for (u32 i=0; i < sound->ChannelCount; i++)
@@ -201,16 +198,19 @@ LoadSound(game_assets *assets, sound_id id)
                 load_asset_work *work = PushStruct(&task->Arena, load_asset_work);
 
                 work->Task = task;
-                work->Slot = slot;
+                work->Asset = asset;
                 
                 work->Handle = GetFileHandle(assets, asset->FileIndex);
                 work->Offset = asset->HHA.DataOffset;
                 work->Size = memorySize.Data;
                 work->Destination = memory;
                 
-                work->FinalState = (AssetState_Sound | AssetState_Loaded);
+                work->FinalState = AssetState_Loaded;
     
                 PlatformAPI.AddEntry(assets->TranState->LowPriorityQueue, DoLoadAssetWork, work);
+            } else {
+                // NOTE: if task to load not found return to unloaded
+                AtomicCompareExchange((uint32 *)&asset->State, AssetState_Queued, AssetState_Unloaded);
             }
         }
     }
@@ -302,7 +302,7 @@ BestMatchSound(game_assets *assets,
 }
 
 inline uint32
-GetFirstSlotId(game_assets* assets, asset_type_id assetType)
+GetFirstAssetId(game_assets* assets, asset_type_id assetType)
 {
     uint32 result = 0;
     
@@ -319,14 +319,14 @@ GetFirstSlotId(game_assets* assets, asset_type_id assetType)
 inline bitmap_id
 GetFirstBitmap(game_assets* assets, asset_type_id assetType)
 {
-    bitmap_id result = {GetFirstSlotId(assets, assetType)};
+    bitmap_id result = {GetFirstAssetId(assets, assetType)};
     return result;
 }
 
 inline sound_id
 GetFirstSound(game_assets* assets, asset_type_id assetType)
 {
-    sound_id result = {GetFirstSlotId(assets, assetType)};
+    sound_id result = {GetFirstAssetId(assets, assetType)};
     return result;
 }
 
@@ -391,7 +391,7 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
             
             if (PlatformNoFileErrors(file->Handle))
             {
-                // NOTE: first slot in every hha is null asset
+                // NOTE: first asset in every hha is null asset
                 // (reserved), so do not count it when loading
                 assets->TagCount += file->Header.TagCount - 1;
                 assets->AssetCount += file->Header.AssetCount - 1;
@@ -407,7 +407,7 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 
     // allocate all metadata space
     assets->Assets = PushArray(arena, assets->AssetCount, asset);
-    assets->Slots = PushArray(arena, assets->AssetCount, asset_slot);
+    assets->Assets = PushArray(arena, assets->AssetCount, asset);
     assets->Tags = PushArray(arena, assets->TagCount, hha_tag);
 
     ZeroStruct(assets->Tags[0]);
@@ -482,31 +482,28 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 }
 
 inline void
-EvictAsset(game_assets *assets, asset_memory_header *header)
+MoveHeaderToFront(game_assets *assets, asset *asset)
 {
-    u32 slotIndex = header->SlotIndex;
-    
-    asset_slot *slot = assets->Slots + slotIndex;
-    Assert(GetSlotState(slot) == AssetState_Loaded);
+    if (!IsAssetLocked(asset)) {
+        asset_memory_header *header = asset->Header;
 
-    asset_memory_size memorySize = GetSizeOfAsset(assets, GetSlotType(slot), slotIndex);
-
-    void *memory = 0;
-
-    if (GetSlotType(slot) == AssetState_Bitmap) {
-        memory = slot->Bitmap.Memory;
-    } else {
-        memory = &slot->Sound.Samples[0];
+        RemoveAssetHeaderFromList(header);
+        InsertAssetHeaderAtFront(assets, header);
     }
-    RemoveAssetHeaderFromList(header);
-
-    ReleaseAssetMemory(assets, memorySize.Total, memory);
 }
 
-inline u32
-GetLeastRecentlyUsedAsset(game_assets *assets)
+inline void
+EvictAsset(game_assets *assets, asset *asset)
 {
-    return 0;
+    u32 assetIndex = asset->Header->AssetIndex;
+    Assert(GetAssetState(asset) == AssetState_Loaded);
+
+    RemoveAssetHeaderFromList(asset->Header);
+
+    ReleaseAssetMemory(assets, asset->Header->TotalSize, asset->Header);
+    
+    asset->State = AssetState_Unloaded;
+    asset->Header = 0;
 }
 
 internal void
@@ -516,7 +513,10 @@ EvictAssetsAsNecessary(game_assets *assets)
     {
         asset_memory_header *header = assets->LoadedAssetsSentinel.Prev;
         if (header != &assets->LoadedAssetsSentinel) {
-            EvictAsset(assets, header);
+            asset *asset = assets->Assets + header->AssetIndex;
+            if (GetAssetState(asset) >= AssetState_Loaded) {
+                EvictAsset(assets, asset);
+            }
         } else {
             InvalidCodePath;
             break;

@@ -6,7 +6,7 @@
 inline uint32
 AtomicCompareExchange(uint32 volatile *value, uint32 expected, uint32 newValue)
 {
-    uint32 result = InterlockedCompareExchange(value, expected, newValue);
+    uint32 result = InterlockedCompareExchange(value, newValue, expected);
     return result;
 }
 #else

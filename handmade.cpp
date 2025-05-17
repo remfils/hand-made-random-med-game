@@ -277,7 +277,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
         loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
         // TODO: (uint32)GetArenaSizeRemaining(&task->Arena) is not safe
         // TODO(vlad): why allocate group is not working here?
-        render_group *renderGroup = AllocateRenderGroup(&task->Arena, tranState->Assets, 0, drawBuffer->Width, drawBuffer->Height);
+        render_group *renderGroup = AllocateRenderGroup(&task->Arena, tranState->Assets, 0, drawBuffer->Width, drawBuffer->Height, true);
 
         real32 width = gameState->World->ChunkDimInMeters.x;
         real32 height = gameState->World->ChunkDimInMeters.y;
@@ -897,7 +897,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         //LoadAssets(&tranState->Assets, tranState, thread, memory->DEBUG_PlatformReadEntireFile);
 
-        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Kilobytes(512), tranState);
+        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(3), tranState);
 
         // TODO: sound plays really bad for some reason. With stutters...
         /*
@@ -1063,7 +1063,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     // TODO: how much push buffer should be
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(4), drawBuffer->Width, drawBuffer->Height);
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(64), drawBuffer->Width, drawBuffer->Height, false);
     //real32 metersToPixels = ;
     real32 focalLength = 0.6f;
     real32 distanceAboveTarget = 15.0f;

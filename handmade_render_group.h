@@ -137,6 +137,8 @@ struct render_group
     uint8 *PushBufferBase;
 
     uint32 MissingResourceCount;
+
+    b32 AssetShouldBeLocked;
 };
 
 

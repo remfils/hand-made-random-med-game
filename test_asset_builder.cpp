@@ -25,7 +25,7 @@ BeginAssetType(game_assets *assets, asset_type_id id)
 }
 
 internal bitmap_id
-AddBitmapAsset(game_assets *assets, char *fileName, v2 alignPercentage={0.5f, 0.5f})
+AddBitmapAsset(game_assets *assets, char *fileName, char *name, v2 alignPercentage={0.5f, 0.5f})
 {
     Assert(assets->DEBUGCurrentAssetType);
 
@@ -36,6 +36,11 @@ AddBitmapAsset(game_assets *assets, char *fileName, v2 alignPercentage={0.5f, 0.
 
     hha_asset *assetDst = assets->AssetData + assetIndex;
     assetDst->FirstTagIndex = assets->TagCount;
+
+    u32 maxDebugNameLen = 20;
+    for (u32 idx=0; idx < maxDebugNameLen && *name; idx++) {
+        assetDst->DebugName[idx] = *name++;
+    }
     assetDst->OnePastLastTagIndex = assetDst->FirstTagIndex;
     assetDst->Bitmap.AlignPercentage = alignPercentage;
 
@@ -45,7 +50,7 @@ AddBitmapAsset(game_assets *assets, char *fileName, v2 alignPercentage={0.5f, 0.
 }
 
 internal sound_id
-AddSoundAsset(game_assets *assets, char *fileName, uint32 firstSampleIndex=0, uint32 sampleCount=0)
+AddSoundAsset(game_assets *assets, char *fileName, char *name, uint32 firstSampleIndex=0, uint32 sampleCount=0)
 {
     Assert(assets->DEBUGCurrentAssetType);
 
@@ -57,6 +62,10 @@ AddSoundAsset(game_assets *assets, char *fileName, uint32 firstSampleIndex=0, ui
     
     hha_asset *assetDst = assets->AssetData + assetIndex;
     assetDst->FirstTagIndex = assets->TagCount;
+    u32 maxDebugNameLen = 20;
+    for (u32 idx=0; idx < maxDebugNameLen && *name; idx++) {
+        assetDst->DebugName[idx] = *name++;
+    }
     assetDst->OnePastLastTagIndex = assetDst->FirstTagIndex;
     assetDst->Sound.Chain = HHASoundChain_None;
     assetDst->Sound.SampleCount = sampleCount;
@@ -513,16 +522,16 @@ WriteHeroFiles()
     InitAssets(assets);
 
     BeginAssetType(assets, AssetType_HumanBody);
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_right.bmp", {0.508474588f, 0.07109005f});
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_right.bmp", "char_w", {0.508474588f, 0.07109005f});
     AddAssetTag(assets, Tag_FacingDirection, 0.0f);
 
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_up.bmp", {0.508474588f, 0.118483409f});
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_up.bmp", "char_n", {0.508474588f, 0.118483409f});
     AddAssetTag(assets, Tag_FacingDirection, 0.5f * Pi32);
 
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_left.bmp", {0.508474588f, 0.07109005f});
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_left.bmp", "char_e", {0.508474588f, 0.07109005f});
     AddAssetTag(assets, Tag_FacingDirection, Pi32);
 
-    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_down.bmp", {0.508474588f, 0.118483409f});
+    AddBitmapAsset(assets, "../data/old_random_med_stuff/stand_down.bmp", "char_s", {0.508474588f, 0.118483409f});
     AddAssetTag(assets, Tag_FacingDirection, -0.5f * Pi32);
     EndAssetType(assets);
 
@@ -536,39 +545,39 @@ void WriteNonHeroFiles()
     InitAssets(assets);
 
     BeginAssetType(assets, AssetType_Loaded);
-    AddBitmapAsset(assets, "../data/new-bg-code.bmp");
+    AddBitmapAsset(assets, "../data/new-bg-code.bmp", "bg");
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_EnemyDemo);
-    AddBitmapAsset(assets, "../data/test2/enemy_demo.bmp", {0.516949177f, 0.0616113730f});
+    AddBitmapAsset(assets, "../data/test2/enemy_demo.bmp", "enemy_demo", {0.516949177f, 0.0616113730f});
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_FamiliarDemo);
-    AddBitmapAsset(assets, "../data/test2/familiar_demo.bmp");
+    AddBitmapAsset(assets, "../data/test2/familiar_demo.bmp", "fam_demo");
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_WallDemo);
-    AddBitmapAsset(assets, "../data/test2/wall_demo.bmp", {0.5f, 0.484375f});
+    AddBitmapAsset(assets, "../data/test2/wall_demo.bmp", "wall", {0.5f, 0.484375f});
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_SwordDemo);
-    AddBitmapAsset(assets, "../data/test2/sword_demo.bmp", {0.479999989f, 0.0317460336f});
+    AddBitmapAsset(assets, "../data/test2/sword_demo.bmp", "sword", {0.479999989f, 0.0317460336f});
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_Grass);
-    AddBitmapAsset(assets, "../data/grass001.bmp");
-    AddBitmapAsset(assets, "../data/grass002.bmp");
+    AddBitmapAsset(assets, "../data/grass001.bmp", "grass_001");
+    AddBitmapAsset(assets, "../data/grass002.bmp", "grass_002");
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_Ground);
-    AddBitmapAsset(assets, "../data/ground001.bmp");
-    AddBitmapAsset(assets, "../data/ground002.bmp");
+    AddBitmapAsset(assets, "../data/ground001.bmp", "ground_001");
+    AddBitmapAsset(assets, "../data/ground002.bmp", "ground_002");
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_ParticleStar);
-    AddBitmapAsset(assets, "../data/particle_star__001.bmp");
-    AddBitmapAsset(assets, "../data/particle_star__002.bmp");
-    AddBitmapAsset(assets, "../data/particle_star__003.bmp");
+    AddBitmapAsset(assets, "../data/particle_star__001.bmp", "star_001");
+    AddBitmapAsset(assets, "../data/particle_star__002.bmp", "star_002");
+    AddBitmapAsset(assets, "../data/particle_star__003.bmp", "star_003");
     EndAssetType(assets);
 
     WriteAssetsFile(assets, "test2.hha");
@@ -585,19 +594,19 @@ void WriteSoundFiles()
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     BeginAssetType(assets, AssetType_FootstepGravel);
-    AddSoundAsset(assets, "../data/sound/footsteps__gravel.wav");
+    AddSoundAsset(assets, "../data/sound/footsteps__gravel.wav", "foot_grav");
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_FootstepMud);
-    AddSoundAsset(assets, "../data/sound/footsteps__mud02.wav");
+    AddSoundAsset(assets, "../data/sound/footsteps__mud02.wav", "foot_mud");
     EndAssetType(assets);
     
     BeginAssetType(assets, AssetType_FootstepStone);
-    AddSoundAsset(assets, "../data/sound/footsteps__stone01.wav");
+    AddSoundAsset(assets, "../data/sound/footsteps__stone01.wav", "foot_stone");
     EndAssetType(assets);
     
     BeginAssetType(assets, AssetType_FootstepWood);
-    AddSoundAsset(assets, "../data/sound/footsteps__wood01.wav");
+    AddSoundAsset(assets, "../data/sound/footsteps__wood01.wav", "foot_wood");
     EndAssetType(assets);
 
 
@@ -615,7 +624,7 @@ void WriteSoundFiles()
             samplesToLoad = musicChunk;
         }
         
-        lastAddedSound = AddSoundAsset(assets, "../data/sound/energetic-piano-uptempo-loop_156bpm_F#_minor.wav", sampleIndex, samplesToLoad);
+        lastAddedSound = AddSoundAsset(assets, "../data/sound/energetic-piano-uptempo-loop_156bpm_F#_minor.wav", "piano", sampleIndex, samplesToLoad);
 
         if (sampleIndex + musicChunk < totalMusicFileSamples) {
             assets->AssetData[lastAddedSound.Value].Sound.Chain = HHASoundChain_Advance;

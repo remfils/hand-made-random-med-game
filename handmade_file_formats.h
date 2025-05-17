@@ -60,6 +60,7 @@ struct hha_asset
     u64 DataOffset;
     u32 FirstTagIndex;
     u32 OnePastLastTagIndex;
+    char DebugName[20];
     union
     {
         hha_bitmap Bitmap;
