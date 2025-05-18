@@ -112,9 +112,9 @@ LoadBitmap(game_assets *assets, bitmap_id id, b32 locked)
                 hha_bitmap *info = &asset->HHA.Bitmap;
 
                 asset_memory_size memorySize = {};
-                u32 w = SafeTruncateToUInt16(info->Dim[0]);
-                u32 h = SafeTruncateToUInt16(info->Dim[1]);
-                memorySize.Section = SafeTruncateToUInt16(w * 4);
+                u32 w = info->Dim[0];
+                u32 h = info->Dim[1];
+                memorySize.Section = w * 4;
                 memorySize.Data = h * memorySize.Section;
                 memorySize.Total = memorySize.Data + sizeof(asset_memory_header);
                 
@@ -123,10 +123,10 @@ LoadBitmap(game_assets *assets, bitmap_id id, b32 locked)
                 loaded_bitmap *bitmap = &asset->Header->Bitmap;
 
                 bitmap->AlignPercent = info->AlignPercentage;
-                bitmap->Width = SafeTruncateToUInt16(info->Dim[0]);
-                bitmap->Height = SafeTruncateToUInt16(info->Dim[1]);
+                bitmap->Width = info->Dim[0];
+                bitmap->Height = info->Dim[1];
                 bitmap->WidthOverHeight = (r32)info->Dim[0] / (r32)info->Dim[1];
-                bitmap->Pitch = SafeTruncateToUInt16(memorySize.Section); // NOTE: convention
+                bitmap->Pitch = memorySize.Section; // NOTE: convention
 
                 bitmap->Memory = asset->Header + 1;
 

@@ -9,9 +9,9 @@ struct loaded_bitmap
     v2 AlignPercent;
     r32 WidthOverHeight;
     
-    u16 Width;
-    u16 Height;
-    u16 Pitch;
+    s32 Width;
+    s32 Height;
+    s32 Pitch;
 };
 
 struct loaded_sound

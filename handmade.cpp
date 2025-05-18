@@ -386,10 +386,10 @@ MakeEmptyBitmap(memory_arena *arena, int32 width, int32 height, int32 alignX, in
 {
     loaded_bitmap result;
 
-    result.Width = SafeTruncateToUInt16(width);
-    result.Height = SafeTruncateToUInt16(height);
+    result.Width = width;
+    result.Height = height;
     result.WidthOverHeight = SafeRatio_1((real32)result.Width, (real32)result.Height);
-    result.Pitch = SafeTruncateToUInt16(width * BITMAP_BYTES_PER_PIXEL);
+    result.Pitch = width * BITMAP_BYTES_PER_PIXEL;
 
     result.AlignPercent = ToV2(
                              (real32)alignX / (real32)result.Width,

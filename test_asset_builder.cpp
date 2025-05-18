@@ -143,8 +143,8 @@ LoadBMP(char *filename)
         
         bitmap_header *header = (bitmap_header *) content;
         
-        result.Width = SafeTruncateToUInt16(header->Width);
-        result.Height = SafeTruncateToUInt16(header->Height);
+        result.Width = header->Width;
+        result.Height = header->Height;
 
         uint8 *pixels = (u8 *)((u8 *)content + header->BitmapOffset);
         result.Memory = pixels;

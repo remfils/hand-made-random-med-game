@@ -26,9 +26,9 @@ struct bitmap_header
 
 struct loaded_bitmap
 {
-    s16 Width;
-    s16 Height;
-    s16 Pitch;
+    s32 Width;
+    s32 Height;
+    s32 Pitch;
     void *Memory;
     void *Free;
 };
