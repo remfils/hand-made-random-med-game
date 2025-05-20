@@ -28,7 +28,7 @@ enum asset_state
     AssetState_Unloaded,
     AssetState_Queued,
     AssetState_Loaded,
- 
+    
     AssetState_Mask = 0xFF,
     AssetState_TypeMask = 0xF000,
 
@@ -108,15 +108,28 @@ struct asset
     asset_memory_header *Header;
 };
 
+enum asset_memory_block_flags
+{
+    AssetMemory_Used = 0x1,
+};
+
+struct asset_memory_block
+{
+    asset_memory_block *Prev;
+    asset_memory_block *Next;
+    u64 Flags;
+    u64 Size;
+};
+
 struct game_assets
 {
     struct transient_state *TranState;
 
+    asset_memory_block MemorySentinel;
+
     u32 FileCount;
     asset_file *Files;
     
-    memory_arena Arena;
-
     u64 TotalMemoryUsed;
     u64 TargetMemoryUsed;
     // NOTE: end of the list will be least used

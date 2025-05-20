@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [3/511]
+* to be done [4/511]
 ** DONE Handmade Hero Day 157 - Introduction to General Purpose Allocation
 - [[https://www.youtube.com/watch?v=MvDUe2evkHg]]
 
@@ -22,7 +22,7 @@ not really works for some reason
 ** DONE Handmade Hero Day 159 - Cleaning Up the Loaded Asset Infrastructure
 - [[https://www.youtube.com/watch?v=ZrAoRHSTzMY]]
 
-** TODO Handmade Hero Day 160 - Basic General Purpose Allocation
+** DONE Handmade Hero Day 160 - Basic General Purpose Allocation
 - [[https://www.youtube.com/watch?v=MyGsWY6dezE]]
 
 ** TODO Handmade Hero Day 161 - Finishing the General Purpose Allocator

@@ -897,7 +897,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         //LoadAssets(&tranState->Assets, tranState, thread, memory->DEBUG_PlatformReadEntireFile);
 
-        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(3), tranState);
+        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Kilobytes(256), tranState);
 
         // TODO: sound plays really bad for some reason. With stutters...
         /*
@@ -1063,7 +1063,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     // TODO: how much push buffer should be
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(64), drawBuffer->Width, drawBuffer->Height, false);
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(5), drawBuffer->Width, drawBuffer->Height, false);
     //real32 metersToPixels = ;
     real32 focalLength = 0.6f;
     real32 distanceAboveTarget = 15.0f;
@@ -1761,7 +1761,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     EndTemporaryMemory(simMemory);
     EndTemporaryMemory(renderMemory);
 
-    EvictAssetsAsNecessary(tranState->Assets);
+    // EvictAssetsAsNecessary(tranState->Assets);
     
     CheckArena(&gameState->WorldArena);
     CheckArena(&tranState->TransientArena);
