@@ -215,20 +215,29 @@ struct game_input
 struct platform_file_handle
 {
     b32 NoErrors;
+    void *Platform;
 };
 
 struct platform_file_group
 {
     u32 FileCount;
+    void *Platform;
 };
 
-#define PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(name) platform_file_group *name(char *wildcard)
+enum platform_file_type_enum
+{
+    PlatformFileType_Asset,
+    PlatformFileType_Save,
+    PlatformFileType_Count,
+};
+
+#define PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(name) platform_file_group name(platform_file_type_enum FileType)
 typedef PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(platform_get_all_files_of_type_begin);
 
 #define PLATFORM_GET_ALL_FILES_OF_TYPE_END(name) void name(platform_file_group *group)
 typedef PLATFORM_GET_ALL_FILES_OF_TYPE_END(platform_get_all_files_of_type_end);
 
-#define PLATFORM_OPEN_NEXT_FILE(name) platform_file_handle *name(platform_file_group *group)
+#define PLATFORM_OPEN_NEXT_FILE(name) platform_file_handle name(platform_file_group *group)
 typedef PLATFORM_OPEN_NEXT_FILE(platform_open_next_file);
 
 #define PLATFORM_READ_DATA_FROM_FILE(name) void name(platform_file_handle *handle, u64 offset, u64 size, void *dest)

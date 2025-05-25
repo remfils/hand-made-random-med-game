@@ -1,3 +1,10 @@
+#if 1
+#include "handmade_assets__general_purpose.cpp"
+#else
+// NOTE: memory sentinel logic has to be removed before enabling
+#include "handmade_assets__simple_memory.cpp"
+#endif
+
 struct load_asset_work
 {
     task_with_memory *Task;
@@ -34,163 +41,7 @@ inline platform_file_handle *
 GetFileHandle(game_assets *assets, u32 fileIndex)
 {
     Assert(fileIndex < assets->FileCount);
-    platform_file_handle *result = assets->Files[fileIndex].Handle;
-    return result;
-}
-
-internal void
-RemoveAssetHeaderFromList(asset_memory_header *header)
-{
-    header->Prev->Next = header->Next;
-    header->Next->Prev = header->Prev;
-
-    header->Prev = header->Next = 0;
-}
-
-internal asset_memory_block*
-InsertBlock(asset_memory_block *prev,  u32 size, void *mem)
-{
-    Assert(size > sizeof(asset_memory_block));
-    asset_memory_block *block = (asset_memory_block *)mem;
-    block->Flags = 0;
-    block->Size = size - sizeof(asset_memory_block);
-    block->Prev = prev;
-    block->Next = prev->Next;
-    block->Prev->Next = block;
-    block->Next->Prev = block;
-
-    return block;
-}
-
-inline void
-ReleaseAssetMemory(game_assets *assets, memory_index size, void *memory)
-{
-    if (memory) {
-#if 0
-        PlatformAPI.FreeMemory(memory);
-#else
-        asset_memory_block *block = (asset_memory_block *)memory -1;
-        block->Flags &= ~AssetMemory_Used;
-
-        // TODO: merge prev and next blocks
-#endif
-
-        assets->TotalMemoryUsed -= size;
-    }
-}
-
-inline void
-EvictAsset(game_assets *assets, asset *asset)
-{
-    u32 assetIndex = asset->Header->AssetIndex;
-    Assert(GetAssetState(asset) == AssetState_Loaded);
-
-    RemoveAssetHeaderFromList(asset->Header);
-
-    ReleaseAssetMemory(assets, asset->Header->TotalSize, asset->Header);
-    
-    asset->State = AssetState_Unloaded;
-    asset->Header = 0;
-}
-
-internal void
-EvictAssetsAsNecessary(game_assets *assets)
-{
-    while (assets->TotalMemoryUsed > assets->TargetMemoryUsed)
-    {
-        asset_memory_header *header = assets->LoadedAssetsSentinel.Prev;
-        if (header != &assets->LoadedAssetsSentinel) {
-            asset *asset = assets->Assets + header->AssetIndex;
-            if (GetAssetState(asset) >= AssetState_Loaded) {
-                EvictAsset(assets, asset);
-            }
-        } else {
-            InvalidCodePath;
-            break;
-        }
-    }
-    
-}
-
-internal asset_memory_block *
-FindBlockForSize(game_assets *assets, memory_index size)
-{
-    // TODO: best match block
-    asset_memory_block *result = 0;
-
-    for (
-         asset_memory_block * block = assets->MemorySentinel.Next;
-         block != &assets->MemorySentinel;
-         block = block->Next
-         )
-    {
-        if (block->Size >= size) {
-            result = block;
-        }
-    }
-
-    return result;
-}
-
-internal void*
-AcquireAssetMemory(game_assets *assets, memory_index size)
-{
-
-    void *result = 0;
-    
-#if 0
-    EvictAssetsAsNecessary(assets);
-
-    result = PlatformAPI.AllocateMemory(size);
-#else
-
-    for (;;)
-    {
-        asset_memory_block *block = FindBlockForSize(assets, size);
-
-        if (block)
-        {
-            Assert(size <= block->Size);
-
-            block->Flags |= AssetMemory_Used;
-            result = (u8 *)(block + 1);
-
-            memory_index remainingSize = block->Size - size;
-
-            memory_index blockSplitThreshold = 4096;
-
-            if (remainingSize >= blockSplitThreshold)
-            {
-                block->Size -= remainingSize;
-                InsertBlock(block, remainingSize, (u8 *)result + size);
-            }
-
-            // TODO: split block in half
-            break;
-        } else {
-            for (
-                 asset_memory_header *header = assets->LoadedAssetsSentinel.Prev;
-                 header != &assets->LoadedAssetsSentinel;
-                 header = header->Prev
-                 )
-            {
-                asset *asset = assets->Assets + header->AssetIndex;
-                if (GetAssetState(asset) >= AssetState_Loaded) {
-                    EvictAsset(assets, asset);
-                    // TODO: make it return block
-                    // block = EvictAsset(assets, asset);
-                    break;
-                }
-            }
-        }
-    }
-
-#endif
-    if (result) {
-        assets->TotalMemoryUsed += size;
-    }
-    
-
+    platform_file_handle *result = &assets->Files[fileIndex].Handle;
     return result;
 }
 
@@ -470,9 +321,6 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 
     InsertBlock(&assets->MemorySentinel, assetSize, PushSize(arena, assetSize));
     
-    assets->TotalMemoryUsed = 0;
-    assets->TargetMemoryUsed = assetSize; // TODO:
-
     assets->LoadedAssetsSentinel.Next = &assets->LoadedAssetsSentinel;
     assets->LoadedAssetsSentinel.Prev = &assets->LoadedAssetsSentinel;
 
@@ -498,33 +346,33 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 
 
     {
-        platform_file_group *fileGroup = PlatformAPI.GetAllFilesOfTypeBegin("*.hha");
-        assets->FileCount = fileGroup->FileCount;
+        platform_file_group fileGroup = PlatformAPI.GetAllFilesOfTypeBegin(PlatformFileType_Asset);
+        assets->FileCount = fileGroup.FileCount;
         assets->Files = PushArray(arena, assets->FileCount, asset_file);
         for (u32 i=0; i < assets->FileCount; i++)
         {
             asset_file *file = assets->Files + i;
-            file->Handle = PlatformAPI.OpenNextFile(fileGroup);
+            file->Handle = PlatformAPI.OpenNextFile(&fileGroup);
             file->TagBase = assets->TagCount;
             
             ZeroStruct(file->Header);
-            PlatformAPI.ReadDataFromFile(file->Handle, 0, sizeof(file->Header), &file->Header);
+            PlatformAPI.ReadDataFromFile(&file->Handle, 0, sizeof(file->Header), &file->Header);
             u32 assetTypeArraySize = file->Header.AssetTypeCount * sizeof(hha_asset_type);
             file->AssetTypes = (hha_asset_type *)PushSize(arena, assetTypeArraySize);
-            PlatformAPI.ReadDataFromFile(file->Handle, file->Header.AssetTypeOffset, assetTypeArraySize, file->AssetTypes);
+            PlatformAPI.ReadDataFromFile(&file->Handle, file->Header.AssetTypeOffset, assetTypeArraySize, file->AssetTypes);
 
             if (file->Header.MagicValue != HHA_MAGIC_VALUE)
             {
-                PlatformAPI.FileError(file->Handle, "HHA file magic version not found");
+                PlatformAPI.FileError(&file->Handle, "HHA file magic version not found");
             }
 
             if (file->Header.Version != HHA_VERSION)
             {
-                PlatformAPI.FileError(file->Handle, "HHA bad version");
+                PlatformAPI.FileError(&file->Handle, "HHA bad version");
             }
 
             
-            if (PlatformNoFileErrors(file->Handle))
+            if (PlatformNoFileErrors(&file->Handle))
             {
                 // NOTE: first asset in every hha is null asset
                 // (reserved), so do not count it when loading
@@ -537,7 +385,7 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
             }
         }
 
-        PlatformAPI.GetAllFilesOfTypeEnd(fileGroup);
+        PlatformAPI.GetAllFilesOfTypeEnd(&fileGroup);
     }
 
     // allocate all metadata space
@@ -553,9 +401,9 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
     for (u32 i=0; i < assets->FileCount; i++)
     {
         asset_file *file = assets->Files + i;
-        if (PlatformNoFileErrors(file->Handle)) {
+        if (PlatformNoFileErrors(&file->Handle)) {
             u32 tagArraySize = (file->Header.TagCount - 1) * sizeof(hha_tag);
-            PlatformAPI.ReadDataFromFile(file->Handle, file->Header.TagOffset + sizeof(hha_tag), tagArraySize, assets->Tags + file->TagBase);
+            PlatformAPI.ReadDataFromFile(&file->Handle, file->Header.TagOffset + sizeof(hha_tag), tagArraySize, assets->Tags + file->TagBase);
         }
     }
 
@@ -582,7 +430,7 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 
                     temporary_memory temp = BeginTemporaryMemory(&tranState->TransientArena);
                     hha_asset *hhaAssetArray = PushArray(&tranState->TransientArena, assetCountForType, hha_asset);
-                    PlatformAPI.ReadDataFromFile(file->Handle, firstAssetToReadFrom, assetCountForType * sizeof(hha_asset), hhaAssetArray);
+                    PlatformAPI.ReadDataFromFile(&file->Handle, firstAssetToReadFrom, assetCountForType * sizeof(hha_asset), hhaAssetArray);
                     
                     for (u32 assetIndex = 0; assetIndex < assetCountForType; assetIndex++)
                     {

@@ -78,7 +78,7 @@ struct asset_file
 {
     // TODO: remove assetTypeArray to transient (thread stacks...)
     hha_header Header;
-    platform_file_handle *Handle;
+    platform_file_handle Handle;
     hha_asset_type *AssetTypes;
     u32 TagBase;
 };
@@ -130,8 +130,6 @@ struct game_assets
     u32 FileCount;
     asset_file *Files;
     
-    u64 TotalMemoryUsed;
-    u64 TargetMemoryUsed;
     // NOTE: end of the list will be least used
     asset_memory_header LoadedAssetsSentinel;
     

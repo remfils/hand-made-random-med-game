@@ -897,7 +897,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
         //LoadAssets(&tranState->Assets, tranState, thread, memory->DEBUG_PlatformReadEntireFile);
 
-        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Kilobytes(256), tranState);
+        // TODO: asset release doesnt work at all, causes crashes
+        tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(256), tranState);
 
         // TODO: sound plays really bad for some reason. With stutters...
         /*

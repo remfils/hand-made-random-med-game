@@ -1092,44 +1092,59 @@ Win32CompleteAllWork(platform_work_queue *queue)
 
 struct win32_platform_file_handle
 {
-    platform_file_handle H;
     HANDLE Win32Handle;
 };
 
 struct win32_platform_file_group
 {
-    platform_file_group H;
     HANDLE FoundHandle;
-    WIN32_FIND_DATAA Data;
+    WIN32_FIND_DATAW Data;
 };
 
 internal PLATFORM_GET_ALL_FILES_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin)
 {
+    platform_file_group fileGroup = {};
+
+    wchar_t *WildCard = L"*.hello";
+    switch (FileType)
+    {
+    case PlatformFileType_Asset:
+    {
+        WildCard = L"*.hha";
+    } break;
+    case PlatformFileType_Save:
+    {
+        WildCard = L"*.hhs";
+    } break;
+    };
+    
     win32_platform_file_group *win32FileGroup = (win32_platform_file_group *)
         VirtualAlloc(0, sizeof(win32_platform_file_group), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
-    win32FileGroup->H.FileCount = 0;
+    fileGroup.Platform = win32FileGroup;
 
-    WIN32_FIND_DATAA foundData;
+    fileGroup.FileCount = 0;
 
-    HANDLE searchHandle = FindFirstFileA(wildcard, &foundData);
+    WIN32_FIND_DATAW foundData;
+
+    HANDLE searchHandle = FindFirstFileW(WildCard, &foundData);
 
     if (searchHandle != INVALID_HANDLE_VALUE) {
         do {
-            ++win32FileGroup->H.FileCount;
-        } while (FindNextFileA(searchHandle, &foundData));
+            ++fileGroup.FileCount;
+        } while (FindNextFileW(searchHandle, &foundData));
 
         FindClose(searchHandle);
     }
 
-    win32FileGroup->FoundHandle = FindFirstFileA(wildcard, &win32FileGroup->Data);
+    win32FileGroup->FoundHandle = FindFirstFileW(WildCard, &win32FileGroup->Data);
     
-    return (platform_file_group *)win32FileGroup;
+    return fileGroup;
 }
 
 internal PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd)
 {
-    win32_platform_file_group *win32FileGroup = (win32_platform_file_group *)group;
+    win32_platform_file_group *win32FileGroup = (win32_platform_file_group *)group->Platform;
 
     if (win32FileGroup) {
         if (win32FileGroup->FoundHandle != INVALID_HANDLE_VALUE) {
@@ -1142,8 +1157,8 @@ internal PLATFORM_GET_ALL_FILES_OF_TYPE_END(Win32GetAllFilesOfTypeEnd)
 
 internal PLATFORM_FILE_ERROR(Win32FileError)
 {
-    win32_platform_file_handle *w32Handle = (win32_platform_file_handle *)handle;
-    w32Handle->H.NoErrors = false;
+    win32_platform_file_handle *w32Handle = (win32_platform_file_handle *)handle->Platform;
+    handle->NoErrors = false;
 
     #if HANDMADE_INTERNAL
     OutputDebugStringA("win32 file error:");
@@ -1154,20 +1169,21 @@ internal PLATFORM_FILE_ERROR(Win32FileError)
 internal PLATFORM_OPEN_NEXT_FILE(Win32OpenNextFile)
 {
     // TODO: better memory menagment. HeadAlloc => special win32 mem areana
-    win32_platform_file_handle *result = 0;
+    platform_file_handle result = {};
 
-    win32_platform_file_group *win32FileGroup = (win32_platform_file_group *)group;
+    win32_platform_file_group *win32FileGroup = (win32_platform_file_group *)group->Platform;
 
     if (win32FileGroup) {
         if (win32FileGroup->FoundHandle != INVALID_HANDLE_VALUE) {
-            result = (win32_platform_file_handle *)VirtualAlloc(0, sizeof(win32_platform_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            win32_platform_file_handle *win32Handle = (win32_platform_file_handle *)VirtualAlloc(0, sizeof(win32_platform_file_handle), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+            result.Platform = win32Handle;
 
-            if (result) {
-                result->Win32Handle = CreateFileA(win32FileGroup->Data.cFileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
-                result->H.NoErrors = result->Win32Handle != INVALID_HANDLE_VALUE;
+            if (win32Handle) {
+                win32Handle->Win32Handle = CreateFileW(win32FileGroup->Data.cFileName, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+                result.NoErrors = win32Handle->Win32Handle != INVALID_HANDLE_VALUE;
             }
 
-            if (FindNextFileA(win32FileGroup->FoundHandle, &win32FileGroup->Data)) {
+            if (FindNextFileW(win32FileGroup->FoundHandle, &win32FileGroup->Data)) {
                 // TODO: do nothing?
             } else {
                 FindClose(win32FileGroup->FoundHandle);
@@ -1176,14 +1192,14 @@ internal PLATFORM_OPEN_NEXT_FILE(Win32OpenNextFile)
         }
     }
     
-    return (platform_file_handle *)result;
+    return result;
 }
 
 // NOTE|TODO: Win32CloseFile
 
 internal PLATFORM_READ_DATA_FROM_FILE(Win32ReadDataFromFile)
 {
-    win32_platform_file_handle *w32Handle = (win32_platform_file_handle *)handle;
+    win32_platform_file_handle *w32Handle = (win32_platform_file_handle *)handle->Platform;
 
     if (PlatformNoFileErrors(handle))
     {
@@ -1200,7 +1216,7 @@ internal PLATFORM_READ_DATA_FROM_FILE(Win32ReadDataFromFile)
         }
         else
         {
-            Win32FileError(&w32Handle->H, "Failed reading file");
+            Win32FileError(handle, "Failed reading file");
         }
     }
 }

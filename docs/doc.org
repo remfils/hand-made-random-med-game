@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [4/511]
+* to be done [5/511]
 ** DONE Handmade Hero Day 157 - Introduction to General Purpose Allocation
 - [[https://www.youtube.com/watch?v=MvDUe2evkHg]]
 
@@ -25,8 +25,12 @@ not really works for some reason
 ** DONE Handmade Hero Day 160 - Basic General Purpose Allocation
 - [[https://www.youtube.com/watch?v=MyGsWY6dezE]]
 
-** TODO Handmade Hero Day 161 - Finishing the General Purpose Allocator
+** DONE Handmade Hero Day 161 - Finishing the General Purpose Allocator
 - [[https://www.youtube.com/watch?v=1LyHQVYlClw]]
+
+Game code doesnt use ANY file names. NO PATH SEPARATORS in game code, only in platform layer
+
+Files are accessed by index (or get next file).
 
 ** TODO Handmade Hero Day 162 - Introduction to Fonts
 - [[https://www.youtube.com/watch?v=ZK7PezR1KgU]]
