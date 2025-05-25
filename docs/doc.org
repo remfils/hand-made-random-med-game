@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [5/511]
+* to be done [6/511]
 ** DONE Handmade Hero Day 157 - Introduction to General Purpose Allocation
 - [[https://www.youtube.com/watch?v=MvDUe2evkHg]]
 
@@ -32,8 +32,46 @@ Game code doesnt use ANY file names. NO PATH SEPARATORS in game code, only in pl
 
 Files are accessed by index (or get next file).
 
-** TODO Handmade Hero Day 162 - Introduction to Fonts
+** DONE Handmade Hero Day 162 - Introduction to Fonts
 - [[https://www.youtube.com/watch?v=ZK7PezR1KgU]]
+
+baseline
+
+kerning - usually difference between normal spacing and current
+
+gj ij - can be placed differently
+
+kerning table
+
+| letter A | letter B | Kerning |
+|----------+----------+---------|
+| g        | j        |      .5 |
+| i        | j        |      .1 |
+
+ligature - letter combinations
+
+hinting - how fonts should be scaled. How they should be snaped to pixel grid
+
+implicit - f(x, y)
+
+explicit - f(i) => x, y
+
+*how to render fonts*
+
+1. Tesseleted fonts
+
+2. Implicit rasterisation
+
+3. Prerasterized fonts
+
+Build bitmaps that capture fonts at certain resolution
+
+*for third option*
+
+- render glyphs into packed bitmap
+- codepoints
+- positioning information (for baseline)
+- kerning table
 
 ** TODO Handmade Hero Day 163 - Asset Processing with STB TrueType
 - [[https://www.youtube.com/watch?v=lOLRQ01QY48]]
