@@ -1,6 +1,60 @@
 #if !defined(HANDMADE_FILE_FORMATS_H)
 #define HANDMADE_FILE_FORMATS_H
 
+enum asset_tag_id
+{
+    Tag_Smoothness,
+    Tag_Flatness,
+    /* NOTE: angle in radians off of due right */
+    Tag_FacingDirection,
+    Tag_UnicodePoint,
+
+    Tag_Count
+};
+
+enum asset_type_id
+{
+
+    /****************************************************************************************************
+     * BITMAPS
+     ****************************************************************************************************/
+    
+    AssetType_None,
+    AssetType_Loaded,
+    AssetType_EnemyDemo,
+    AssetType_FamiliarDemo,
+    AssetType_WallDemo,
+    AssetType_SwordDemo,
+    AssetType_ParticleStar,
+
+    /* arrays */
+    AssetType_Grass,
+    AssetType_Ground,
+
+    /* character */
+
+    AssetType_HumanBody,
+    AssetType_HumanShadow,
+    
+    AssetType_Font,
+
+    /****************************************************************************************************
+     * SOUNDS
+     ****************************************************************************************************/
+    AssetType_FootstepGravel,
+    AssetType_FootstepMud,
+    AssetType_FootstepStone,
+    AssetType_FootstepWood,
+    AssetType_PianoMusic,
+
+    /****************************************************************************************************
+     * Other
+     ****************************************************************************************************/
+    
+    AssetType_Unknown,
+    AssetType_Count
+};
+
 #pragma pack(push, 1)
 
 struct bitmap_id

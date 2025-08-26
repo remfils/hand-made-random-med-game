@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [6/511]
+* to be done [7/511]
 ** DONE Handmade Hero Day 157 - Introduction to General Purpose Allocation
 - [[https://www.youtube.com/watch?v=MvDUe2evkHg]]
 
@@ -73,7 +73,7 @@ Build bitmaps that capture fonts at certain resolution
 - positioning information (for baseline)
 - kerning table
 
-** TODO Handmade Hero Day 163 - Asset Processing with STB TrueType
+** DONE Handmade Hero Day 163 - Asset Processing with STB TrueType
 - [[https://www.youtube.com/watch?v=lOLRQ01QY48]]
 
 ** TODO Handmade Hero Day 164 - Asset Processing with Windows Fonts

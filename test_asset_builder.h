@@ -64,14 +64,18 @@ enum asset_file_type
 {
     AssetFileType_None,
     AssetFileType_Sound,
-    AssetFileType_Bitmap
+    AssetFileType_Bitmap,
+    AssetFileType_Font,
 };
 
 struct source_asset
 {
     asset_file_type AssetFileType;
     char *FileName;
-    u32 FirstSampleIndex;
+    union {
+        u32 FirstSampleIndex;
+        u32 CodePoint;
+    };
 };
 
 struct asset_group

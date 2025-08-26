@@ -9,7 +9,6 @@
 
 
 
-
 // TODO: remove these
 global_variable real32 tileSideInMeters = 1.3f;
 global_variable real32 tileDepthInMeters = 3.0f;
@@ -603,6 +602,49 @@ MakeSphereDiffuseMap(loaded_bitmap *bitmap)
     }
 }
 
+
+#if 0
+#define STB_TRUETYPE_IMPLEMENTATION 1
+#include "stb_truetype.h"
+
+internal loaded_bitmap
+MakeNothingsTest(memory_arena *arena)
+{
+    stbtt_fontinfo font;
+    debug_read_file_result fileResult = PlatformAPI.DEBUG_ReadEntireFile("c:/Windows/Fonts/arial.ttf");
+    stbtt_InitFont(&font, (u8 *)fileResult.Content, stbtt_GetFontOffsetForIndex((u8 *)fileResult.Content, 0));
+
+    int width=0,height=0;
+
+    float fontSize = 3*512.0f;
+    u8 *bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, fontSize), 'N', &width, &height, 0,0);
+
+    loaded_bitmap result = MakeEmptyBitmap(arena, width, height, false);
+
+    u8 *source = bitmap;
+    u8 *destRow = (u8 *)result.Memory + (height - 1) * result.Pitch;
+    for (s32 y=0; y < height; y++)
+    {
+        u32 *dest = (u32 *)destRow;
+        for (s32 x=0; x < width; x++)
+        {
+            u8 alpha = *source++;
+            *dest++ = (
+                  (alpha << 24)
+                | (alpha << 16)
+                | (alpha << 8)
+                | (alpha << 0));
+        }
+        destRow -= result.Pitch;
+    }
+
+    stbtt_FreeBitmap(bitmap, 0);
+
+    return result;
+}
+#endif
+
+
 #if HANDMADE_SLOW
 game_memory *DebugGlobalMemory;
 #endif
@@ -1189,7 +1231,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         if (simEntity->Updatable)
         {
             asset_vector matchVector = {};
-            matchVector.E[Tag_FacingDirection] = (real32)simEntity->FacingDirection;
+            matchVector.E[Tag_FacingDirection] = (r32)simEntity->FacingDirection;
             asset_vector weightVector = {};
             weightVector.E[Tag_FacingDirection] = 1.0f;
 
@@ -1205,10 +1247,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
             v3 cameraRelativeGroundP = GetEntityGroundPoint(simEntity) - cameraPosition;
 
-            real32 fadeTopEndZ = 0.9f * gameState->TypicalFloorHeight;
-            real32 fadeTopStartZ = 0.2f * gameState->TypicalFloorHeight;
-            real32 fadeBottomStartZ = -1.2f * gameState->TypicalFloorHeight;
-            real32 fadeBottomEndZ = - 2.0f *gameState->TypicalFloorHeight;
+            r32 fadeTopEndZ = 0.9f * gameState->TypicalFloorHeight;
+            r32 fadeTopStartZ = 0.2f * gameState->TypicalFloorHeight;
+            r32 fadeBottomStartZ = -1.2f * gameState->TypicalFloorHeight;
+            r32 fadeBottomEndZ = - 2.0f *gameState->TypicalFloorHeight;
 
             renderGroup->GlobalAlpha = 1.0f;
             if (cameraRelativeGroundP.z > fadeTopStartZ)
@@ -1273,7 +1315,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             case EntityType_Familiar:
             {
                 sim_entity *closestHero = 0;
-                real32 closestHeroRadSq = Square(90.0f);
+                r32 closestHeroRadSq = Square(90.0f);
 
                 // TODO(casey): make spacial queries
                 for (uint32 entityCount = 0;
@@ -1283,7 +1325,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     sim_entity *testEntity = simRegion->Entities + entityCount;
                     if (testEntity->Type == EntityType_Hero)
                     {
-                        real32 testD = LengthSq(testEntity->P - simEntity->P);
+                        r32 testD = LengthSq(testEntity->P - simEntity->P);
                         if (testD < closestHeroRadSq)
                         {
                             closestHero = testEntity;
@@ -1294,8 +1336,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
                 if (closestHero && closestHeroRadSq > 4.0f)
                 {
-                    real32 acceleration = 0.5f;
-                    real32 oneOverLength = acceleration / SquareRoot(closestHeroRadSq);
+                    r32 acceleration = 0.5f;
+                    r32 oneOverLength = acceleration / SquareRoot(closestHeroRadSq);
         
                     ddp = oneOverLength * (closestHero->P - simEntity->P);
                 }
@@ -1351,7 +1393,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     part->Color = ToV4(1,1,1,1);
                     part->dColor = ToV4(0, 0, 0, -0.3f);
                     part->Height = RandomBetween(&gameState->ParticleEntropy, (r32)0.1f, (r32)0.2f);
-                    part->BitmapId = RandomAssetFrom(tranState->Assets, AssetType_ParticleStar, &gameState->ParticleEntropy);
+
+                    char nothings[] = "NOTHINGS";
+                    char letter = nothings[RandomChoice(&gameState->ParticleEntropy, ArrayCount(nothings)-1)];
+
+                    asset_vector mV = {};
+                    mV.E[Tag_UnicodePoint] = (r32)letter;
+                    asset_vector weight = {};
+                    weight.E[Tag_UnicodePoint] = 1.0f;
+                    part->BitmapId = BestMatchBitmap(tranState->Assets, AssetType_Font, &mV, &weight);
                 }
                 
                 ZeroStruct(gameState->ParticleCells);

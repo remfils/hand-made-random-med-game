@@ -7,9 +7,11 @@
 #include "handmade_platform.h"
 #include "handmade_intrinsics.h"
 #include "handmade_math.h"
-#include "handmade_asset_type_id.h"
 #include "handmade_file_formats.h"
 #include "test_asset_builder.h"
+
+#define STB_TRUETYPE_IMPLEMENTATION 1
+#include "stb_truetype.h"
 
 
 FILE *out;
@@ -41,6 +43,28 @@ AddBitmapAsset(game_assets *assets, char *fileName, char *name, v2 alignPercenta
     for (u32 idx=0; idx < maxDebugNameLen && *name; idx++) {
         assetDst->DebugName[idx] = *name++;
     }
+    assetDst->OnePastLastTagIndex = assetDst->FirstTagIndex;
+    assetDst->Bitmap.AlignPercentage = alignPercentage;
+
+    assets->AssetCount++;
+    assets->AssetIndex = assetIndex;
+    return {assetIndex};
+}
+
+internal bitmap_id
+AddLetterAsset(game_assets *assets, char *fileName, u32 codePoint, v2 alignPercentage={0.5f, 0.5f})
+{
+    Assert(assets->DEBUGCurrentAssetType);
+
+    u32 assetIndex = assets->DEBUGCurrentAssetType->OnePastLastAssetIndex++;
+    source_asset *assetSrc = assets->AssetSource + assetIndex;
+    assetSrc->FileName = fileName;
+    assetSrc->CodePoint = codePoint;
+    assetSrc->AssetFileType = AssetFileType_Font;
+
+    hha_asset *assetDst = assets->AssetData + assetIndex;
+    assetDst->FirstTagIndex = assets->TagCount;
+
     assetDst->OnePastLastTagIndex = assetDst->FirstTagIndex;
     assetDst->Bitmap.AlignPercentage = alignPercentage;
 
@@ -424,6 +448,49 @@ LoadWAV(char *filename, uint32 sectionFirstSampleIndex, uint32 sectionSampleCoun
     return result;
 }
 
+internal loaded_bitmap
+LoadGlyph(char *fontFile, u32 codePoint)
+{
+    stbtt_fontinfo font;
+    entire_file fileResult = ReadEntireFile(fontFile);
+    stbtt_InitFont(&font, (u8 *)fileResult.Content, stbtt_GetFontOffsetForIndex((u8 *)fileResult.Content, 0));
+
+    int width=0,height=0;
+
+    float fontSize = 3*512.0f;
+    u8 *bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, fontSize), codePoint, &width, &height, 0,0);
+
+    loaded_bitmap result = {};
+    result.Width = width;
+    result.Height = height;
+    result.Pitch = result.Width * 4;
+
+    result.Memory = malloc(result.Height * result.Pitch);
+    result.Free = result.Memory;
+
+    u8 *source = bitmap;
+    u8 *destRow = (u8 *)result.Memory + (height - 1) * result.Pitch;
+    for (s32 y=0; y < height; y++)
+    {
+        u32 *dest = (u32 *)destRow;
+        for (s32 x=0; x < width; x++)
+        {
+            u8 alpha = *source++;
+            *dest++ = (
+                  (alpha << 24)
+                | (alpha << 16)
+                | (alpha << 8)
+                | (alpha << 0));
+        }
+        destRow -= result.Pitch;
+    }
+
+    stbtt_FreeBitmap(bitmap, 0);
+    free(fileResult.Content);
+
+    return result;
+}
+
 void
 WriteAssetsFile(game_assets *assets, char *filename)
 {
@@ -478,8 +545,13 @@ WriteAssetsFile(game_assets *assets, char *filename)
                 }
 
                 free(snd.Free);
-            } else if (assetSrc->AssetFileType == AssetFileType_Bitmap) {
-                loaded_bitmap bmp = LoadBMP(assetSrc->FileName);
+            } else {
+                loaded_bitmap bmp;
+                if (assetSrc->AssetFileType == AssetFileType_Bitmap) {
+                    bmp = LoadBMP(assetSrc->FileName);
+                } else {
+                    bmp = LoadGlyph(assetSrc->FileName, assetSrc->CodePoint);
+                }
 
                 assetDst->Bitmap.Dim[0] = bmp.Width;
                 assetDst->Bitmap.Dim[1] = bmp.Height;
@@ -580,6 +652,14 @@ void WriteNonHeroFiles()
     AddBitmapAsset(assets, "../data/particle_star__003.bmp", "star_003");
     EndAssetType(assets);
 
+    BeginAssetType(assets, AssetType_Font);
+    for (u32 letter = 'A'; letter <= 'Z'; letter++)
+    {
+        AddLetterAsset(assets, "c:/Windows/Fonts/arial.ttf", letter);
+        AddAssetTag(assets, Tag_UnicodePoint, (r32)letter);
+    }
+    
+    EndAssetType(assets);
     WriteAssetsFile(assets, "test2.hha");
 }
 

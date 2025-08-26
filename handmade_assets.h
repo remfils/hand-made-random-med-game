@@ -1,7 +1,6 @@
 #if !defined(HANDMADE_ASSETS_H)
 #define HANDMADE_ASSETS_H
 
-#include "handmade_asset_type_id.h"
 
 struct loaded_bitmap
 {
