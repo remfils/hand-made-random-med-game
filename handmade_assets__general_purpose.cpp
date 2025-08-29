@@ -103,9 +103,8 @@ AcquireAssetMemory(game_assets *assets, memory_index size)
                  )
             {
                 asset *asset = assets->Assets + header->AssetIndex;
-                if (GetAssetState(asset) >= AssetState_Loaded) {
+                if (asset->State >= AssetState_Loaded) {
                     u32 assetIndex = asset->Header->AssetIndex;
-                    Assert(GetAssetState(asset) == AssetState_Loaded);
 
                     RemoveAssetHeaderFromList(asset->Header);
 

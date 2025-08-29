@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [8/511]
+* to be done [9/511]
 ** DONE Handmade Hero Day 157 - Introduction to General Purpose Allocation
 - [[https://www.youtube.com/watch?v=MvDUe2evkHg]]
 
@@ -79,7 +79,7 @@ Build bitmaps that capture fonts at certain resolution
 ** DONE Handmade Hero Day 164 - Asset Processing with Windows Fonts
 - [[https://www.youtube.com/watch?v=KF0jRm89bRM]]
 
-** TODO Handmade Hero Day 165 - Fixing an Asset System Thread Bug
+** DONE Handmade Hero Day 165 - Fixing an Asset System Thread Bug
 - [[https://www.youtube.com/watch?v=9_jVu7RfP88]]
 
 ** TODO Handmade Hero Day 166 - Adding Locks to the Asset Operations

@@ -76,7 +76,7 @@ AddAssetHeaderToList(game_assets *assets, u32 assetIndex, asset_memory_size size
 }
 
 internal void
-LoadBitmap(game_assets *assets, bitmap_id id, b32 locked)
+LoadBitmap(game_assets *assets, bitmap_id id)
 {
     if (id.Value)
     {
@@ -119,11 +119,9 @@ LoadBitmap(game_assets *assets, bitmap_id id, b32 locked)
                 work->Size = memorySize.Data;
                 work->Destination = bitmap->Memory;
                 
-                work->FinalState = AssetState_Loaded | (locked ? AssetState_Lock : 0);
+                work->FinalState = AssetState_Loaded;
 
-                if (!locked) {
-                    AddAssetHeaderToList(assets, id.Value, memorySize );
-                }
+                AddAssetHeaderToList(assets, id.Value, memorySize);
     
                 PlatformAPI.AddEntry(assets->TranState->LowPriorityQueue, DoLoadAssetWork, work);
             } else {
@@ -467,10 +465,8 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
 inline void
 MoveHeaderToFront(game_assets *assets, asset *asset)
 {
-    if (!IsAssetLocked(asset)) {
-        asset_memory_header *header = asset->Header;
+    asset_memory_header *header = asset->Header;
 
-        RemoveAssetHeaderFromList(header);
-        InsertAssetHeaderAtFront(assets, header);
-    }
+    RemoveAssetHeaderFromList(header);
+    InsertAssetHeaderAtFront(assets, header);
 }

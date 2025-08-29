@@ -276,7 +276,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
         loaded_bitmap *drawBuffer = &groundBuffer->Bitmap;
         // TODO: (uint32)GetArenaSizeRemaining(&task->Arena) is not safe
         // TODO(vlad): why allocate group is not working here?
-        render_group *renderGroup = AllocateRenderGroup(&task->Arena, tranState->Assets, 0, drawBuffer->Width, drawBuffer->Height, true);
+        render_group *renderGroup = AllocateRenderGroup(&task->Arena, tranState->Assets, 0, drawBuffer->Width, drawBuffer->Height);
 
         real32 width = gameState->World->ChunkDimInMeters.x;
         real32 height = gameState->World->ChunkDimInMeters.y;
@@ -1106,7 +1106,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     // TODO: how much push buffer should be
-    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(5), drawBuffer->Width, drawBuffer->Height, false);
+    render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(5), drawBuffer->Width, drawBuffer->Height);
     //real32 metersToPixels = ;
     real32 focalLength = 0.6f;
     real32 distanceAboveTarget = 15.0f;
