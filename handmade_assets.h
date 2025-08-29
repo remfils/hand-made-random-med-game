@@ -139,23 +139,9 @@ struct game_assets
     u32 AssetCount;
     asset *Assets;
 
-
     u8 *HHAContent;
 
     asset_type AssetTypes[AssetType_Count];
-
-    #if 0
-    /*
-    hero_bitmaps Hero[4];
-    */
-    
-    // TODO: remove after asset pack file is done
-    u32 DEBUGUsedAssetCount;
-    u32 DEBUGUsedTagCount;
-
-    asset_type *DEBUGCurrentAssetType;
-    asset *DEBUGCurrentAsset;
-    #endif
 };
 
 inline b32

@@ -72,7 +72,6 @@ inline void EvictAsset(game_assets *assets, asset *asset);
 internal void*
 AcquireAssetMemory(game_assets *assets, memory_index size)
 {
-
     void *result = 0;
 
     asset_memory_block *block = FindBlockForSize(assets, size);

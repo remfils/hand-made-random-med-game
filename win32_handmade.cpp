@@ -1301,7 +1301,7 @@ int CALLBACK WinMain(
 
     // Win32ResizeDIBSection(&globalBackbuffer, 960, 540);
     
-    Win32ResizeDIBSection(&globalBackbuffer, 1920, 1080);
+    Win32ResizeDIBSection(&globalBackbuffer, 1920/2, 1080/2);
 
     char *param = "thread started";
 
@@ -1331,8 +1331,8 @@ int CALLBACK WinMain(
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,
             50,
             50,
-            1920/2 + 170,
-            700 - 50,
+            1920/2,
+            700,
             0, // parent window
             0, // menu
             instance,
