@@ -656,7 +656,7 @@ void WriteNonHeroFiles()
 
     for (u32 letter = ' '; letter <= '~'; letter++)
     {
-        AddLetterAsset(assets, "c:/Windows/Fonts/arial.ttf", letter);
+        AddLetterAsset(assets, "D:/Projects/local__HandmadeHero/data/iosevka-regular.ttf", letter);
         AddAssetTag(assets, Tag_UnicodePoint, (r32)letter);
     }
     

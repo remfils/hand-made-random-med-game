@@ -6,6 +6,52 @@
 void
 RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color, rectangle2i clipRect, bool32 even, bool32 renderFringes=false);
 
+void
+DrawRectangle(
+    loaded_bitmap *Buffer,
+    real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color, rectangle2i clipRect, bool32 even)
+{
+    real32 R = color.r;
+    real32 G = color.g;
+    real32 B = color.b;
+    real32 A = color.a;
+
+    rectangle2i FillRect;
+    FillRect.MinX = RoundReal32ToInt32(realMinX);
+    FillRect.MinY = RoundReal32ToInt32(realMinY);
+    FillRect.MaxX = RoundReal32ToInt32(realMaxX);
+    FillRect.MaxY = RoundReal32ToInt32(realMaxY);
+
+    FillRect = Intersect(FillRect, clipRect);
+    if(!even == (FillRect.MinY&1))
+    {
+        FillRect.MinY += 1;
+    }
+
+    uint32 Color32 = ((RoundReal32ToUInt32(A * 255.0f) << 24) |
+                      (RoundReal32ToUInt32(R * 255.0f) << 16) |
+                      (RoundReal32ToUInt32(G * 255.0f) << 8) |
+                      (RoundReal32ToUInt32(B * 255.0f) << 0));
+
+    uint8 *Row = (((uint8 *)Buffer->Memory) +
+                  FillRect.MinX * BITMAP_BYTES_PER_PIXEL +
+                  FillRect.MinY * Buffer->Pitch);
+
+    for (int Y = FillRect.MinY; 
+         Y < FillRect.MaxY; 
+         Y += 2)
+    {
+        uint32 *Pixel = (uint32 *)Row;
+        for (int X = FillRect.MinX; 
+             X < FillRect.MaxX; 
+             ++X)
+        {
+            *Pixel++ = Color32;
+        }
+        Row += 2 * Buffer->Pitch;
+    }
+}
+
 inline v4
 UnscaleAndBiasNormal(v4 normal)
 {
@@ -376,9 +422,9 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     {
         fillRect.MaxX = (fillRect.MaxX & ~3) + 4;
         switch (maxRemainder) {
-        case 1: endClipMask = _mm_slli_si128(endClipMask, 3 * 4); break; // shift is in bytes 
-        case 2: endClipMask = _mm_slli_si128(endClipMask, 2 * 4); break; // shift is in bytes 
-        case 3: endClipMask = _mm_slli_si128(endClipMask, 1 * 4); break; // shift is in bytes 
+        case 1: endClipMask = _mm_srli_si128(endClipMask, 3 * 4); break; // shift is in bytes 
+        case 2: endClipMask = _mm_srli_si128(endClipMask, 2 * 4); break; // shift is in bytes 
+        case 3: endClipMask = _mm_srli_si128(endClipMask, 1 * 4); break; // shift is in bytes 
         }
     }
 
@@ -582,7 +628,7 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 texelg = _mm_mul_ps(_mm_mul_ps(texelg, colorG_4x), colorA_4x);
                 texelb = _mm_mul_ps(_mm_mul_ps(texelb, colorB_4x), colorA_4x);
 
-                texela = _mm_min_ps(_mm_max_ps(texela, zero_4x), val255255_4x);
+                texelr = _mm_min_ps(_mm_max_ps(texelr, zero_4x), val255255_4x);
                 texelg = _mm_min_ps(_mm_max_ps(texelg, zero_4x), val255255_4x);
                 texelb = _mm_min_ps(_mm_max_ps(texelb, zero_4x), val255255_4x);
 
@@ -593,26 +639,27 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
             
                 __m128 inv_sa = _mm_sub_ps(one_4x, texela);
 
-                destr = _mm_add_ps(_mm_mul_ps(inv_sa, destr), texelr);
-                destg = _mm_add_ps(_mm_mul_ps(inv_sa, destg), texelg);
-                destb = _mm_add_ps(_mm_mul_ps(inv_sa, destb), texelb);
-                desta = _mm_add_ps(_mm_mul_ps(inv_sa, desta), texela);
+                __m128 blendedr = _mm_add_ps(_mm_mul_ps(inv_sa, destr), texelr);
+                __m128 blendedg = _mm_add_ps(_mm_mul_ps(inv_sa, destg), texelg);
+                __m128 blendedb = _mm_add_ps(_mm_mul_ps(inv_sa, destb), texelb);
+                __m128 blendeda = _mm_add_ps(_mm_mul_ps(inv_sa, desta), texela);
 
-                destr = _mm_mul_ps(destr, _mm_rsqrt_ps(destr));
-                destg = _mm_mul_ps(destg, _mm_rsqrt_ps(destg));
-                destb = _mm_mul_ps(destb, _mm_rsqrt_ps(destb));
-                desta = _mm_mul_ps(desta, val255_4x);
+                blendedr = _mm_mul_ps(blendedr, _mm_rsqrt_ps(blendedr));
+                blendedg = _mm_mul_ps(blendedg, _mm_rsqrt_ps(blendedg));
+                blendedb = _mm_mul_ps(blendedb, _mm_rsqrt_ps(blendedb));
+                blendeda = _mm_mul_ps(blendeda, val255_4x);
 
                 // output to frame buffer
-                __m128i intB = _mm_cvtps_epi32(destb);
-                __m128i intR = _mm_cvtps_epi32(destr);
-                __m128i intG = _mm_cvtps_epi32(destg);
-                __m128i intA = _mm_cvtps_epi32(desta);
+                __m128i intR = _mm_cvtps_epi32(blendedr);
+                __m128i intG = _mm_cvtps_epi32(blendedg);
+                __m128i intB = _mm_cvtps_epi32(blendedb);
+                __m128i intA = _mm_cvtps_epi32(blendeda);
             
-                intR = _mm_slli_epi32(intR, 16);
-                intG = _mm_slli_epi32(intG, 8);
-                intA = _mm_slli_epi32(intA, 24);
-                __m128i argb = _mm_or_epi32(_mm_or_epi32(_mm_or_epi32(_mm_or_epi32(intB, intR), intB), intG), intA);
+                __m128i sr = _mm_slli_epi32(intR, 16);
+                __m128i sg = _mm_slli_epi32(intG, 8);
+                __m128i sb = intB;
+                __m128i sa = _mm_slli_epi32(intA, 24);
+                __m128i argb = _mm_or_epi32(_mm_or_epi32(_mm_or_epi32(_mm_or_epi32(sb, sr), sb), sg), sa);
 
                 __m128i maskedOut = _mm_or_si128(
                                                  _mm_and_si128(writeMask, argb),
@@ -1185,7 +1232,7 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i 
 
 #if 0
             RenderRectangleSlowly(outputTarget,
-                                  basisResult.P, ToV2(entry->Size.x,0), ToV2(0, entry->Size.y), entry->Color,
+                                  entry->P, ToV2(entry->Size.x,0), ToV2(0, entry->Size.y), entry->Color,
                                   entry->Bitmap, 0,
                                   0, 0, 0,
                                   NullPixelsToMeters
@@ -1202,6 +1249,8 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i 
         } break;
         case RenderEntryType_render_entry_rectangle: {
             render_entry_rectangle *entry = (render_entry_rectangle *) voidEntry;
+            //DrawRectangle(outputTarget, entry->P.x, entry->P.y, entry->P.x + entry->Dim.x, entry->P.y + entry->Dim.y, entry->Color, clipRect, even);
+
             RenderRectangle(outputTarget, entry->P.x, entry->P.y, entry->P.x + entry->Dim.x, entry->P.y + entry->Dim.y, entry->Color, clipRect, even, entry->renderFringes);
             
             baseAddress += sizeof(*entry);
@@ -1267,11 +1316,8 @@ RenderGroupToOutput(loaded_bitmap *outputTarget, render_group *renderGroup)
     clipRect.MaxX = outputTarget->Width;
     clipRect.MaxY = outputTarget->Height;
 
-    tile_render_work workItem;
-    workItem.ClipRect = clipRect;
-    workItem.RenderGroup = renderGroup;
-    workItem.OutputTarget = outputTarget;
-    DoTiledRenderWork(0, &workItem);
+    RenderGroup(outputTarget, renderGroup, clipRect, true);
+    RenderGroup(outputTarget, renderGroup, clipRect, false);
 }
 
 internal void

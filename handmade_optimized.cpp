@@ -105,11 +105,6 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     __m128 zero_4x = _mm_set1_ps(0.0f);
     __m128i maskFF_4x = _mm_set1_epi32(0xff);
 
-    if (renderFringes)
-    {
-        int32 debug = 0;
-    }
-    
     uint8 *row = (uint8 *)drawBuffer->Memory + drawBuffer->Pitch * minY + minX * BITMAP_BYTES_PER_PIXEL;
     for (int y = minY; y < maxY; y+=2)
     {

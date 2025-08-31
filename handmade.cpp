@@ -688,7 +688,7 @@ OverlayCycleCounters()
 {
 #if HANDMADE_INTERNAL
 
-    DebugTextLine("DEBUG CYCLES\n");
+    DebugTextLine("DEBUG CYCLES:_");
 
     char * counterNameTable[] =
     {
@@ -1902,6 +1902,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     OverlayCycleCounters();
     if (DEBUGRenderGroup)
     {
+        //RenderGroupToOutput(drawBuffer, DEBUGRenderGroup);
         TiledRenderGroup(tranState->HighPriorityQueue, drawBuffer, DEBUGRenderGroup);
         EndRender(DEBUGRenderGroup);
     }

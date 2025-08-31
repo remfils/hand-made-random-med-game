@@ -63,6 +63,14 @@ RoundReal32ToInt32(real32 value)
     return(result);
 }
 
+inline u32
+RoundReal32ToUInt32(real32 value)
+{
+    u32 result = (u32)roundf(value);
+
+    return(result);
+}
+
 
 inline real32
 Sin(real32 ang)
