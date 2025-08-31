@@ -1299,9 +1299,11 @@ int CALLBACK WinMain(
     windowClass.lpszClassName = "HandmadeHeroWindowClass";
 
 
-    // Win32ResizeDIBSection(&globalBackbuffer, 960, 540);
+    u32 windowWidth = 960;
+    u32 windowHeight = 540;
+    Win32ResizeDIBSection(&globalBackbuffer, windowWidth, windowHeight);
     
-    Win32ResizeDIBSection(&globalBackbuffer, 1920/2, 1080/2);
+    //Win32ResizeDIBSection(&globalBackbuffer, 1920/2, 1080/2);
 
     char *param = "thread started";
 
@@ -1331,8 +1333,8 @@ int CALLBACK WinMain(
             WS_OVERLAPPEDWINDOW | WS_VISIBLE,
             50,
             50,
-            1920/2,
-            700,
+            windowWidth,
+            windowHeight,
             0, // parent window
             0, // menu
             instance,

@@ -457,7 +457,7 @@ LoadGlyph(char *fontFile, u32 codePoint)
 
     int width=0,height=0;
 
-    float fontSize = 3*512.0f;
+    float fontSize = 42.0f;
     u8 *bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, fontSize), codePoint, &width, &height, 0,0);
 
     loaded_bitmap result = {};
@@ -653,7 +653,8 @@ void WriteNonHeroFiles()
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_Font);
-    for (u32 letter = 'A'; letter <= 'Z'; letter++)
+
+    for (u32 letter = ' '; letter <= '~'; letter++)
     {
         AddLetterAsset(assets, "c:/Windows/Fonts/arial.ttf", letter);
         AddAssetTag(assets, Tag_UnicodePoint, (r32)letter);

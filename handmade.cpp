@@ -7,6 +7,9 @@
 #include "handmade_sim_entity.cpp"
 #include "handmade_audio.cpp"
 
+#if HANDMADE_SLOW
+game_memory *DebugGlobalMemory;
+#endif
 
 
 // TODO: remove these
@@ -277,6 +280,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
         // TODO: (uint32)GetArenaSizeRemaining(&task->Arena) is not safe
         // TODO(vlad): why allocate group is not working here?
         render_group *renderGroup = AllocateRenderGroup(&task->Arena, tranState->Assets, 0, drawBuffer->Width, drawBuffer->Height, true);
+        BeginRender(renderGroup);
 
         real32 width = gameState->World->ChunkDimInMeters.x;
         real32 height = gameState->World->ChunkDimInMeters.y;
@@ -638,10 +642,85 @@ MakeNothingsTest(memory_arena *arena)
 }
 #endif
 
+global_variable render_group *DEBUGRenderGroup;
+global_variable r32 DEBUG_LeftEdge = 0.0f;
+global_variable r32 DEBUG_LineY = 0.0f;
+global_variable r32 DEBUG_FontScale = 0.0f;
 
-#if HANDMADE_SLOW
-game_memory *DebugGlobalMemory;
+internal void
+DEBGUReset(u32 width, u32 height)
+{
+    MakeOrthographic(DEBUGRenderGroup, width, height, 1.0f);
+    DEBUG_FontScale = 20.0f;
+    DEBUG_LineY = 0.5f * (r32)height -  0.5f * DEBUG_FontScale;
+    DEBUG_LeftEdge = -0.5f * (r32)width + 0.5f * DEBUG_FontScale;
+}
+
+internal void
+DebugTextLine(char *string)
+{
+    if (DEBUGRenderGroup) {
+        asset_vector mV = {};
+        asset_vector weight = {};
+    
+        weight.E[Tag_UnicodePoint] = 1.0f;
+
+        r32 atX = DEBUG_LeftEdge;
+        r32 scale = DEBUG_FontScale;
+
+        for (char *at = string;
+             *at;
+             ++at)
+        {
+            if (*at != ' ') {
+                mV.E[Tag_UnicodePoint] = (r32)*at;
+                bitmap_id bitmapId = BestMatchBitmap(DEBUGRenderGroup->Assets, AssetType_Font, &mV, &weight);
+                PushBitmap(DEBUGRenderGroup, bitmapId, scale, ToV3(atX,DEBUG_LineY,0), ToV4(1,1,1,1));
+            }
+            atX += scale;
+        }
+        DEBUG_LineY -= 1.2f* scale;
+    }
+}
+
+internal void
+OverlayCycleCounters()
+{
+#if HANDMADE_INTERNAL
+
+    DebugTextLine("DEBUG CYCLES\n");
+
+    char * counterNameTable[] =
+    {
+        "GameUpdateAndRender",
+        "RenderGroupToOutput",
+        "RenderRectangleSlowly",
+        "Slowly_TestPixel",
+        "Slowly_FillPixel",
+        "RenderRectangleHopefullyQuickly",
+        "RenderRectangle"
+    };
+    
+    for (int32 debugIndex=0;
+         debugIndex < ArrayCount(DebugGlobalMemory->DebugCounters);
+         debugIndex++)
+    {
+        debug_cycle_counter *counter = DebugGlobalMemory->DebugCounters + debugIndex;
+
+        if (counter->HitCount > 0){
+            #if 0
+            char buffer[256];
+            sprintf_s(buffer, 256, "\t%d: %I64u hits: %u, cycles per hit: %I64u\n", debugIndex, counter->CycleCount, counter->HitCount, counter->CycleCount / counter->HitCount);
+
+            DebugTextLine(buffer);
+            #else
+            DebugTextLine(counterNameTable[debugIndex]);
+            #endif
+        }
+    }
 #endif
+}
+
 
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
@@ -936,6 +1015,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         // TODO: asset release doesnt work at all, causes crashes
         tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(256), tranState);
 
+        DEBUGRenderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(15), SafeTruncateToUInt16(buffer->Width), SafeTruncateToUInt16(buffer->Height), false);
+
         // TODO: sound plays really bad for some reason. With stutters...
         /*
         playing_sound *snd = PlaySound(&gameState->AudioState, GetFirstSound(tranState->Assets, AssetType_PianoMusic));
@@ -992,6 +1073,12 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         tranState->EnvMaps[0].PositionZ = -2.0f;
         tranState->EnvMaps[1].PositionZ = 0.5f;
         tranState->EnvMaps[2].PositionZ = 2.0f;
+    }
+
+    if (DEBUGRenderGroup)
+    {
+        BeginRender(DEBUGRenderGroup);
+        DEBGUReset(buffer->Width, buffer->Height);
     }
 
     if (input->ExecutableReloaded)
@@ -1101,6 +1188,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     temporary_memory renderMemory = BeginTemporaryMemory(&tranState->TransientArena);
     // TODO: how much push buffer should be
     render_group *renderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(5), drawBuffer->Width, drawBuffer->Height, false);
+    BeginRender(renderGroup);
     //real32 metersToPixels = ;
     real32 focalLength = 0.6f;
     real32 distanceAboveTarget = 15.0f;
@@ -1111,8 +1199,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
 
     v2 screenCenter = 0.5f * ToV2((real32) drawBuffer->Width, (real32)drawBuffer->Height);
-
-    real32 pixelsToMeters = 1.0f / 32.0f;
 
     rectangle2 screenBounds = GetCameraRectangleAtTarget(renderGroup);
     rectangle3 cameraBoundsInMeters = RectCenterHalfDim(ToV3(0,0,0), ToV3(screenBounds.Max, 1));
@@ -1799,8 +1885,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // PushSaturationFilter(renderGroup, 0.5f + Cos(2.0f * angle) * 0.5f);
 
     TiledRenderGroup(tranState->HighPriorityQueue, drawBuffer, renderGroup);
-    FinishRenderGroup(renderGroup);
-
+    EndRender(renderGroup);
 
     EndSim(simRegion, gameState);
 
@@ -1813,6 +1898,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     CheckArena(&tranState->TransientArena);
 
     END_TIMED_BLOCK(GameUpdateAndRender);
+
+    OverlayCycleCounters();
+    if (DEBUGRenderGroup)
+    {
+        TiledRenderGroup(tranState->HighPriorityQueue, drawBuffer, DEBUGRenderGroup);
+        EndRender(DEBUGRenderGroup);
+    }
 }
 
 

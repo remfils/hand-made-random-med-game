@@ -816,7 +816,7 @@ AllocateRenderGroup(memory_arena *arena, game_assets * assets, uint32 maxPushBuf
     render_group *result = PushStruct(arena, render_group);
 
     result->Assets = assets;
-    result->GenerationId = BeginGeneration(assets);
+    result->GenerationId = 0;
     result->Transform = {};
 
     result->Transform.OffsetP = ToV3(0,0,0);
@@ -833,16 +833,32 @@ AllocateRenderGroup(memory_arena *arena, game_assets * assets, uint32 maxPushBuf
     result->RendersInBackground = rendersInBackground;
     
     result->GlobalAlpha = 1.0f;
+    result->InsideRender = false;
 
     return result;
 }
 
 inline void
-FinishRenderGroup(render_group *group)
+BeginRender(render_group *group)
 {
     if (group)
     {
+        Assert(!group->InsideRender);
+
+        group->GenerationId = BeginGeneration(group->Assets);
+        group->InsideRender = true;
+    }
+}
+
+inline void
+EndRender(render_group *group)
+{
+    if (group)
+    {
+        Assert(group->InsideRender);
         EndGeneration(group->Assets, group->GenerationId);
+        group->InsideRender = false;
+        group->PushBufferSize = 0;
     }
 }
 
@@ -853,7 +869,7 @@ MakePerspective(render_group *renderGroup, uint32 width, uint32 height, real32 f
     
     renderGroup->Transform.FocalLength = focalLength;
     renderGroup->Transform.DistanceToTarget = distanceAboveTarget;
-    real32 widthOfMonitorInMeters = 0.635f;
+    real32 widthOfMonitorInMeters = 0.54f;
     renderGroup->Transform.MetersToPixels = width / widthOfMonitorInMeters;
 
     real32 pixelsToMeters = 0.5f / renderGroup->Transform.MetersToPixels;
@@ -1136,6 +1152,7 @@ PushHitpoints(render_group *renderGroup, sim_entity *simEntity)
 internal void
 RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i clipRect, bool32 even)
 {
+    Assert(renderGroup->InsideRender);
     BEGIN_TIMED_BLOCK(RenderGroupToOutput);
 
     real32 NullPixelsToMeters = 1.0f;
@@ -1239,8 +1256,22 @@ PLATFORM_WORK_QUEUE_CALLBACK(DoTiledRenderWork)
 
     RenderGroup(work->OutputTarget, work->RenderGroup, work->ClipRect, true);
     RenderGroup(work->OutputTarget, work->RenderGroup, work->ClipRect, false);
+}
 
-    FinishRenderGroup(work->RenderGroup);
+internal void
+RenderGroupToOutput(loaded_bitmap *outputTarget, render_group *renderGroup)
+{
+    rectangle2i clipRect;
+    clipRect.MinX = 0;
+    clipRect.MinY = 0;
+    clipRect.MaxX = outputTarget->Width;
+    clipRect.MaxY = outputTarget->Height;
+
+    tile_render_work workItem;
+    workItem.ClipRect = clipRect;
+    workItem.RenderGroup = renderGroup;
+    workItem.OutputTarget = outputTarget;
+    DoTiledRenderWork(0, &workItem);
 }
 
 internal void

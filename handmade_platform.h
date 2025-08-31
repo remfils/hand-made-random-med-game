@@ -99,18 +99,17 @@ extern struct game_memory *DebugGlobalMemory;
 #else
 #define BEGIN_TIMED_BLOCK(ID)
 #define END_TIMED_BLOCK(ID)
+#define END_TIMED_BLOCK_COUNTED(ID, count)
 #endif
 #else
 #define Assert(expression)
+#define BEGIN_TIMED_BLOCK(ID)
+#define END_TIMED_BLOCK(ID)
+#define END_TIMED_BLOCK_COUNTED(ID, count)
 #endif
 
-#if HANDMADE_SLOW
 #define InvalidCodePath Assert(!"Invalid code path");
 #define InvalidDefaultCase default: { InvalidCodePath; } break;
-#else
-#define Assert(expression)
-#endif
-
 
 struct debug_read_file_result
 {
