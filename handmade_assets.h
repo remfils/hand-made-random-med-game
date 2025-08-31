@@ -121,6 +121,8 @@ struct game_assets
 {
     struct transient_state *TranState;
 
+    u32 NextGenerationId;
+
     asset_memory_block MemorySentinel;
 
     u32 FileCount;
@@ -138,63 +140,111 @@ struct game_assets
 
     u8 *HHAContent;
 
+    u32 OperationLock;
+
+    u32 InFlightGenerationCount;
+    u32 InFlightGenerations[100];
+
     asset_type AssetTypes[AssetType_Count];
 };
 
-internal void MoveHeaderToFront(game_assets *assets, asset *asset );
+inline void
+BeginAssetLock(game_assets *assets)
+{
+    for (;;)
+    {
+        if (AtomicCompareExchange(&assets->OperationLock, 1, 0) == 0)
+        {
+            break;
+        }
+    }
+}
+
+inline void
+EndAssetLock(game_assets *assets)
+{
+    assets->OperationLock = 0;
+    CompletePreviousReadsBeforeFutureReads;
+}
+
+inline b32
+GenerationHasCompleted(game_assets *assets, u32 generationId)
+{
+    b32 result = true;
+    for (u32 index = 0;
+         index < assets->InFlightGenerationCount;
+        index++)
+    {
+        if (assets->InFlightGenerations[index] == generationId) {
+            result = false;
+            break;
+        }
+    }
+
+    return result;
+}
+
+inline void
+InsertAssetHeaderAtFront(game_assets *assets, asset_memory_header *header)
+{
+    asset_memory_header *sentinel = &assets->LoadedAssetsSentinel;
+
+    header->Next = sentinel->Next;
+    header->Prev = sentinel;
+
+    header->Next->Prev = header;
+    header->Prev->Next = header;
+}
+
+internal void
+RemoveAssetHeaderFromList(asset_memory_header *header)
+{
+    header->Prev->Next = header->Next;
+    header->Next->Prev = header->Prev;
+
+    header->Prev = header->Next = 0;
+}
 
 inline asset_memory_header*
-GetAsset(game_assets *assets, u32 id)
+GetAsset(game_assets *assets, u32 id, u32 generationId)
 {
     asset *asset = assets->Assets + id;
 
     asset_memory_header *result = 0;
 
-    for (;;)
+    BeginAssetLock(assets);
+
+    if (asset->State == AssetState_Loaded)
     {
-        if (asset->State == AssetState_Loaded)
-        {
-            if (AtomicCompareExchange(&asset->State, AssetState_Operating, AssetState_Loaded) == AssetState_Loaded)
-            {
-                result = asset->Header;
-                MoveHeaderToFront(assets, asset);
-
-                #if 0
-                if (asset->Header->GenerationId < generationId) {
-                    asset->Header->GenerationId = generationId;
-                }
-                #endif
-
-                CompletePreviousReadsBeforeFutureReads;
-
-                asset->State = AssetState_Loaded;
-
-                break;
-            }
             
+        result = asset->Header;
+
+        RemoveAssetHeaderFromList(result);
+        InsertAssetHeaderAtFront(assets, result);
+
+        if (asset->Header->GenerationId < generationId) {
+            asset->Header->GenerationId = generationId;
         }
-        else if (asset->State != AssetState_Operating)
-        {
-            break;
-        }
+        CompletePreviousReadsBeforeFutureReads;
     }
 
-    
+    EndAssetLock(assets);
+
     return result;
 }
 
 inline loaded_bitmap*
-GetBitmap(game_assets *assets, bitmap_id id)
+GetBitmap(game_assets *assets, bitmap_id id, u32 generationId)
 {
-    asset_memory_header *header = GetAsset(assets, id.Value);
+    asset_memory_header *header = GetAsset(assets, id.Value, generationId);
     loaded_bitmap *result = header? &header->Bitmap : 0;
     return result;
 }
 
 inline loaded_sound*
-GetSound(game_assets *assets, sound_id id)
+GetSound(game_assets *assets, sound_id id, u32 generationId)
 {
-    asset_memory_header *header = GetAsset(assets, id.Value);
+    asset_memory_header *header = GetAsset(assets, id.Value, generationId);
     loaded_sound *result = header? &header->Sound : 0;
     return result;
 }
@@ -221,8 +271,8 @@ IsValid(sound_id id)
     return result;
 }
 
-internal void LoadBitmap(game_assets *assets, bitmap_id id);
-inline void PrefetchBitmap(game_assets *assets, bitmap_id id) { LoadBitmap(assets, id); };
+internal void LoadBitmap(game_assets *assets, bitmap_id id, b32 immidiate);
+inline void PrefetchBitmap(game_assets *assets, bitmap_id id, b32 immidiate) { LoadBitmap(assets, id, immidiate); };
 
 internal void LoadSound(game_assets *assets, sound_id id);
 inline void PrefetchSound(game_assets *assets, sound_id id) { LoadSound(assets, id); };

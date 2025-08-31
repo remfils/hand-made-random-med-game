@@ -124,6 +124,8 @@ struct game_assets;
 struct render_group
 {
     game_assets *Assets;
+
+    u32 GenerationId;
     
     v2 MonitorHalfDimInMeters;
     
@@ -137,6 +139,8 @@ struct render_group
     uint8 *PushBufferBase;
 
     uint32 MissingResourceCount;
+
+    b32 RendersInBackground;
 };
 
 

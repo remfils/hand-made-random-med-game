@@ -83,6 +83,8 @@ OutputPlayingSounds(
 {
     #define SUPPORTED_CHANNEL_COUNT 2
 
+    u32 generationId = BeginGeneration(assets);
+
     Assert((soundBuffer->SampleCount & 7) == 0);
 
     u32 chunkCount = soundBuffer->SampleCount / 4;
@@ -125,7 +127,7 @@ OutputPlayingSounds(
         
         while (totalChunksToMix && !isSoundFinished)
         {
-            loaded_sound *loadedSound = GetSound(assets, playingSound->Id);
+            loaded_sound *loadedSound = GetSound(assets, playingSound->Id, generationId);
             if (loadedSound)
             {
                 sound_id nextSoundInChain = GetNextSoundInChain(assets, playingSound->Id);
@@ -297,6 +299,7 @@ OutputPlayingSounds(
         }
     }
 
+    EndGeneration(assets, generationId);
     EndTemporaryMemory(mixerMemory);
 }
 

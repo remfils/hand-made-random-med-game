@@ -1,11 +1,4 @@
-internal void
-RemoveAssetHeaderFromList(asset_memory_header *header)
-{
-    header->Prev->Next = header->Next;
-    header->Next->Prev = header->Prev;
 
-    header->Prev = header->Next = 0;
-}
 
 internal asset_memory_block*
 InsertBlock(asset_memory_block *prev,  memory_index size, void *mem)
@@ -69,10 +62,12 @@ MergeIfPossible(game_assets *assets, asset_memory_block *first, asset_memory_blo
 
 inline void EvictAsset(game_assets *assets, asset *asset);
 
-internal void*
-AcquireAssetMemory(game_assets *assets, memory_index size)
+internal asset_memory_header*
+AcquireAssetMemory(game_assets *assets, u32 size, u32 assetIndex)
 {
-    void *result = 0;
+    asset_memory_header *result = 0;
+
+    BeginAssetLock(assets);
 
     asset_memory_block *block = FindBlockForSize(assets, size);
     
@@ -81,7 +76,7 @@ AcquireAssetMemory(game_assets *assets, memory_index size)
         if (block && size <= block->Size)
         {
             block->Flags |= AssetMemory_Used;
-            result = (u8 *)(block + 1);
+            result = (asset_memory_header *)(block + 1);
 
             memory_index remainingSize = block->Size - size;
 
@@ -103,30 +98,35 @@ AcquireAssetMemory(game_assets *assets, memory_index size)
                  )
             {
                 asset *asset = assets->Assets + header->AssetIndex;
-                if (asset->State >= AssetState_Loaded) {
-                    u32 assetIndex = asset->Header->AssetIndex;
-
+                if (asset->State >= AssetState_Loaded && GenerationHasCompleted(assets, asset->Header->GenerationId)) {
                     RemoveAssetHeaderFromList(asset->Header);
 
                     block = (asset_memory_block *)asset->Header -1;
                     block->Flags &= ~AssetMemory_Used;
     
-                    asset->State = AssetState_Unloaded;
-                    asset->Header = 0;
-
                     if (MergeIfPossible(assets, block->Prev, block)) {
                         block = block->Prev;
                     }
 
                     MergeIfPossible(assets, block, block->Next);
 
-                    // TODO: make it return block
-                    // block = EvictAsset(assets, asset);
+                    asset->State = AssetState_Unloaded;
+                    asset->Header = 0;
                     break;
                 }
             }
         }
     }
+
+    if (result)
+    {
+        result->AssetIndex = assetIndex;
+        result->TotalSize = size;
+
+        InsertAssetHeaderAtFront(assets, result);
+    }
+
+    EndAssetLock(assets);
 
     return result;
 }

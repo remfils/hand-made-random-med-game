@@ -8,84 +8,11 @@
 - катсцены
 - генерация уровней?
 
-* to be done [9/511]
-** DONE Handmade Hero Day 157 - Introduction to General Purpose Allocation
-- [[https://www.youtube.com/watch?v=MvDUe2evkHg]]
-
-- fixed size allocation
-
-** DONE Handmade Hero Day 158 - Tracking Asset Usage
-- [[https://www.youtube.com/watch?v=D5JG3XGPf8Y]]
-
-not really works for some reason
-
-** DONE Handmade Hero Day 159 - Cleaning Up the Loaded Asset Infrastructure
-- [[https://www.youtube.com/watch?v=ZrAoRHSTzMY]]
-
-** DONE Handmade Hero Day 160 - Basic General Purpose Allocation
-- [[https://www.youtube.com/watch?v=MyGsWY6dezE]]
-
-** DONE Handmade Hero Day 161 - Finishing the General Purpose Allocator
-- [[https://www.youtube.com/watch?v=1LyHQVYlClw]]
-
-Game code doesnt use ANY file names. NO PATH SEPARATORS in game code, only in platform layer
-
-Files are accessed by index (or get next file).
-
-** DONE Handmade Hero Day 162 - Introduction to Fonts
-- [[https://www.youtube.com/watch?v=ZK7PezR1KgU]]
-
-baseline
-
-kerning - usually difference between normal spacing and current
-
-gj ij - can be placed differently
-
-kerning table
-
-| letter A | letter B | Kerning |
-|----------+----------+---------|
-| g        | j        |      .5 |
-| i        | j        |      .1 |
-
-ligature - letter combinations
-
-hinting - how fonts should be scaled. How they should be snaped to pixel grid
-
-implicit - f(x, y)
-
-explicit - f(i) => x, y
-
-*how to render fonts*
-
-1. Tesseleted fonts
-
-2. Implicit rasterisation
-
-3. Prerasterized fonts
-
-Build bitmaps that capture fonts at certain resolution
-
-*for third option*
-
-- render glyphs into packed bitmap
-- codepoints
-- positioning information (for baseline)
-- kerning table
-
-** DONE Handmade Hero Day 163 - Asset Processing with STB TrueType
-- [[https://www.youtube.com/watch?v=lOLRQ01QY48]]
-
-** DONE Handmade Hero Day 164 - Asset Processing with Windows Fonts
-- [[https://www.youtube.com/watch?v=KF0jRm89bRM]]
-
-** DONE Handmade Hero Day 165 - Fixing an Asset System Thread Bug
-- [[https://www.youtube.com/watch?v=9_jVu7RfP88]]
-
-** TODO Handmade Hero Day 166 - Adding Locks to the Asset Operations
+* to be done [2/502]
+** DONE Handmade Hero Day 166 - Adding Locks to the Asset Operations
 - [[https://www.youtube.com/watch?v=jIWa0AZz2Sk]]
 
-** TODO Handmade Hero Day 167 - Finishing Win32 Font Glyph Extraction
+** DONE Handmade Hero Day 167 - Finishing Win32 Font Glyph Extraction
 - [[https://www.youtube.com/watch?v=Hc33CNhmAg8]]
 
 ** TODO Handmade Hero Day 168 - Rendering Lines of Text
@@ -1636,7 +1563,7 @@ Build bitmaps that capture fonts at certain resolution
 ** TODO Prepress Rant - #PrintersDeserveCredit!!
 - [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
 
-* done [161/161]
+* done [179/179]
 ** DONE Handmade Hero - Announcement Trailer
 - [[yt:A2dxjOjWHxQ]]
 
@@ -2697,3 +2624,75 @@ FindFirstFileA = dir *.hha
 ** DONE Handmade Hero Day 156 - Lagrangian vs. Eulerian Simulation
 - [[https://www.youtube.com/watch?v=HH_iaJairW8]]
 
+** DONE Handmade Hero Day 157 - Introduction to General Purpose Allocation
+- [[https://www.youtube.com/watch?v=MvDUe2evkHg]]
+
+- fixed size allocation
+
+** DONE Handmade Hero Day 158 - Tracking Asset Usage
+- [[https://www.youtube.com/watch?v=D5JG3XGPf8Y]]
+
+not really works for some reason
+
+** DONE Handmade Hero Day 159 - Cleaning Up the Loaded Asset Infrastructure
+- [[https://www.youtube.com/watch?v=ZrAoRHSTzMY]]
+
+** DONE Handmade Hero Day 160 - Basic General Purpose Allocation
+- [[https://www.youtube.com/watch?v=MyGsWY6dezE]]
+
+** DONE Handmade Hero Day 161 - Finishing the General Purpose Allocator
+- [[https://www.youtube.com/watch?v=1LyHQVYlClw]]
+
+Game code doesnt use ANY file names. NO PATH SEPARATORS in game code, only in platform layer
+
+Files are accessed by index (or get next file).
+
+** DONE Handmade Hero Day 162 - Introduction to Fonts
+- [[https://www.youtube.com/watch?v=ZK7PezR1KgU]]
+
+baseline
+
+kerning - usually difference between normal spacing and current
+
+gj ij - can be placed differently
+
+kerning table
+
+| letter A | letter B | Kerning |
+|----------+----------+---------|
+| g        | j        |      .5 |
+| i        | j        |      .1 |
+
+ligature - letter combinations
+
+hinting - how fonts should be scaled. How they should be snaped to pixel grid
+
+implicit - f(x, y)
+
+explicit - f(i) => x, y
+
+*how to render fonts*
+
+1. Tesseleted fonts
+
+2. Implicit rasterisation
+
+3. Prerasterized fonts
+
+Build bitmaps that capture fonts at certain resolution
+
+*for third option*
+
+- render glyphs into packed bitmap
+- codepoints
+- positioning information (for baseline)
+- kerning table
+
+** DONE Handmade Hero Day 163 - Asset Processing with STB TrueType
+- [[https://www.youtube.com/watch?v=lOLRQ01QY48]]
+
+** DONE Handmade Hero Day 164 - Asset Processing with Windows Fonts
+- [[https://www.youtube.com/watch?v=KF0jRm89bRM]]
+
+** DONE Handmade Hero Day 165 - Fixing an Asset System Thread Bug
+- [[https://www.youtube.com/watch?v=9_jVu7RfP88]]

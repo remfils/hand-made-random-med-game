@@ -3,10 +3,17 @@
 #define CompletePreviousWritesBeforeFutureWrites _WriteBarrier();
 #define CompletePreviousReadsBeforeFutureReads _ReadBarrier();
 
-inline uint32
-AtomicCompareExchange(uint32 volatile *value, uint32 expected, uint32 newValue)
+inline u32
+AtomicCompareExchange(u32 volatile *value, u32 expected, u32 newValue)
 {
-    uint32 result = InterlockedCompareExchange(value, newValue, expected);
+    u32 result = InterlockedCompareExchange(value, newValue, expected);
+    return result;
+}
+
+inline u32
+AtomicAdd(u32 volatile *value, u32 addend)
+{
+    u32 result = InterlockedAdd((long *)value, addend);
     return result;
 }
 #else
