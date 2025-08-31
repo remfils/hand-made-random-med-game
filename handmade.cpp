@@ -672,14 +672,19 @@ DebugTextLine(char *string)
              *at;
              ++at)
         {
+            r32 charDim = scale;
             if (*at != ' ') {
                 mV.E[Tag_UnicodePoint] = (r32)*at;
                 bitmap_id bitmapId = BestMatchBitmap(DEBUGRenderGroup->Assets, AssetType_Font, &mV, &weight);
-                PushBitmap(DEBUGRenderGroup, bitmapId, scale, ToV3(atX,DEBUG_LineY,0), ToV4(1,1,1,1));
+                
+                hha_bitmap *info = GetBitmapInfo(DEBUGRenderGroup->Assets, bitmapId);
+
+                charDim = (r32)info->Dim[0];
+                PushBitmap(DEBUGRenderGroup, bitmapId, (r32)info->Dim[1], ToV3(atX,DEBUG_LineY,0), ToV4(1,1,1,1));
             }
-            atX += scale;
+            atX += 1.1f * charDim;
         }
-        DEBUG_LineY -= 1.2f* scale;
+        DEBUG_LineY -= 1.2f * scale;
     }
 }
 

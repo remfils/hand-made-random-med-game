@@ -249,6 +249,14 @@ GetSound(game_assets *assets, sound_id id, u32 generationId)
     return result;
 }
 
+inline hha_bitmap*
+GetBitmapInfo(game_assets *assets, bitmap_id id)
+{
+    Assert(id.Value <= assets->AssetCount);
+    hha_bitmap *result = &assets->Assets[id.Value].HHA.Bitmap;
+    return result;
+}
+
 inline hha_sound*
 GetSoundInfo(game_assets *assets, sound_id id)
 {

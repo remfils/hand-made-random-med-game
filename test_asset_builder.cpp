@@ -449,16 +449,22 @@ LoadWAV(char *filename, uint32 sectionFirstSampleIndex, uint32 sectionSampleCoun
 }
 
 internal loaded_bitmap
-LoadGlyph(char *fontFile, u32 codePoint)
+LoadGlyph(char *fontFile, u32 codePoint, hha_asset *assetDst)
 {
     stbtt_fontinfo font;
     entire_file fileResult = ReadEntireFile(fontFile);
     stbtt_InitFont(&font, (u8 *)fileResult.Content, stbtt_GetFontOffsetForIndex((u8 *)fileResult.Content, 0));
 
-    int width=0,height=0;
+    int width=0,height=0,advance=0,lsb=0,ascent=0,descent=0,lineGap=0;
 
     float fontSize = 42.0f;
-    u8 *bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, fontSize), codePoint, &width, &height, 0,0);
+    stbtt_GetCodepointHMetrics(&font, codePoint, &advance, &lsb);
+    stbtt_GetFontVMetrics(&font, &ascent, &descent, &lineGap);
+    u8 *bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, fontSize), codePoint, &width, &height, 0, 0);
+
+    if (codePoint == '_') {
+        int a = 0;
+    }
 
     loaded_bitmap result = {};
     result.Width = width;
@@ -468,6 +474,9 @@ LoadGlyph(char *fontFile, u32 codePoint)
     result.Memory = malloc(result.Height * result.Pitch);
     result.Free = result.Memory;
 
+    assetDst->Bitmap.AlignPercentage.x = 0.0f;
+    assetDst->Bitmap.AlignPercentage.y = -1 * (float)descent / (float)height;
+
     u8 *source = bitmap;
     u8 *destRow = (u8 *)result.Memory + (height - 1) * result.Pitch;
     for (s32 y=0; y < height; y++)
@@ -476,11 +485,30 @@ LoadGlyph(char *fontFile, u32 codePoint)
         for (s32 x=0; x < width; x++)
         {
             u8 alpha = *source++;
+
+            #if 0
+
+            // NOTE: this removes black fringes on text - premultiply
+            // alpha
+            v4 texel = {255.0f, 255.0f, 255.0f, (float)alpha};
+            texel = SRGB255_ToLinear1(texel);
+            texel.rgb *= texel.a;
+            texel = Linear_1_ToSRGB255(texel);
+            
             *dest++ = (
-                  (alpha << 24)
+                        ((uint32)(texel.a + 0.5f) << 24)
+                        | ((uint32)(texel.r + 0.5f) << 16)
+                        | ((uint32)(texel.g + 0.5f) << 8)
+                        | ((uint32)(texel.b + 0.5f) << 0)
+                        );
+            #else
+            *dest++ = (
+                (alpha << 24)
                 | (alpha << 16)
                 | (alpha << 8)
                 | (alpha << 0));
+
+            #endif
         }
         destRow -= result.Pitch;
     }
@@ -550,7 +578,7 @@ WriteAssetsFile(game_assets *assets, char *filename)
                 if (assetSrc->AssetFileType == AssetFileType_Bitmap) {
                     bmp = LoadBMP(assetSrc->FileName);
                 } else {
-                    bmp = LoadGlyph(assetSrc->FileName, assetSrc->CodePoint);
+                    bmp = LoadGlyph(assetSrc->FileName, assetSrc->CodePoint, assetDst);
                 }
 
                 assetDst->Bitmap.Dim[0] = bmp.Width;
