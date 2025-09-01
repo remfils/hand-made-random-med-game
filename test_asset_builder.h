@@ -42,6 +42,19 @@ struct loaded_sound
     void *Free;
 };
 
+struct loaded_font
+{
+    stbtt_fontinfo Info;
+    r32 Size;
+    r32 Factor;
+    void *Free;
+    u32 CodePointCount;
+    r32 LineAdvance;
+
+    bitmap_id *BitmapIds;
+    r32 *HorizontalAdvance;
+};
+
 enum asset_state
 {
     AssetState_Unloaded,
@@ -66,15 +79,41 @@ enum asset_file_type
     AssetFileType_Sound,
     AssetFileType_Bitmap,
     AssetFileType_Font,
+    AssetFileType_FontGlyph,
+};
+
+struct asset_source_bitmap
+{
+    char *FileName;
+};
+
+struct asset_source_font
+{
+    char *FileName;
+    loaded_font *Font;
+};
+
+struct asset_source_font_glyph
+{
+    loaded_font *Font;
+    u32 CodePoint;
+};
+
+struct asset_source_sound
+{
+    char *FileName;
+    u32 FirstSampleIndex;
 };
 
 struct source_asset
 {
     asset_file_type AssetFileType;
-    char *FileName;
-    union {
-        u32 FirstSampleIndex;
-        u32 CodePoint;
+    union
+    {
+        asset_source_bitmap Bitmap;
+        asset_source_sound Sound;
+        asset_source_font Font;
+        asset_source_font_glyph FontGlyph;
     };
 };
 

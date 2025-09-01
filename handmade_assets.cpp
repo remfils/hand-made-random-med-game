@@ -42,11 +42,18 @@ internal PLATFORM_WORK_QUEUE_CALLBACK(DoLoadAssetWork)
     EndTaskWithMemory(work->Task);
 }
 
+inline asset_file *
+GetFile(game_assets *assets, u32 fileIndex)
+{
+    Assert(fileIndex < assets->FileCount);
+    asset_file *result = assets->Files + fileIndex;
+    return result;
+}
+
 inline platform_file_handle *
 GetFileHandle(game_assets *assets, u32 fileIndex)
 {
-    Assert(fileIndex < assets->FileCount);
-    platform_file_handle *result = &assets->Files[fileIndex].Handle;
+    platform_file_handle *result = &GetFile(assets, fileIndex)->Handle;
     return result;
 }
 
@@ -162,20 +169,23 @@ LoadFont(game_assets *assets, font_id id, b32 immidiate)
                 
                 asset->Header = AcquireAssetMemory(assets, sizeTotal, id.Value);
 
+                asset_file *file = GetFile(assets, asset->FileIndex);
+
                 loaded_font *font = &asset->Header->Font;
                 font->CodePoints = (bitmap_id *)(asset->Header + 1);
                 font->HorizontalAdvance = (r32 *)((u32*)font->CodePoints + codePointSize);
+                font->BitmapIdOffset = file->FontBitmapIdOffset;
 
                 load_asset_work work;
 
                 work.Task = task;
                 work.Asset = asset;
                 
-                work.Handle = GetFileHandle(assets, asset->FileIndex);
+                work.Handle = &file->Handle;
                 work.Offset = asset->HHA.DataOffset;
                 work.Size = sizeData;
                 work.Destination = font->CodePoints;
-                
+
                 work.FinalState = AssetState_Loaded;
 
                 if (immidiate)
@@ -435,6 +445,7 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
             asset_file *file = assets->Files + i;
             file->Handle = PlatformAPI.OpenNextFile(&fileGroup);
             file->TagBase = assets->TagCount;
+            file->FontBitmapIdOffset = 0;
             
             ZeroStruct(file->Header);
             PlatformAPI.ReadDataFromFile(&file->Handle, 0, sizeof(file->Header), &file->Header);
@@ -506,6 +517,11 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
             {
                 hha_asset_type *sourceType = file->AssetTypes + sourceIdx;
                 if (sourceType->TypeId == destTypeId) {
+                    if (sourceType->TypeId == AssetType_FontGlyph)
+                    {
+                        file->FontBitmapIdOffset = assetCount - sourceType->FirstAssetIndex;
+                    }
+                    
                     u32 assetCountForType (sourceType->OnePastLastAssetIndex - sourceType->FirstAssetIndex);
                     u64 firstAssetToReadFrom = file->Header.AssetOffset + sourceType->FirstAssetIndex * sizeof(hha_asset);
 
@@ -592,7 +608,7 @@ GetBitmapForGlyph(game_assets *assets, hha_font *info, loaded_font *font, u32 re
 {
     requestedCodePoint = GetClampedCodePoint(info, requestedCodePoint);
     bitmap_id result = font->CodePoints[requestedCodePoint];
-    
+    result.Value += font->BitmapIdOffset;
     return result;
 }
 

@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [4/502]
+* to be done [6/502]
 ** DONE Handmade Hero Day 166 - Adding Locks to the Asset Operations
 - [[https://www.youtube.com/watch?v=jIWa0AZz2Sk]]
 
@@ -21,10 +21,10 @@
 ** DONE Handmade Hero Day 169 - Aligning Text to a Baseline
 - [[https://www.youtube.com/watch?v=fVyzTKCfchw]]
 
-** TODO Handmade Hero Day 170 - Defining Font Metadata
+** DONE Handmade Hero Day 170 - Defining Font Metadata
 - [[https://www.youtube.com/watch?v=eIi2OYFWfdQ]]
   
-** TODO Handmade Hero Day 171 - Adding Font Metadata to the Asset Builder
+** DONE Handmade Hero Day 171 - Adding Font Metadata to the Asset Builder
 - [[https://www.youtube.com/watch?v=tJMvJaM-BtY]]
 
 ** TODO Handmade Hero Day 172 - Extracting Kerning Tables from Windows

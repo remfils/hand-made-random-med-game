@@ -26,6 +26,7 @@ struct loaded_font
 {
     bitmap_id *CodePoints;
     r32 *HorizontalAdvance;
+    u32 BitmapIdOffset;
 };
 
 enum asset_state
@@ -82,6 +83,7 @@ struct asset_file
     platform_file_handle Handle;
     hha_asset_type *AssetTypes;
     u32 TagBase;
+    u32 FontBitmapIdOffset;
 };
 
 struct asset_memory_header
@@ -105,10 +107,10 @@ struct asset_memory_header
 struct asset
 {
     u32 State;
-    u32 FileIndex;
-    hha_asset HHA;
-
     asset_memory_header *Header;
+    
+    hha_asset HHA;
+    u32 FileIndex;
 };
 
 enum asset_memory_block_flags
@@ -256,7 +258,7 @@ GetSound(game_assets *assets, sound_id id, u32 generationId)
     return result;
 }
 
-inline loaded_font*
+internal loaded_font*
 GetFont(game_assets *assets, font_id id, u32 generationId)
 {
     asset_memory_header *header = GetAsset(assets, id.Value, generationId);

@@ -667,6 +667,12 @@ DebugTextLine(char *string)
         font_id fontId = BestMatchFont(DEBUGRenderGroup->Assets, &mV, &weight);
         loaded_font *font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
 
+        if (!font)
+        {
+            LoadFont(DEBUGRenderGroup->Assets, fontId, true);
+            font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
+        }
+
         if (font)
         {
             hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
