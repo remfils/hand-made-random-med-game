@@ -457,7 +457,8 @@ LoadGlyph(char *fontFile, u32 codePoint, hha_asset *assetDst)
 
     int width=0,height=0,advance=0,lsb=0,ascent=0,descent=0,lineGap=0,xoff=0,yoff=0;
 
-    float fontSize = 42.0f;
+    // TODO: add 1px padding for texel premultiplied aplha
+    float fontSize = 78.0f;
     float scaleFactor = stbtt_ScaleForPixelHeight(&font, fontSize);
     stbtt_GetCodepointHMetrics(&font, codePoint, &advance, &lsb);
     stbtt_GetFontVMetrics(&font, &ascent, &descent, &lineGap);
@@ -497,10 +498,10 @@ LoadGlyph(char *fontFile, u32 codePoint, hha_asset *assetDst)
             texel = Linear_1_ToSRGB255(texel);
             
             *dest++ = (
-                        ((uint32)(texel.a + 0.5f) << 24)
-                        | ((uint32)(texel.r + 0.5f) << 16)
-                        | ((uint32)(texel.g + 0.5f) << 8)
-                        | ((uint32)(texel.b + 0.5f) << 0)
+                        ((u32)(texel.a + 0.5f) << 24)
+                        | ((u32)(texel.r + 0.5f) << 16)
+                        | ((u32)(texel.g + 0.5f) << 8)
+                        | ((u32)(texel.b + 0.5f) << 0)
                         );
             #else
             *dest++ = (

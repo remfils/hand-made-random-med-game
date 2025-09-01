@@ -662,29 +662,40 @@ DebugTextLine(char *string)
     if (DEBUGRenderGroup) {
         asset_vector mV = {};
         asset_vector weight = {};
-    
         weight.E[Tag_UnicodePoint] = 1.0f;
+        //mV.E[Tag_UnicodePoint] = (r32)codePoint;
+        font_id fontId = BestMatchFont(DEBUGRenderGroup->Assets, &mV, &weight);
+        loaded_font *font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
 
-        r32 atX = DEBUG_LeftEdge;
-        r32 scale = DEBUG_FontScale;
-
-        for (char *at = string;
-             *at;
-             ++at)
+        if (font)
         {
-            r32 charDim = scale;
-            if (*at != ' ') {
-                mV.E[Tag_UnicodePoint] = (r32)*at;
-                bitmap_id bitmapId = BestMatchBitmap(DEBUGRenderGroup->Assets, AssetType_Font, &mV, &weight);
-                
-                hha_bitmap *info = GetBitmapInfo(DEBUGRenderGroup->Assets, bitmapId);
+            hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
+            r32 atX = DEBUG_LeftEdge;
+            r32 scale = DEBUG_FontScale;
 
-                charDim = (r32)info->Dim[0];
-                PushBitmap(DEBUGRenderGroup, bitmapId, (r32)info->Dim[1], ToV3(atX,DEBUG_LineY,0), ToV4(1,1,1,1));
+            u32 prevCodePoint = 0;
+
+            for (char *at = string;
+                 *at;
+                 ++at)
+            {
+                r32 charDim = scale;
+                u32 codePoint = *at;
+
+                r32 advanceX = scale * GetHorizontalAdvanceForPair(fontInfo, font, prevCodePoint, codePoint);
+                atX += advanceX;
+                if (codePoint != ' ') {
+                    bitmap_id bitmapId = GetBitmapForGlyph(DEBUGRenderGroup->Assets, fontInfo, font, codePoint);
+                
+                    hha_bitmap *info = GetBitmapInfo(DEBUGRenderGroup->Assets, bitmapId);
+
+                    PushBitmap(DEBUGRenderGroup, bitmapId, (r32)info->Dim[1], ToV3(atX,DEBUG_LineY,0), ToV4(1,1,1,1));
+                }
+
+                prevCodePoint = *at;
             }
-            atX += 1.1f * charDim;
+            DEBUG_LineY -= GetVerticalLineAdvance(fontInfo) * scale;
         }
-        DEBUG_LineY -= 1.2f * scale;
     }
 }
 

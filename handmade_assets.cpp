@@ -136,6 +136,76 @@ LoadBitmap(game_assets *assets, bitmap_id id, b32 immidiate)
 }
 
 internal void
+LoadFont(game_assets *assets, font_id id, b32 immidiate)
+{
+    if (id.Value)
+    {
+        asset *asset = assets->Assets + id.Value;
+        asset_state currentState = (asset_state)AtomicCompareExchange((uint32 *)&asset->State, AssetState_Unloaded, AssetState_Queued);
+        if (currentState == AssetState_Unloaded)
+        {
+            task_with_memory *task = 0;
+
+            if (!immidiate)
+            {
+                task = BeginTaskWithMemory(assets->TranState);
+            }
+    
+            if (immidiate || task)
+            {
+                hha_font *info = &asset->HHA.Font;
+
+                u32 codePointSize = sizeof(bitmap_id) * info->CodePointCount;
+                u32 horizontalAdvanceTableSize = sizeof(r32) * info->CodePointCount * info->CodePointCount;
+                u32 sizeData = codePointSize + horizontalAdvanceTableSize;
+                u32 sizeTotal = sizeData + sizeof(asset_memory_header);
+                
+                asset->Header = AcquireAssetMemory(assets, sizeTotal, id.Value);
+
+                loaded_font *font = &asset->Header->Font;
+                font->CodePoints = (bitmap_id *)(asset->Header + 1);
+                font->HorizontalAdvance = (r32 *)((u32*)font->CodePoints + codePointSize);
+
+                load_asset_work work;
+
+                work.Task = task;
+                work.Asset = asset;
+                
+                work.Handle = GetFileHandle(assets, asset->FileIndex);
+                work.Offset = asset->HHA.DataOffset;
+                work.Size = sizeData;
+                work.Destination = font->CodePoints;
+                
+                work.FinalState = AssetState_Loaded;
+
+                if (immidiate)
+                {
+                    LoadAssetWorkDirectly(&work);
+                }
+                else 
+                {
+                    load_asset_work *taskWork = PushStruct(&task->Arena, load_asset_work);
+                    *taskWork = work;
+                    PlatformAPI.AddEntry(assets->TranState->LowPriorityQueue, DoLoadAssetWork, taskWork);
+                }
+            } else {
+                // NOTE: if task to load not found return to unloaded
+                asset->State = AssetState_Unloaded;
+            }
+        } else {
+
+            if (immidiate) {
+                // NOTE: this is to handle case when two or more
+                // immidiate loads execute at the same time
+                asset_state volatile *state = (asset_state volatile *)&asset->State;
+                while(*state == AssetState_Queued) {}
+            }
+            
+        }
+    }
+}
+
+internal void
 LoadSound(game_assets *assets, sound_id id)
 {
     if (id.Value)
@@ -276,6 +346,15 @@ BestMatchSound(game_assets *assets,
                )
 {
     sound_id result = {BestMatchAsset(assets, assetType, matchVector, weightVector)};
+    return result;
+}
+
+inline font_id
+BestMatchFont(game_assets *assets,
+               asset_vector *matchVector,
+               asset_vector *weightVector)
+{
+    font_id result = {BestMatchAsset(assets, AssetType_Font, matchVector, weightVector)};
     return result;
 }
 
@@ -495,4 +574,41 @@ EndGeneration(game_assets *assets, u32 generationId)
     }
 
     EndAssetLock(assets);
+}
+
+inline u32
+GetClampedCodePoint(hha_font *info, u32 requestedCodePoint)
+{
+    u32 codePoint = 0;
+    if (requestedCodePoint < info->CodePointCount)
+    {
+        codePoint = requestedCodePoint;
+    }
+    return codePoint;
+}
+
+internal bitmap_id
+GetBitmapForGlyph(game_assets *assets, hha_font *info, loaded_font *font, u32 requestedCodePoint)
+{
+    requestedCodePoint = GetClampedCodePoint(info, requestedCodePoint);
+    bitmap_id result = font->CodePoints[requestedCodePoint];
+    
+    return result;
+}
+
+internal r32
+GetHorizontalAdvanceForPair(hha_font *info, loaded_font *font, u32 prev, u32 current)
+{
+    prev = GetClampedCodePoint(info, prev);
+    current = GetClampedCodePoint(info, current);
+    r32 result = font->HorizontalAdvance[prev * info->CodePointCount + current];
+
+    return result;
+}
+
+internal r32
+GetVerticalLineAdvance(hha_font *info)
+{
+    r32 result = info->LineAdvance;
+    return result;
 }

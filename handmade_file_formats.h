@@ -37,6 +37,7 @@ enum asset_type_id
     AssetType_HumanShadow,
     
     AssetType_Font,
+    AssetType_FontGlyph,
 
     /****************************************************************************************************
      * SOUNDS
@@ -62,6 +63,10 @@ struct bitmap_id
     u32 Value;
 };
 struct sound_id
+{
+    u32 Value;
+};
+struct font_id
 {
     u32 Value;
 };
@@ -109,6 +114,18 @@ struct hha_sound
     u32 ChannelCount;
 };
 
+struct hha_font
+{
+    u32 CodePointCount;
+    r32 LineAdvance;
+    /*
+      NOTE: data is loaded
+
+    bitmap_id *CodePoints;
+    r32 *HorizontalAdvance;
+    */
+};
+
 struct hha_asset
 {
     u64 DataOffset;
@@ -119,6 +136,7 @@ struct hha_asset
     {
         hha_bitmap Bitmap;
         hha_sound Sound;
+        hha_font Font;
     };
 };
 

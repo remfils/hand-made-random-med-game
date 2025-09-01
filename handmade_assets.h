@@ -22,6 +22,12 @@ struct loaded_sound
     u32 ChannelCount;
 };
 
+struct loaded_font
+{
+    bitmap_id *CodePoints;
+    r32 *HorizontalAdvance;
+};
+
 enum asset_state
 {
     AssetState_Unloaded,
@@ -92,6 +98,7 @@ struct asset_memory_header
     {
         loaded_bitmap Bitmap;
         loaded_sound Sound;
+        loaded_font Font;
     };
 };
 
@@ -249,6 +256,14 @@ GetSound(game_assets *assets, sound_id id, u32 generationId)
     return result;
 }
 
+inline loaded_font*
+GetFont(game_assets *assets, font_id id, u32 generationId)
+{
+    asset_memory_header *header = GetAsset(assets, id.Value, generationId);
+    loaded_font *result = header? &header->Font : 0;
+    return result;
+}
+
 inline hha_bitmap*
 GetBitmapInfo(game_assets *assets, bitmap_id id)
 {
@@ -262,6 +277,14 @@ GetSoundInfo(game_assets *assets, sound_id id)
 {
     Assert(id.Value <= assets->AssetCount);
     hha_sound *result = &assets->Assets[id.Value].HHA.Sound;
+    return result;
+}
+
+inline hha_font*
+GetFontInfo(game_assets *assets, font_id id)
+{
+    Assert(id.Value <= assets->AssetCount);
+    hha_font *result = &assets->Assets[id.Value].HHA.Font;
     return result;
 }
 

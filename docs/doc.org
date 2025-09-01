@@ -23,7 +23,7 @@
 
 ** TODO Handmade Hero Day 170 - Defining Font Metadata
 - [[https://www.youtube.com/watch?v=eIi2OYFWfdQ]]
-
+  
 ** TODO Handmade Hero Day 171 - Adding Font Metadata to the Asset Builder
 - [[https://www.youtube.com/watch?v=tJMvJaM-BtY]]
 
