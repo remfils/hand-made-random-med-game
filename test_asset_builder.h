@@ -46,6 +46,8 @@ struct loaded_font
 {
     stbtt_fontinfo Info;
     r32 Size;
+    r32 Ascend;
+    r32 Descend;
     r32 Factor;
     void *Free;
     u32 CodePointCount;

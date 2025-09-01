@@ -118,6 +118,8 @@ struct hha_font
 {
     u32 CodePointCount;
     r32 LineAdvance;
+    r32 Ascend;
+    r32 Descend;
     /*
       NOTE: data is loaded
 

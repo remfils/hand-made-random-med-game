@@ -78,6 +78,9 @@ AddLetterAsset(game_assets *assets, loaded_font *font, u32 codePoint)
     assetSrc->FontGlyph.CodePoint = codePoint;
     assetSrc->AssetFileType = AssetFileType_FontGlyph;
 
+    result.HHA->Bitmap.AlignPercentage.x = 0;
+    result.HHA->Bitmap.AlignPercentage.y = 0;
+
     return {result.Id};
 }
 
@@ -469,13 +472,15 @@ LoadFont(char *fileName, u32 codePointCount)
 {
     loaded_font *font = (loaded_font *)malloc(sizeof(loaded_font));
     entire_file fileResult = ReadEntireFile(fileName);
-    s32 lineGap=0;
+    s32 lineGap=0, ascend=0, descend=0;
     
     stbtt_InitFont(&font->Info, (u8 *)fileResult.Content, stbtt_GetFontOffsetForIndex((u8 *)fileResult.Content, 0));
-    stbtt_GetFontVMetrics(&font->Info, 0, 0, &lineGap);
+    stbtt_GetFontVMetrics(&font->Info, &ascend, &descend, &lineGap);
 
     font->Size = 128.0f;
     font->Factor = stbtt_ScaleForPixelHeight(&font->Info, font->Size);
+    font->Ascend = (r32)ascend * font->Factor;
+    font->Descend = (r32)descend * font->Factor;
     font->Free = fileResult.Content;
 
     font->CodePointCount = codePointCount;
@@ -484,21 +489,26 @@ LoadFont(char *fileName, u32 codePointCount)
     font->BitmapIds = (bitmap_id *)malloc(sizeof(bitmap_id) * codePointCount);
     font->HorizontalAdvance = (r32 *)malloc(sizeof(r32) * codePointCount * codePointCount);
 
-    for (u32 otherCodePoint = 0;
-         otherCodePoint < font->CodePointCount;
-         otherCodePoint++)
+    for (u32 currentCodePoint = 0;
+         currentCodePoint < font->CodePointCount;
+         currentCodePoint++)
     {
-        for (u32 codePoint = 0;
-             codePoint < font->CodePointCount;
-             codePoint++)
+        s32 advance=0,lsb=0;
+        if (currentCodePoint != 0) {
+            stbtt_GetCodepointHMetrics(&font->Info, currentCodePoint, &advance, &lsb);
+            // remove xoff from advance
+            advance += lsb;
+        }
+        
+        for (u32 prevCodePoint = 0;
+             prevCodePoint < font->CodePointCount;
+             prevCodePoint++)
         {
-            s32 advance=0;
-            stbtt_GetCodepointHMetrics(&font->Info, codePoint, &advance, 0);
-            //r32 dx = (r32)stbtt_GetCodepointKernAdvance(&font->Info, otherCodePoint, codePoint);
-            r32 dx = 0;
+            r32 dx = (r32)stbtt_GetCodepointKernAdvance(&font->Info, prevCodePoint, currentCodePoint);
             dx += (r32)advance;
 
-            font->HorizontalAdvance[otherCodePoint * font->CodePointCount + codePoint] = dx * font->Factor;
+            // prevCodePoint is prev, currentCodePoint is current
+            font->HorizontalAdvance[prevCodePoint * font->CodePointCount + currentCodePoint] = dx * font->Factor;
         }
     }
 
@@ -525,10 +535,9 @@ ZeroSize(memory_index size, void *ptr)
 internal loaded_bitmap
 LoadGlyph(loaded_font *font, u32 codePoint, hha_asset *assetDst)
 {
-    int width=0,height=0,advance=0,lsb=0,ascent=0,descent=0,lineGap=0,xoff=0,yoff=0;
+    int width=0,height=0,advance=0,lineGap=0,xoff=0,yoff=0;
 
-    // TODO: add 1px padding for texel premultiplied aplha
-    stbtt_GetCodepointHMetrics(&font->Info, codePoint, &advance, &lsb);
+    //stbtt_GetCodepointHMetrics(&font->Info, codePoint, &advance, &lsb);
     u8 *bitmap = stbtt_GetCodepointBitmap(&font->Info, 0, stbtt_ScaleForPixelHeight(&font->Info, font->Size), codePoint, &width, &height, &xoff, &yoff);
 
     loaded_bitmap result = {};
@@ -540,8 +549,8 @@ LoadGlyph(loaded_font *font, u32 codePoint, hha_asset *assetDst)
     ZeroSize(result.Height * result.Pitch, result.Memory);
     result.Free = result.Memory;
 
-    assetDst->Bitmap.AlignPercentage.x = (r32)xoff / (r32) width;
-    assetDst->Bitmap.AlignPercentage.y = ((r32) height + (r32)yoff ) /  (r32)height;
+    assetDst->Bitmap.AlignPercentage.x = (1.0f + (r32)width + (r32)xoff) / (r32)width;
+    assetDst->Bitmap.AlignPercentage.y = (1.0f + (r32) height + (r32)yoff) / (r32)height;
 
     u8 *source = bitmap;
     u8 *destRow = (u8 *)result.Memory + height * result.Pitch;
@@ -671,6 +680,8 @@ WriteAssetsFile(game_assets *assets, char *filename)
                 u32 horizontalAdvanceTableSize = sizeof(r32) * font->CodePointCount * font->CodePointCount;
 
                 assetDst->Font.CodePointCount = font->CodePointCount;
+                assetDst->Font.Ascend = font->Ascend;
+                assetDst->Font.Descend = font->Descend;
                 assetDst->Font.LineAdvance = font->LineAdvance;
 
                 fwrite(font->BitmapIds, codePointSize, 1, out);
@@ -793,8 +804,8 @@ void WriteNonHeroFiles()
 
     u32 codePointCount = '~' + 1;
 
-    loaded_font *debugFont = LoadFont("D:/Projects/local__HandmadeHero/data/iosevka-regular.ttf", codePointCount);
-    //loaded_font *debugFont = LoadFont("C:/Windows/Fonts/arial.ttf", codePointCount);
+    //loaded_font *debugFont = LoadFont("D:/Projects/local__HandmadeHero/data/iosevka-regular.ttf", codePointCount);
+    loaded_font *debugFont = LoadFont("C:/Windows/Fonts/arial.ttf", codePointCount);
     BeginAssetType(assets, AssetType_Font);
     AddFontAsset(assets, debugFont);
     EndAssetType(assets);

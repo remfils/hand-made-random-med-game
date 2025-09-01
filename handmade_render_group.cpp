@@ -587,12 +587,6 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 __m128 texelDb = _mm_cvtepi32_ps(_mm_and_si128(sampleD, maskFF_4x));
                 __m128 texelDa = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(sampleD, 24), maskFF_4x));
 
-                // v4 destPixel = Unpack4x8(*pixel);
-                __m128 destr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 16), maskFF_4x));
-                __m128 destg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 8), maskFF_4x));
-                __m128 destb = _mm_cvtepi32_ps(_mm_and_si128(originalDest, maskFF_4x));
-                __m128 desta = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 24), maskFF_4x));
-
                 texelAr = _mm_mul_ps(texelAr, texelAr);
                 texelAg = _mm_mul_ps(texelAg, texelAg);
                 texelAb = _mm_mul_ps(texelAb, texelAb);
@@ -631,6 +625,12 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
                 texelr = _mm_min_ps(_mm_max_ps(texelr, zero_4x), val255255_4x);
                 texelg = _mm_min_ps(_mm_max_ps(texelg, zero_4x), val255255_4x);
                 texelb = _mm_min_ps(_mm_max_ps(texelb, zero_4x), val255255_4x);
+
+                // v4 destPixel = Unpack4x8(*pixel);
+                __m128 destr = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 16), maskFF_4x));
+                __m128 destg = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 8), maskFF_4x));
+                __m128 destb = _mm_cvtepi32_ps(_mm_and_si128(originalDest, maskFF_4x));
+                __m128 desta = _mm_cvtepi32_ps(_mm_and_si128(_mm_srli_epi32(originalDest, 24), maskFF_4x));
 
                 destr = _mm_mul_ps(destr, destr);
                 destg = _mm_mul_ps(destg, destg);

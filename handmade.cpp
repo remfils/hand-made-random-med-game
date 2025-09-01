@@ -648,12 +648,20 @@ global_variable r32 DEBUG_LineY = 0.0f;
 global_variable r32 DEBUG_FontScale = 0.0f;
 
 internal void
-DEBGUReset(u32 width, u32 height)
+DEBUGReset(u32 width, u32 height)
 {
     MakeOrthographic(DEBUGRenderGroup, width, height, 1.0f);
-    DEBUG_FontScale = 20.0f;
-    DEBUG_LineY = 0.5f * (r32)height -  0.5f * DEBUG_FontScale;
-    DEBUG_LeftEdge = -0.5f * (r32)width + 0.5f * DEBUG_FontScale;
+    asset_vector mV = {};
+    asset_vector weight = {};
+    weight.E[Tag_UnicodePoint] = 1.0f;
+
+    font_id fontId = BestMatchFont(DEBUGRenderGroup->Assets, &mV, &weight);
+
+    hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
+    
+    DEBUG_FontScale = 0.3f;
+    DEBUG_LineY = 0.5f * (r32)height - fontInfo->Ascend * DEBUG_FontScale + 1.0f;
+    DEBUG_LeftEdge = -0.5f * (r32)width;
 }
 
 internal void
@@ -677,7 +685,7 @@ DebugTextLine(char *string)
         {
             hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
             r32 atX = DEBUG_LeftEdge;
-            r32 scale = 0.3f;
+            r32 scale = DEBUG_FontScale;
 
             u32 prevCodePoint = 0;
 
@@ -1101,7 +1109,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     if (DEBUGRenderGroup)
     {
         BeginRender(DEBUGRenderGroup);
-        DEBGUReset(buffer->Width, buffer->Height);
+        DEBUGReset(buffer->Width, buffer->Height);
     }
 
     if (input->ExecutableReloaded)

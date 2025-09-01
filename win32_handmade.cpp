@@ -1301,6 +1301,8 @@ int CALLBACK WinMain(
 
     u32 windowWidth = 960;
     u32 windowHeight = 540;
+    //windowWidth = 1920;
+    //windowHeight = 1080;
     Win32ResizeDIBSection(&globalBackbuffer, windowWidth, windowHeight);
     
     //Win32ResizeDIBSection(&globalBackbuffer, 1920/2, 1080/2);
