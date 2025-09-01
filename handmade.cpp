@@ -677,7 +677,7 @@ DebugTextLine(char *string)
         {
             hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
             r32 atX = DEBUG_LeftEdge;
-            r32 scale = DEBUG_FontScale;
+            r32 scale = 0.3f;
 
             u32 prevCodePoint = 0;
 
@@ -688,14 +688,15 @@ DebugTextLine(char *string)
                 r32 charDim = scale;
                 u32 codePoint = *at;
 
-                r32 advanceX = scale * GetHorizontalAdvanceForPair(fontInfo, font, prevCodePoint, codePoint);
+                r32 advanceX = scale*GetHorizontalAdvanceForPair(fontInfo, font, prevCodePoint, codePoint);
                 atX += advanceX;
+                //atX += scale;
                 if (codePoint != ' ') {
                     bitmap_id bitmapId = GetBitmapForGlyph(DEBUGRenderGroup->Assets, fontInfo, font, codePoint);
                 
                     hha_bitmap *info = GetBitmapInfo(DEBUGRenderGroup->Assets, bitmapId);
 
-                    PushBitmap(DEBUGRenderGroup, bitmapId, (r32)info->Dim[1], ToV3(atX,DEBUG_LineY,0), ToV4(1,1,1,1));
+                    PushBitmap(DEBUGRenderGroup, bitmapId, scale*(r32)info->Dim[1], ToV3(atX,DEBUG_LineY,0), ToV4(1,1,1,1));
                 }
 
                 prevCodePoint = *at;

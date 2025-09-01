@@ -474,15 +474,33 @@ LoadFont(char *fileName, u32 codePointCount)
     stbtt_InitFont(&font->Info, (u8 *)fileResult.Content, stbtt_GetFontOffsetForIndex((u8 *)fileResult.Content, 0));
     stbtt_GetFontVMetrics(&font->Info, 0, 0, &lineGap);
 
-    font->Size = 78.0f;
+    font->Size = 128.0f;
     font->Factor = stbtt_ScaleForPixelHeight(&font->Info, font->Size);
     font->Free = fileResult.Content;
 
     font->CodePointCount = codePointCount;
-    font->LineAdvance = (r32)lineGap * font->Factor;
+    font->LineAdvance = (font->Size + (r32)lineGap * font->Factor) ;
 
     font->BitmapIds = (bitmap_id *)malloc(sizeof(bitmap_id) * codePointCount);
     font->HorizontalAdvance = (r32 *)malloc(sizeof(r32) * codePointCount * codePointCount);
+
+    for (u32 otherCodePoint = 0;
+         otherCodePoint < font->CodePointCount;
+         otherCodePoint++)
+    {
+        for (u32 codePoint = 0;
+             codePoint < font->CodePointCount;
+             codePoint++)
+        {
+            s32 advance=0;
+            stbtt_GetCodepointHMetrics(&font->Info, codePoint, &advance, 0);
+            //r32 dx = (r32)stbtt_GetCodepointKernAdvance(&font->Info, otherCodePoint, codePoint);
+            r32 dx = 0;
+            dx += (r32)advance;
+
+            font->HorizontalAdvance[otherCodePoint * font->CodePointCount + codePoint] = dx * font->Factor;
+        }
+    }
 
     return font;
 }
@@ -491,6 +509,17 @@ internal void
 FreeFont(loaded_font *font)
 {
     free(font->Free);
+}
+
+inline void
+ZeroSize(memory_index size, void *ptr)
+{
+    // TODO(casey): performance
+    uint8 *byte = (uint8*)ptr;
+    while (size--)
+    {
+        *byte++ = 0;
+    }
 }
 
 internal loaded_bitmap
@@ -503,26 +532,31 @@ LoadGlyph(loaded_font *font, u32 codePoint, hha_asset *assetDst)
     u8 *bitmap = stbtt_GetCodepointBitmap(&font->Info, 0, stbtt_ScaleForPixelHeight(&font->Info, font->Size), codePoint, &width, &height, &xoff, &yoff);
 
     loaded_bitmap result = {};
-    result.Width = width;
-    result.Height = height;
+    result.Width = width + 2;
+    result.Height = height + 2;
     result.Pitch = result.Width * 4;
 
     result.Memory = malloc(result.Height * result.Pitch);
+    ZeroSize(result.Height * result.Pitch, result.Memory);
     result.Free = result.Memory;
 
-    assetDst->Bitmap.AlignPercentage.x = 0.0f;
-    assetDst->Bitmap.AlignPercentage.y = ((float) height + (float)yoff ) /  (float)height;
+    assetDst->Bitmap.AlignPercentage.x = (r32)xoff / (r32) width;
+    assetDst->Bitmap.AlignPercentage.y = ((r32) height + (r32)yoff ) /  (r32)height;
 
     u8 *source = bitmap;
-    u8 *destRow = (u8 *)result.Memory + (height - 1) * result.Pitch;
+    u8 *destRow = (u8 *)result.Memory + height * result.Pitch;
     for (s32 y=0; y < height; y++)
     {
         u32 *dest = (u32 *)destRow;
+        *dest++ = (
+            (0 << 24)
+            | (0 << 16)
+            | (0 << 8)
+            | (0 << 0)
+            );
         for (s32 x=0; x < width; x++)
         {
             u8 alpha = *source++;
-
-            #if 1
 
             // NOTE: this removes black fringes on text - premultiply
             // alpha
@@ -532,31 +566,44 @@ LoadGlyph(loaded_font *font, u32 codePoint, hha_asset *assetDst)
             texel = Linear_1_ToSRGB255(texel);
             
             *dest++ = (
-                        ((u32)(texel.a + 0.5f) << 24)
-                        | ((u32)(texel.r + 0.5f) << 16)
-                        | ((u32)(texel.g + 0.5f) << 8)
-                        | ((u32)(texel.b + 0.5f) << 0)
-                        );
-            #else
-            *dest++ = (
-                (alpha << 24)
-                | (alpha << 16)
-                | (alpha << 8)
-                | (alpha << 0));
-
-            #endif
+                ((u32)(texel.a + 0.5f) << 24)
+                | ((u32)(texel.r + 0.5f) << 16)
+                | ((u32)(texel.g + 0.5f) << 8)
+                | ((u32)(texel.b + 0.5f) << 0)
+                );
         }
+        *dest++ = (
+            (0 << 24)
+            | (0 << 16)
+            | (0 << 8)
+            | (0 << 0)
+            );
         destRow -= result.Pitch;
     }
 
-    stbtt_FreeBitmap(bitmap, 0);
-
-    for (u32 otherCodePointIndex =0;
-         otherCodePointIndex < font->CodePointCount;
-         otherCodePointIndex++)
-    {
-        font->HorizontalAdvance[codePoint * font->CodePointCount + otherCodePointIndex] = (r32)result.Width;
+    /*
+    u32 *dest = (u32 *)result.Memory;
+    for (s32 x=0; x < result.Width; x++) {
+        *dest++ = (
+            (0 << 24)
+            | (0 << 16)
+            | (0 << 8)
+            | (0 << 0)
+            );
     }
+
+    dest = (u32 *)result.Memory + (result.Height - 1) * result.Pitch;;
+    for (s32 x=0; x < result.Width; x++) {
+        *dest++ = (
+            (0 << 24)
+            | (0 << 16)
+            | (0 << 8)
+            | (0 << 0)
+            );
+    }
+    */
+
+    stbtt_FreeBitmap(bitmap, 0);
 
     return result;
 }
@@ -747,6 +794,7 @@ void WriteNonHeroFiles()
     u32 codePointCount = '~' + 1;
 
     loaded_font *debugFont = LoadFont("D:/Projects/local__HandmadeHero/data/iosevka-regular.ttf", codePointCount);
+    //loaded_font *debugFont = LoadFont("C:/Windows/Fonts/arial.ttf", codePointCount);
     BeginAssetType(assets, AssetType_Font);
     AddFontAsset(assets, debugFont);
     EndAssetType(assets);

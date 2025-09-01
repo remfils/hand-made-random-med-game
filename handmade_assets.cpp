@@ -620,9 +620,12 @@ GetBitmapForGlyph(game_assets *assets, hha_font *info, loaded_font *font, u32 re
 internal r32
 GetHorizontalAdvanceForPair(hha_font *info, loaded_font *font, u32 prev, u32 current)
 {
-    prev = GetClampedCodePoint(info, prev);
-    current = GetClampedCodePoint(info, current);
-    r32 result = font->HorizontalAdvance[prev * info->CodePointCount + current];
+    r32 result = 0.0f;
+    if (prev && current) {
+        prev = GetClampedCodePoint(info, prev);
+        current = GetClampedCodePoint(info, current);
+        result = font->HorizontalAdvance[prev * info->CodePointCount + current];
+    }
 
     return result;
 }
