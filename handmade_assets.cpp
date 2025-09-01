@@ -521,6 +521,11 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
                     {
                         file->FontBitmapIdOffset = assetCount - sourceType->FirstAssetIndex;
                     }
+
+                    if (sourceType->TypeId == AssetType_Font)
+                    {
+                        int a = 10;
+                    }
                     
                     u32 assetCountForType (sourceType->OnePastLastAssetIndex - sourceType->FirstAssetIndex);
                     u64 firstAssetToReadFrom = file->Header.AssetOffset + sourceType->FirstAssetIndex * sizeof(hha_asset);

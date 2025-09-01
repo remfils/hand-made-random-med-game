@@ -623,9 +623,13 @@ WriteAssetsFile(game_assets *assets, char *filename)
                 u32 codePointSize = sizeof(bitmap_id) * font->CodePointCount;
                 u32 horizontalAdvanceTableSize = sizeof(r32) * font->CodePointCount * font->CodePointCount;
 
+                assetDst->Font.CodePointCount = font->CodePointCount;
+                assetDst->Font.LineAdvance = font->LineAdvance;
+
                 fwrite(font->BitmapIds, codePointSize, 1, out);
                 fwrite(font->HorizontalAdvance, horizontalAdvanceTableSize, 1, out);
 
+                // NOTE: do not free
                 //free(font->Free);
             }
             else 
@@ -748,7 +752,7 @@ void WriteNonHeroFiles()
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_FontGlyph);
-    for (u32 letter = 'a'; letter <= '~'; letter++)
+    for (u32 letter = ' '; letter <= '~'; letter++)
     {
         debugFont->BitmapIds[letter] = AddLetterAsset(assets, debugFont, letter);
     }
