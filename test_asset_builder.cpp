@@ -455,14 +455,15 @@ LoadGlyph(char *fontFile, u32 codePoint, hha_asset *assetDst)
     entire_file fileResult = ReadEntireFile(fontFile);
     stbtt_InitFont(&font, (u8 *)fileResult.Content, stbtt_GetFontOffsetForIndex((u8 *)fileResult.Content, 0));
 
-    int width=0,height=0,advance=0,lsb=0,ascent=0,descent=0,lineGap=0;
+    int width=0,height=0,advance=0,lsb=0,ascent=0,descent=0,lineGap=0,xoff=0,yoff=0;
 
     float fontSize = 42.0f;
+    float scaleFactor = stbtt_ScaleForPixelHeight(&font, fontSize);
     stbtt_GetCodepointHMetrics(&font, codePoint, &advance, &lsb);
     stbtt_GetFontVMetrics(&font, &ascent, &descent, &lineGap);
-    u8 *bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, fontSize), codePoint, &width, &height, 0, 0);
+    u8 *bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, fontSize), codePoint, &width, &height, &xoff, &yoff);
 
-    if (codePoint == '_') {
+    if (codePoint == 'a') {
         int a = 0;
     }
 
@@ -475,7 +476,7 @@ LoadGlyph(char *fontFile, u32 codePoint, hha_asset *assetDst)
     result.Free = result.Memory;
 
     assetDst->Bitmap.AlignPercentage.x = 0.0f;
-    assetDst->Bitmap.AlignPercentage.y = -1 * (float)descent / (float)height;
+    assetDst->Bitmap.AlignPercentage.y = ((float) height + (float)yoff ) /  (float)height;
 
     u8 *source = bitmap;
     u8 *destRow = (u8 *)result.Memory + (height - 1) * result.Pitch;
@@ -486,7 +487,7 @@ LoadGlyph(char *fontFile, u32 codePoint, hha_asset *assetDst)
         {
             u8 alpha = *source++;
 
-            #if 0
+            #if 1
 
             // NOTE: this removes black fringes on text - premultiply
             // alpha
