@@ -14,6 +14,7 @@
 #include "handmade_file_formats.h"
 #include "test_asset_builder.h"
 
+#define ONE_PAST_MAX_FONT_CODEPOINT 0x10FFFF
 
 
 FILE *out;
@@ -80,6 +81,11 @@ AddLetterAsset(game_assets *assets, loaded_font *font, u32 codePoint)
 
     result.HHA->Bitmap.AlignPercentage.x = 0;
     result.HHA->Bitmap.AlignPercentage.y = 0;
+
+    Assert(debugFont->GlyphCount < debugFont->MaxGlyphCount);
+    hha_font_glyph *glyph = font->Glyphs + font->GlyphCount++;
+    glyph->UnicodeCodePoint = codePoint;
+    glyph->Id = {result.Id};
 
     return {result.Id};
 }
@@ -483,16 +489,45 @@ LoadFont(char *fileName, u32 codePointCount)
     font->Descend = (r32)descend * font->Factor;
     font->Free = fileResult.Content;
 
-    font->CodePointCount = codePointCount;
+    font->GlyphCount = 0;
+    font->MaxGlyphCount = 5000;
+    font->MinCodePoint = INT_MAX;
+    font->MaxCodePoint = 0;
+
     font->LineAdvance = (font->Size + (r32)lineGap * font->Factor) ;
 
-    font->BitmapIds = (bitmap_id *)malloc(sizeof(bitmap_id) * codePointCount);
-    font->HorizontalAdvance = (r32 *)malloc(sizeof(r32) * codePointCount * codePointCount);
+    font->Glyphs = (hha_font_glyph *)malloc(sizeof(hha_font_glyph) * font->MaxGlyphCount);
+    font->HorizontalAdvance = (r32 *)malloc(sizeof(r32) * font->MaxGlyphCount * font->MaxGlyphCount);
 
-    for (u32 currentCodePoint = 0;
-         currentCodePoint < font->CodePointCount;
-         currentCodePoint++)
+    #if 0
+    /*
+      why kerning is always zero......?
+     */
+    
+    for (int demo_point = ' ';
+         demo_point <= '~';
+         demo_point++)
     {
+        for (int demo2_point = ' ';
+             demo2_point <= '~';
+             demo2_point++)
+        {
+            int dx = stbtt__GetGlyphKernInfoAdvance(&font->Info, demo_point, demo2_point);
+            if (dx != 0) {
+                int a = 1;
+            }
+            
+        }
+    }
+
+    #endif
+
+    for (u32 currentGlyph = 0;
+         currentGlyph < font->GlyphCount;
+         currentGlyph++)
+    {
+        u32 currentCodePoint = font->Glyphs[currentGlyph].UnicodeCodePoint;
+
         s32 advance=0,lsb=0;
         if (currentCodePoint != 0) {
             stbtt_GetCodepointHMetrics(&font->Info, currentCodePoint, &advance, &lsb);
@@ -500,15 +535,17 @@ LoadFont(char *fileName, u32 codePointCount)
             advance += lsb;
         }
         
-        for (u32 prevCodePoint = 0;
-             prevCodePoint < font->CodePointCount;
-             prevCodePoint++)
+        for (u32 prevGlyph = 0;
+             prevGlyph < font->GlyphCount;
+             prevGlyph++)
         {
-            r32 dx = (r32)stbtt_GetCodepointKernAdvance(&font->Info, prevCodePoint, currentCodePoint);
-            dx += (r32)advance;
+            u32 prevCodePoint = font->Glyphs[prevGlyph].UnicodeCodePoint;
+            int dx = stbtt__GetGlyphGPOSInfoAdvance(&font->Info, prevCodePoint, currentCodePoint);
+            if (dx == 0) {
+                dx = stbtt__GetGlyphKernInfoAdvance(&font->Info, prevCodePoint, currentCodePoint);
+            }
 
-            // prevCodePoint is prev, currentCodePoint is current
-            font->HorizontalAdvance[prevCodePoint * font->CodePointCount + currentCodePoint] = dx * font->Factor;
+            font->HorizontalAdvance[prevCodePoint * font->MaxGlyphCount + currentCodePoint] = ((r32)dx + (r32)advance) * font->Factor;
         }
     }
 
@@ -590,28 +627,6 @@ LoadGlyph(loaded_font *font, u32 codePoint, hha_asset *assetDst)
         destRow -= result.Pitch;
     }
 
-    /*
-    u32 *dest = (u32 *)result.Memory;
-    for (s32 x=0; x < result.Width; x++) {
-        *dest++ = (
-            (0 << 24)
-            | (0 << 16)
-            | (0 << 8)
-            | (0 << 0)
-            );
-    }
-
-    dest = (u32 *)result.Memory + (result.Height - 1) * result.Pitch;;
-    for (s32 x=0; x < result.Width; x++) {
-        *dest++ = (
-            (0 << 24)
-            | (0 << 16)
-            | (0 << 8)
-            | (0 << 0)
-            );
-    }
-    */
-
     stbtt_FreeBitmap(bitmap, 0);
 
     return result;
@@ -676,16 +691,26 @@ WriteAssetsFile(game_assets *assets, char *filename)
             else if (assetSrc->AssetFileType == AssetFileType_Font)
             {
                 loaded_font *font = assetSrc->Font.Font;
-                u32 codePointSize = sizeof(bitmap_id) * font->CodePointCount;
-                u32 horizontalAdvanceTableSize = sizeof(r32) * font->CodePointCount * font->CodePointCount;
+                u32 glyphSize = sizeof(hha_font_glyph) * font->GlyphCount;
 
-                assetDst->Font.CodePointCount = font->CodePointCount;
+                assetDst->Font.CodePointCount = font->GlyphCount;
                 assetDst->Font.Ascend = font->Ascend;
                 assetDst->Font.Descend = font->Descend;
                 assetDst->Font.LineAdvance = font->LineAdvance;
 
-                fwrite(font->BitmapIds, codePointSize, 1, out);
-                fwrite(font->HorizontalAdvance, horizontalAdvanceTableSize, 1, out);
+                fwrite(font->Glyphs, glyphSize, 1, out);
+
+                u8 *rowData = (u8 *)font->HorizontalAdvance;
+                for (u32 rowCount=0; rowCount < font->GlyphCount; rowCount++)
+                {
+                    u32 sizeToWrite = sizeof(r32) * font->GlyphCount;
+                    fwrite(rowData, sizeToWrite, 1, out);
+
+                    u32 sizeToAdvance = sizeof(r32) * font->MaxGlyphCount;
+                    rowData += sizeToAdvance;
+                }
+                
+                //fwrite(font->HorizontalAdvance, horizontalAdvanceTableSize, 1, out);
 
                 // NOTE: do not free
                 //free(font->Free);
@@ -811,9 +836,14 @@ void WriteNonHeroFiles()
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_FontGlyph);
-    for (u32 letter = ' '; letter <= '~'; letter++)
+    for (u32 character = ' '; character <= '~'; character++)
     {
-        debugFont->BitmapIds[letter] = AddLetterAsset(assets, debugFont, letter);
+        AddLetterAsset(assets, debugFont, character);
+    }
+
+    for (u32 character = 0x0410 /*А*/; character <= 0x042F /*Я*/; character++)
+    {
+        AddLetterAsset(assets, debugFont, character);
     }
 
     EndAssetType(assets);

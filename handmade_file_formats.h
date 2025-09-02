@@ -114,6 +114,12 @@ struct hha_sound
     u32 ChannelCount;
 };
 
+struct hha_font_glyph
+{
+    u32 UnicodeCodePoint;
+    bitmap_id Id;
+};
+
 struct hha_font
 {
     u32 CodePointCount;

@@ -50,10 +50,16 @@ struct loaded_font
     r32 Descend;
     r32 Factor;
     void *Free;
-    u32 CodePointCount;
     r32 LineAdvance;
 
-    bitmap_id *BitmapIds;
+    
+
+    u32 MinCodePoint;
+    u32 MaxCodePoint;
+    u32 GlyphCount;
+    u32 MaxGlyphCount;
+
+    hha_font_glyph *Glyphs;
     r32 *HorizontalAdvance;
 };
 
