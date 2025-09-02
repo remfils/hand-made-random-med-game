@@ -4,7 +4,6 @@
 #include "handmade_render_group.cpp"
 #include "handmade_world.cpp"
 #include "handmade_sim_region.cpp"
-#include "handmade_sim_entity.cpp"
 #include "handmade_audio.cpp"
 
 #if HANDMADE_SLOW
@@ -659,7 +658,7 @@ DEBUGReset(u32 width, u32 height)
 
     hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
     
-    DEBUG_FontScale = 0.3f;
+    DEBUG_FontScale = 1.0f;
     DEBUG_LineY = 0.5f * (r32)height - fontInfo->Ascend * DEBUG_FontScale + 1.0f;
     DEBUG_LeftEdge = -0.5f * (r32)width;
 }
@@ -692,10 +691,12 @@ internal void
 DebugTextLine(char *string)
 {
     if (DEBUGRenderGroup) {
+
+        // TODO: move to static variables
         asset_vector mV = {};
         asset_vector weight = {};
-        weight.E[Tag_UnicodePoint] = 1.0f;
-        //mV.E[Tag_UnicodePoint] = (r32)codePoint;
+        mV.E[Tag_FontType] = (r32)FontType_Debug;
+        weight.E[Tag_FontType] = 1.0f;
         font_id fontId = BestMatchFont(DEBUGRenderGroup->Assets, &mV, &weight);
         loaded_font *font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
 
@@ -1949,6 +1950,33 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
 
 
 DEBUG_INIT_RECORD_ARRAY;
+DEBUG_DECLARE_RECORD_ARRAY_(Optimized);
+
+internal void
+RenderCycleCounterArray(debug_record *records, u32 recordsCount)
+{
+    for (u32 debugIndex=0;
+         debugIndex < recordsCount;
+         debugIndex++)
+    {
+        debug_record *record = records + debugIndex;
+
+        u64 value = AtomicExchange64(&record->Clocks_and_HitCount, 0);
+        u32 hitCount = (u32)(value >> 32);
+        u32 cycleCount = (u32)(value & 0xFFFFFFFF);
+
+        if (cycleCount > 0){
+            #if 0
+            char buffer[256];
+            _sprintf_s(buffer, 256, "\t%s: %I64u hits: %u, cycles per hit: %u\n", record->Function, cycleCount, hitCount, cycleCount / hitCount);
+
+            DebugTextLine(buffer);
+            #else
+            DebugTextLine(record->Function);
+            #endif
+        }
+    }
+}
 
 // NOTE: has to be after all code is loaded
 internal void
@@ -1957,22 +1985,7 @@ OverlayCycleCounters()
 #if HANDMADE_INTERNAL
     DebugTextLine("DEBUG CYCLES: \\0414\\0410\\0424\\0444\\0424!");
 
-    for (int32 debugIndex=0;
-         debugIndex < ArrayCount(DebugRecords_Main);
-         debugIndex++)
-    {
-        debug_record *record = DebugRecords_Main + debugIndex;
-
-        if (record->HitCount > 0){
-            #if 0
-            char buffer[256];
-            sprintf_s(buffer, 256, "\t%d: %I64u hits: %u, cycles per hit: %I64u\n", debugIndex, counter->CycleCount, counter->HitCount, counter->CycleCount / counter->HitCount);
-
-            DebugTextLine(buffer);
-            #else
-            DebugTextLine(record->Function);
-            #endif
-        }
-    }
+    RenderCycleCounterArray(Main_DebugRecords, Main_DebugRecordsCount);
+    RenderCycleCounterArray(Optimized_DebugRecords, Optimized_DebugRecordsCount);
 #endif
 }

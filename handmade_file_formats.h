@@ -1,6 +1,12 @@
 #if !defined(HANDMADE_FILE_FORMATS_H)
 #define HANDMADE_FILE_FORMATS_H
 
+enum asset_font_type
+{
+    FontType_Default = 0,
+    FontType_Debug = 10,
+};
+
 enum asset_tag_id
 {
     Tag_Smoothness,
@@ -8,6 +14,7 @@ enum asset_tag_id
     /* NOTE: angle in radians off of due right */
     Tag_FacingDirection,
     Tag_UnicodePoint,
+    Tag_FontType,
 
     Tag_Count
 };

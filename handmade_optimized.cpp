@@ -6,6 +6,8 @@
 void
 RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color, rectangle2i clipRect, bool32 even, bool32 renderFringes=false)
 {
+    TIMED_BLOCK;
+
     int32 minX = RoundReal32ToInt32(realMinX);
     int32 minY = RoundReal32ToInt32(realMinY);
     int32 maxX = RoundReal32ToInt32(realMaxX);

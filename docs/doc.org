@@ -8,11 +8,11 @@
 - катсцены
 - генерация уровней?
 
-* to be done [1/491]
+* to be done [2/454]
 ** DONE Handmade Hero Day 177 - Automatic Performance Counters
 - [[https://www.youtube.com/watch?v=uHSLHvWFkto]]
 
-** TODO Handmade Hero Day 178 - Thread-safe Performance Counters
+** DONE Handmade Hero Day 178 - Thread-safe Performance Counters
 - [[https://www.youtube.com/watch?v=oDZ-sh0cKoY]]
 
 ** TODO Handmade Hero Day 179 - Tracking Debug Information Over Time
@@ -207,42 +207,6 @@
 ** TODO Handmade Hero Day 242 - OpenGL Context Escalation
 - [[https://www.youtube.com/watch?v=99kIYIEzbpc]]
 
-** TODO Handmade Hero Chat 001
-- [[https://www.youtube.com/watch?v=uT5ao2rSNxI]]
-
-** TODO Handmade Hero Chat 002
-- [[https://www.youtube.com/watch?v=nKkQHa8yOe4]]
-
-** TODO Handmade Hero Chat 003
-- [[https://www.youtube.com/watch?v=xi2jE3dzhTc]]
-
-** TODO Handmade Hero Chat 004
-- [[https://www.youtube.com/watch?v=tlYn2kN0g8c]]
-
-** TODO Handmade Hero Chat 005 - SGX and Unbreakable DRM
-- [[https://www.youtube.com/watch?v=8eULB8uMIuc]]
-
-** TODO Handmade Hero Chat 006 - Error-based Drawing Algorithms
-- [[https://www.youtube.com/watch?v=q79-Qh2suMY]]
-
-** TODO Handmade Hero Chat 007 - Inverse Kinematics
-- [[https://www.youtube.com/watch?v=rTF0PWnRUrw]]
-
-** TODO Handmade Hero Chat 010 - Partial Specialization
-- [[https://www.youtube.com/watch?v=QauD5cAgnT8]]
-
-** TODO HandmadeCon 2015 - Jonathan Blow
-- [[https://www.youtube.com/watch?v=Jpkrx1osuLc]]
-
-** TODO HandmadeCon 2015 - Mike Acton
-- [[https://www.youtube.com/watch?v=qWJpI2adCcs&t=610s]]
-
-** TODO HandmadeCon 2015 - Pat Wyatt
-- [[https://www.youtube.com/watch?v=1faaOrtHJ-A]]
-
-** TODO HandmadeCon 2015 - Ron Gilbert
-- [[https://www.youtube.com/watch?v=cktmhqXMsGI]]
-
 ** TODO Handmade Hero Day 243 - Asynchronous Texture Downloads
 - [[https://www.youtube.com/watch?v=onEloWtN91Y]]
 
@@ -312,9 +276,6 @@
 ** TODO Handmade Hero Day 265 - Cleaning Up the UI Layout Code
 - [[https://www.youtube.com/watch?v=BHEJh9Yvsxc]]
 
-** TODO Impromptu Discussion of Debugger Features
-- [[https://www.youtube.com/watch?v=GfGNPo9Z6mA]]
-
 ** TODO Handmade Hero Day 266 - Adding a Top Clocks Profile View
 - [[https://www.youtube.com/watch?v=qYGNxUu6tjI]]
 
@@ -365,9 +326,6 @@
 
 ** TODO Handmade Hero Day 281 - Animating the Camera Between Rooms
 - [[https://www.youtube.com/watch?v=TFBo2ziKOW0]]
-
-** TODO HandmadeCon 2015 - Tommy Refenes
-- [[https://www.youtube.com/watch?v=QVpSIdWE0do]]
 
 ** TODO Handmade Hero Day 282 - Z Movement and Camera Motion
 - [[https://www.youtube.com/watch?v=8f9ggBzjUBE]]
@@ -543,14 +501,8 @@
 ** TODO Handmade Hero Day 339 - Debugging Particle Camera Offset Motion
 - [[https://www.youtube.com/watch?v=76TSb_HiKus]]
 
-** TODO Handmade Hero Chat 011 - Undefined Behavior
-- [[https://www.youtube.com/watch?v=dyI0CwK386E]]
-
 ** TODO Handmade Hero Day 340 - Cleaning Up World / Sim-Region Interactions
 - [[https://www.youtube.com/watch?v=WvM38blp5QI]]
-
-** TODO Handmade Hero Chat 012 - Imposter Syndrome
-- [[https://www.youtube.com/watch?v=NXsWViTB238&t=6s]]
 
 ** TODO Handmade Hero Day 341 - Dynamically Growing Arenas
 - [[https://www.youtube.com/watch?v=lzdKgeovBN0]]
@@ -594,12 +546,6 @@
 ** TODO Handmade Hero Day 354 - Simple LZ Compression
 - [[https://www.youtube.com/watch?v=l8WUqmHD1PU]]
 
-** TODO HandmadeCon 2016 - Compression
-- [[https://www.youtube.com/watch?v=qj2xYRoz9ZI]]
-
-** TODO HandmadeCon 2016 - Asset Systems and Scalability
-- [[https://www.youtube.com/watch?v=7KXVox0-7lU]]
-
 ** TODO Handmade Hero Day 355 - Clearing Out Pending GitHub Bugs
 - [[https://www.youtube.com/watch?v=pqOlYhlfxSE]]
 
@@ -614,12 +560,6 @@
 
 ** TODO Handmade Hero Day 359 - OpenGL Projection Matrices Revisited
 - [[https://www.youtube.com/watch?v=ykOBtVPjzq4]]
-
-** TODO Mock Interview with Shawn McGrath
-- [[https://www.youtube.com/watch?v=cfyWvJdsDRI]]
-
-** TODO HandmadeCon 2016 - Compression Followup
-- [[https://www.youtube.com/watch?v=VYK-xMm11S0]]
 
 ** TODO Handmade Hero Day 360 - Moving the Perspective Divide to OpenGL
 - [[https://www.youtube.com/watch?v=EDfb-13wgk0]]
@@ -671,9 +611,6 @@
 
 ** TODO Handmade Hero Day 376 - Drawing Debug Volumes
 - [[https://www.youtube.com/watch?v=L68VR5VuwnI]]
-
-** TODO Handmade Hero Chat 013 - Translation Units, Function Pointers, Compilation, Linking, and Execution
-- [[https://www.youtube.com/watch?v=n4fI4eUTTKM]]
 
 ** TODO Handmade Hero Day 377 - Improving Collision Volumes and the Camera
 - [[https://www.youtube.com/watch?v=Ll55Vdtf9NU]]
@@ -764,24 +701,6 @@
 
 ** TODO Handmade Hero Chat 014 - CRTP and Library Design
 - [[https://www.youtube.com/watch?v=EhtxDXlrJ6Y]]
-
-** TODO HandmadeCon 2016 - Technical Direction at Blizzard
-- [[https://www.youtube.com/watch?v=jyA0csH4KNE]]
-
-** TODO HandmadeCon 2016 - Large-scale Systems Architecture
-- [[https://www.youtube.com/watch?v=gpINOFQ32o0]]
-
-** TODO HandmadeCon 2016 - Anatomy and Health for Programmers
-- [[https://www.youtube.com/watch?v=6HtTVb2skWQ]]
-
-** TODO HandmadeCon 2016 - HandmadeCon 2015 Q&A (Part 1)
-- [[https://www.youtube.com/watch?v=RpW3l6_Y0MY]]
-
-** TODO HandmadeCon 2016 - HandmadeCon 2015 Q&A (Part 2)
-- [[https://www.youtube.com/watch?v=_NmfCLssHuI]]
-
-** TODO HandmadeCon 2016 - History of Software Texture Mapping in Games
-- [[https://www.youtube.com/watch?v=xn76r0JxqNM]]
 
 ** TODO Handmade Ray 00 - Making a Simple Raycaster
 - [[https://www.youtube.com/watch?v=pq7dV4sR7lg]]
@@ -921,9 +840,6 @@
 ** TODO Handmade Hero Day 447 - Placing Adjacent Rooms
 - [[https://www.youtube.com/watch?v=afCSha34Hg0]]
 
-** TODO The Thirty Million Line Problem
-- [[https://www.youtube.com/watch?v=kZRE7HIO3vk&t=4953s]]
-
 ** TODO Handmade Hero Day 448 - Explicitly Placed Room Connections
 - [[https://www.youtube.com/watch?v=_ctZUqPtWF4]]
 
@@ -956,9 +872,6 @@
 
 ** TODO Handmade Hero Day 458 - Debugging the PNG Reader
 - [[https://www.youtube.com/watch?v=iqpGuyc308w]]
-
-** TODO Handmade Fund
-- [[https://www.youtube.com/watch?v=lTsuBkFFcgQ]]
 
 ** TODO Handmade Hero Day 459 - Partitioning the PNG Reader for Integration
 - [[https://www.youtube.com/watch?v=pPP4rn3DEAY]]
@@ -1019,9 +932,6 @@
 
 ** TODO Handmade Hero Day 478 - Changing to Single Dispatch Per Pass (Part 2)
 - [[https://www.youtube.com/watch?v=0d0_NitChCY]]
-
-** TODO Handmade Hero Chat 015 - Interview with Team from Carnegie Mellon
-- [[https://www.youtube.com/watch?v=9-h6TPkQ6ko]]
 
 ** TODO Handmade Hero Day 479 - Large Texture Support
 - [[https://www.youtube.com/watch?v=wzDx--c5uUo]]
@@ -1113,9 +1023,6 @@
 ** TODO Handmade Hero Day 508 - Fixing the Remaining GitHub Issues
 - [[https://www.youtube.com/watch?v=iySIodVWS_s]]
 
-** TODO Moustache Demo
-- [[https://www.youtube.com/watch?v=msZa2EzI3zc]]
-
 ** TODO 4coder Customization Coding - 01
 - [[https://www.youtube.com/watch?v=aPk6cGB4F88]]
 
@@ -1154,9 +1061,6 @@
 
 ** TODO Handmade Hero Day 519 - Brainstorming about Z Bias
 - [[https://www.youtube.com/watch?v=3vUzT7JFMVc]]
-
-** TODO Deep thoughts on other languages Like Rust, Go, etc.
-- [[https://www.youtube.com/watch?v=1HAXgM3mjSo]]
 
 ** TODO Handmade Hero Day 520 - Solving for Debug Camera Parameters
 - [[https://www.youtube.com/watch?v=yQpCRzF717k]]
@@ -1197,9 +1101,6 @@
 ** TODO Handmade Hero Day 532 - Finishing HHT-Based Font Importing
 - [[https://www.youtube.com/watch?v=nTirm1eqz8M]]
 
-** TODO Handmade Hero Chat 016 - Drawing a Circle on a 286
-- [[https://www.youtube.com/watch?v=kVtDEy1ndYg&t=1545s]]
-
 ** TODO Handmade Hero Day 533 - Importing Particles, Scenery, and Items
 - [[https://www.youtube.com/watch?v=fxSCbuBRxuc]]
 
@@ -1235,9 +1136,6 @@
 
 ** TODO Handmade Hero Day 544 - Caching Unpacked Entities Across Frames
 - [[https://www.youtube.com/watch?v=6MN0Ks5VeSg]]
-
-** TODO Handmade Hero Chat 017 - Modern x64 Architectures and the Cache
-- [[https://www.youtube.com/watch?v=tk5P7mt2fAw]]
 
 ** TODO Handmade Hero Day 545 - Adding Ground Cover
 - [[https://www.youtube.com/watch?v=0g79tWCv7x0]]
@@ -1392,9 +1290,6 @@
 ** TODO Handmade Hero Day 591 - Making a Stand-alone Lighting Performance Test
 - [[https://www.youtube.com/watch?v=Rj7nCMEuhMQ]]
 
-** TODO Twitter and Visual Studio Rant
-- [[https://www.youtube.com/watch?v=GC-0tCy4P1U]]
-
 ** TODO Handmade Hero Day 592 - Capturing the Entire Lighting Data
 - [[https://www.youtube.com/watch?v=YTIz_eV_BsE&t=408s]]
 
@@ -1443,9 +1338,6 @@
 ** TODO Handmade Hero Day 607 - Finishing Debugging the Grid Raycaster
 - [[https://www.youtube.com/watch?v=th7U72CBj3A]]
 
-** TODO Fluid Dynamics Chat with Jonathan Blow
-- [[https://www.youtube.com/watch?v=SR713-Gs0UQ]]
-
 ** TODO Handmade Hero Day 608 - Visualizing Lighting Values
 - [[https://www.youtube.com/watch?v=rVJw10RkR9c&t=1319s]]
 
@@ -1479,9 +1371,7 @@
 ** TODO Handmade Hero Day 618 - Analyzing the Diffuse Blur
 - [[https://www.youtube.com/watch?v=vwi-Tq0c64w]]
 
-** TODO Handmade Hero Chat 020 - Assembly Analysis and Front-end Register Clears
-- [[https://www.youtube.com/watch?v=R5tBY9Zyw6o]]
-* random
+* random [0/16]
 ** TODO The Terminator Gene (30 minute version)
 - [[https://www.youtube.com/watch?v=biuRt_qdcIg]]
 
@@ -1529,6 +1419,118 @@
 
 ** TODO Prepress Rant - #PrintersDeserveCredit!!
 - [[https://www.youtube.com/watch?v=S66u0hWzXB0]]
+
+
+* comms
+** TODO Handmade Hero Chat 001
+- [[https://www.youtube.com/watch?v=uT5ao2rSNxI]]
+
+** TODO Handmade Hero Chat 002
+- [[https://www.youtube.com/watch?v=nKkQHa8yOe4]]
+
+** TODO Handmade Hero Chat 003
+- [[https://www.youtube.com/watch?v=xi2jE3dzhTc]]
+
+** TODO Handmade Hero Chat 004
+- [[https://www.youtube.com/watch?v=tlYn2kN0g8c]]
+
+** TODO Handmade Hero Chat 005 - SGX and Unbreakable DRM
+- [[https://www.youtube.com/watch?v=8eULB8uMIuc]]
+
+** TODO Handmade Hero Chat 006 - Error-based Drawing Algorithms
+- [[https://www.youtube.com/watch?v=q79-Qh2suMY]]
+
+** TODO Handmade Hero Chat 007 - Inverse Kinematics
+- [[https://www.youtube.com/watch?v=rTF0PWnRUrw]]
+
+** TODO Handmade Hero Chat 010 - Partial Specialization
+- [[https://www.youtube.com/watch?v=QauD5cAgnT8]]
+
+** TODO HandmadeCon 2015 - Jonathan Blow
+- [[https://www.youtube.com/watch?v=Jpkrx1osuLc]]
+
+** TODO HandmadeCon 2015 - Mike Acton
+- [[https://www.youtube.com/watch?v=qWJpI2adCcs&t=610s]]
+
+** TODO HandmadeCon 2015 - Pat Wyatt
+- [[https://www.youtube.com/watch?v=1faaOrtHJ-A]]
+
+** TODO HandmadeCon 2015 - Ron Gilbert
+- [[https://www.youtube.com/watch?v=cktmhqXMsGI]]
+
+** TODO Moustache Demo
+- [[https://www.youtube.com/watch?v=msZa2EzI3zc]]
+
+** TODO Deep thoughts on other languages Like Rust, Go, etc.
+- [[https://www.youtube.com/watch?v=1HAXgM3mjSo]]
+
+** TODO Fluid Dynamics Chat with Jonathan Blow
+- [[https://www.youtube.com/watch?v=SR713-Gs0UQ]]
+
+** TODO Handmade Fund
+- [[https://www.youtube.com/watch?v=lTsuBkFFcgQ]]
+
+** TODO Impromptu Discussion of Debugger Features
+- [[https://www.youtube.com/watch?v=GfGNPo9Z6mA]]
+
+** TODO HandmadeCon 2015 - Tommy Refenes
+- [[https://www.youtube.com/watch?v=QVpSIdWE0do]]
+
+** TODO Handmade Hero Chat 020 - Assembly Analysis and Front-end Register Clears
+- [[https://www.youtube.com/watch?v=R5tBY9Zyw6o]]
+** TODO Handmade Hero Chat 011 - Undefined Behavior
+- [[https://www.youtube.com/watch?v=dyI0CwK386E]]
+
+** TODO Handmade Hero Chat 012 - Imposter Syndrome
+- [[https://www.youtube.com/watch?v=NXsWViTB238&t=6s]]
+
+** TODO HandmadeCon 2016 - Compression
+- [[https://www.youtube.com/watch?v=qj2xYRoz9ZI]]
+
+** TODO HandmadeCon 2016 - Asset Systems and Scalability
+- [[https://www.youtube.com/watch?v=7KXVox0-7lU]]
+
+** TODO Mock Interview with Shawn McGrath
+- [[https://www.youtube.com/watch?v=cfyWvJdsDRI]]
+
+** TODO HandmadeCon 2016 - Compression Followup
+- [[https://www.youtube.com/watch?v=VYK-xMm11S0]]
+
+** TODO Handmade Hero Chat 013 - Translation Units, Function Pointers, Compilation, Linking, and Execution
+- [[https://www.youtube.com/watch?v=n4fI4eUTTKM]]
+
+** TODO HandmadeCon 2016 - Technical Direction at Blizzard
+- [[https://www.youtube.com/watch?v=jyA0csH4KNE]]
+
+** TODO HandmadeCon 2016 - Large-scale Systems Architecture
+- [[https://www.youtube.com/watch?v=gpINOFQ32o0]]
+
+** TODO HandmadeCon 2016 - Anatomy and Health for Programmers
+- [[https://www.youtube.com/watch?v=6HtTVb2skWQ]]
+
+** TODO HandmadeCon 2016 - HandmadeCon 2015 Q&A (Part 1)
+- [[https://www.youtube.com/watch?v=RpW3l6_Y0MY]]
+
+** TODO HandmadeCon 2016 - HandmadeCon 2015 Q&A (Part 2)
+- [[https://www.youtube.com/watch?v=_NmfCLssHuI]]
+
+** TODO HandmadeCon 2016 - History of Software Texture Mapping in Games
+- [[https://www.youtube.com/watch?v=xn76r0JxqNM]]
+
+** TODO The Thirty Million Line Problem
+- [[https://www.youtube.com/watch?v=kZRE7HIO3vk&t=4953s]]
+
+** TODO Handmade Hero Chat 015 - Interview with Team from Carnegie Mellon
+- [[https://www.youtube.com/watch?v=9-h6TPkQ6ko]]
+
+** TODO Handmade Hero Chat 016 - Drawing a Circle on a 286
+- [[https://www.youtube.com/watch?v=kVtDEy1ndYg&t=1545s]]
+
+** TODO Handmade Hero Chat 017 - Modern x64 Architectures and the Cache
+- [[https://www.youtube.com/watch?v=tk5P7mt2fAw]]
+
+** TODO Twitter and Visual Studio Rant
+- [[https://www.youtube.com/watch?v=GC-0tCy4P1U]]
 
 * done [190/190]
 ** DONE Handmade Hero - Announcement Trailer

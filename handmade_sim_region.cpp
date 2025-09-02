@@ -195,6 +195,8 @@ AddEntity(game_state * gameState, sim_region *simRegion, uint32 sourceIndex, low
 internal sim_region*
 BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_position regionCenter, rectangle3 regionBounds, real32 dt)
 {
+    TIMED_BLOCK;
+
     sim_region *simRegion = PushStruct(simArena, sim_region);
     ZeroStruct(simRegion->Hash);
 
@@ -261,6 +263,8 @@ BeginSim(memory_arena *simArena, game_state *gameState, world *world, world_posi
 inline void
 ChangeEntityLocationRaw(memory_arena *arena, world *world, uint32 lowEntityIndex, world_position *oldP, world_position *newP)
 {
+    TIMED_BLOCK;
+    
     Assert(!oldP || IsValid(*oldP));
     Assert(!newP || IsValid(*newP));
 
@@ -379,6 +383,8 @@ ChangeEntityLocation(memory_arena *arena, world *world,
 internal void
 EndSim(sim_region *region, game_state *gameState)
 {
+    TIMED_BLOCK;
+
     world *world = gameState->World;
 
     sim_entity * simEntity = region->Entities;

@@ -10,12 +10,27 @@ AtomicCompareExchange(u32 volatile *value, u32 expected, u32 newValue)
     return result;
 }
 
+inline u64
+AtomicExchange64(u64 volatile *value, u64 newValue)
+{
+    u64 prevValue = InterlockedExchange64((LONG64 *)value, newValue);
+    return prevValue;
+}
+
 inline u32
 AtomicAdd(u32 volatile *value, u32 addend)
 {
-    u32 result = InterlockedAdd((long *)value, addend);
-    return result;
+    u32 prevValue = InterlockedAdd((long *)value, addend);
+    return prevValue;
 }
+
+inline u64
+AtomicAdd64(u64 volatile *value, u64 addend)
+{
+    u64 prevValue = InterlockedAdd64((LONG64 *)value, addend);
+    return prevValue;
+}
+
 #else
 #endif
 

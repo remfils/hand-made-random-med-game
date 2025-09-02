@@ -479,7 +479,7 @@ LoadWAV(char *filename, uint32 sectionFirstSampleIndex, uint32 sectionSampleCoun
 }
 
 internal loaded_font*
-LoadFont(char *fileName, u32 codePointCount)
+LoadFont(char *fileName, u32 codePointCount, r32 fontSize)
 {
     loaded_font *font = (loaded_font *)malloc(sizeof(loaded_font));
     entire_file fileResult = ReadEntireFile(fileName);
@@ -488,7 +488,7 @@ LoadFont(char *fileName, u32 codePointCount)
     stbtt_InitFont(&font->Info, (u8 *)fileResult.Content, stbtt_GetFontOffsetForIndex((u8 *)fileResult.Content, 0));
     stbtt_GetFontVMetrics(&font->Info, &ascend, &descend, &lineGap);
 
-    font->Size = 128.0f;
+    font->Size = fontSize;
     font->Factor = stbtt_ScaleForPixelHeight(&font->Info, font->Size);
     font->Ascend = (r32)ascend * font->Factor;
     font->Descend = (r32)descend * font->Factor;
@@ -840,33 +840,49 @@ void WriteNonHeroFiles()
     AddBitmapAsset(assets, "../data/particle_star__003.bmp", "star_003");
     EndAssetType(assets);
 
+
+    // add fonts
+
     u32 codePointCount = '~' + 1;
 
-    //loaded_font *debugFont = LoadFont("D:/Projects/local__HandmadeHero/data/iosevka-regular.ttf", codePointCount);
-    loaded_font *debugFont = LoadFont("C:/Windows/Fonts/arial.ttf", codePointCount);
+    #define FONT_COUNT 2
+
+    loaded_font *fonts[FONT_COUNT];
+    fonts[0] = LoadFont("C:/Windows/Fonts/LiberationMono-Regular.ttf", codePointCount, 20.0f);
+    fonts[1] = LoadFont("D:/Projects/local__HandmadeHero/data/iosevka-regular.ttf", codePointCount, 128.0f);
+
+    asset_font_type fontTypes[FONT_COUNT];
+    fontTypes[0] = FontType_Debug;
+    fontTypes[1] = FontType_Default;
 
     BeginAssetType(assets, AssetType_FontGlyph);
-    for (u32 character = ' '; character <= '~'; character++)
-    {
-        AddLetterAsset(assets, debugFont, character);
-    }
 
-    for (u32 character = 0x0410 /*А*/; character <= 0x042F /*Я*/; character++)
+    for (u32 fontIndex=0; fontIndex < FONT_COUNT; fontIndex++)
     {
-        AddLetterAsset(assets, debugFont, character);
-    }
-    for (u32 character = 0x0430 /*а*/; character <= 0x044F /*я*/; character++)
-    {
-        AddLetterAsset(assets, debugFont, character);
-    }
+        for (u32 character = ' '; character <= '~'; character++)
+        {
+            AddLetterAsset(assets, fonts[fontIndex], character);
+        }
 
+        //for (u32 character = 0x0410 /*А*/; character <= 0x042F /*Я*/; character++)
+        //{
+        //    AddLetterAsset(assets, fonts[fontIndex], character);
+        //}
+        //for (u32 character = 0x0430 /*а*/; character <= 0x044F /*я*/; character++)
+        //{
+        //    AddLetterAsset(assets, fonts[fontIndex], character);
+        //}
+    }
     EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_Font);
-    AddFontAsset(assets, debugFont);
-    FinalizeFont(debugFont);
+    for (u32 fontIndex=0; fontIndex < FONT_COUNT; fontIndex++)
+    {
+        AddFontAsset(assets, fonts[fontIndex]);
+        AddAssetTag(assets, Tag_FontType, (r32) fontTypes[fontIndex]);
+        FinalizeFont(fonts[fontIndex]);
+    }
     EndAssetType(assets);
-
     
     WriteAssetsFile(assets, "test2.hha");
 }
