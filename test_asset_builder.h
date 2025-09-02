@@ -52,10 +52,7 @@ struct loaded_font
     void *Free;
     r32 LineAdvance;
 
-    
-
-    u32 MinCodePoint;
-    u32 MaxCodePoint;
+    u32 OnePastLastCodePoint;
     u32 GlyphCount;
     u32 MaxGlyphCount;
 

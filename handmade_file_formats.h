@@ -122,7 +122,8 @@ struct hha_font_glyph
 
 struct hha_font
 {
-    u32 CodePointCount;
+    u32 OnePastLastCodePoint;
+    u32 GlyphCount;
     r32 LineAdvance;
     r32 Ascend;
     r32 Descend;

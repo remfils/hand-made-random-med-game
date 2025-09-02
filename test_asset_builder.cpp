@@ -87,6 +87,11 @@ AddLetterAsset(game_assets *assets, loaded_font *font, u32 codePoint)
     glyph->UnicodeCodePoint = codePoint;
     glyph->Id = {result.Id};
 
+    if (font->OnePastLastCodePoint <= codePoint)
+    {
+        font->OnePastLastCodePoint = codePoint + 1;
+    }
+
     return {result.Id};
 }
 
@@ -491,13 +496,20 @@ LoadFont(char *fileName, u32 codePointCount)
 
     font->GlyphCount = 0;
     font->MaxGlyphCount = 5000;
-    font->MinCodePoint = INT_MAX;
-    font->MaxCodePoint = 0;
+    font->OnePastLastCodePoint = 0;
 
     font->LineAdvance = (font->Size + (r32)lineGap * font->Factor) ;
 
     font->Glyphs = (hha_font_glyph *)malloc(sizeof(hha_font_glyph) * font->MaxGlyphCount);
-    font->HorizontalAdvance = (r32 *)malloc(sizeof(r32) * font->MaxGlyphCount * font->MaxGlyphCount);
+
+    u32 horizontalAdvanceSize = sizeof(r32) * font->MaxGlyphCount * font->MaxGlyphCount;
+    font->HorizontalAdvance = (r32 *)malloc(horizontalAdvanceSize);
+    memset(font->HorizontalAdvance, 0, horizontalAdvanceSize);
+
+    // NULL glyph
+    font->GlyphCount = 1;
+    font->Glyphs[0].UnicodeCodePoint = 0;
+    font->Glyphs[0].Id = {0};
 
     #if 0
     /*
@@ -522,6 +534,12 @@ LoadFont(char *fileName, u32 codePointCount)
 
     #endif
 
+    return font;
+}
+
+internal void
+FinalizeFont(loaded_font *font)
+{
     for (u32 currentGlyph = 0;
          currentGlyph < font->GlyphCount;
          currentGlyph++)
@@ -545,18 +563,12 @@ LoadFont(char *fileName, u32 codePointCount)
                 dx = stbtt__GetGlyphKernInfoAdvance(&font->Info, prevCodePoint, currentCodePoint);
             }
 
-            font->HorizontalAdvance[prevCodePoint * font->MaxGlyphCount + currentCodePoint] = ((r32)dx + (r32)advance) * font->Factor;
+            r32 value = ((r32)dx + (r32)advance) * font->Factor;
+            font->HorizontalAdvance[prevGlyph * font->MaxGlyphCount + currentGlyph] = value;
         }
     }
-
-    return font;
 }
 
-internal void
-FreeFont(loaded_font *font)
-{
-    free(font->Free);
-}
 
 inline void
 ZeroSize(memory_index size, void *ptr)
@@ -693,10 +705,11 @@ WriteAssetsFile(game_assets *assets, char *filename)
                 loaded_font *font = assetSrc->Font.Font;
                 u32 glyphSize = sizeof(hha_font_glyph) * font->GlyphCount;
 
-                assetDst->Font.CodePointCount = font->GlyphCount;
+                assetDst->Font.GlyphCount = font->GlyphCount;
                 assetDst->Font.Ascend = font->Ascend;
                 assetDst->Font.Descend = font->Descend;
                 assetDst->Font.LineAdvance = font->LineAdvance;
+                assetDst->Font.OnePastLastCodePoint = font->OnePastLastCodePoint;
 
                 fwrite(font->Glyphs, glyphSize, 1, out);
 
@@ -831,9 +844,6 @@ void WriteNonHeroFiles()
 
     //loaded_font *debugFont = LoadFont("D:/Projects/local__HandmadeHero/data/iosevka-regular.ttf", codePointCount);
     loaded_font *debugFont = LoadFont("C:/Windows/Fonts/arial.ttf", codePointCount);
-    BeginAssetType(assets, AssetType_Font);
-    AddFontAsset(assets, debugFont);
-    EndAssetType(assets);
 
     BeginAssetType(assets, AssetType_FontGlyph);
     for (u32 character = ' '; character <= '~'; character++)
@@ -845,8 +855,19 @@ void WriteNonHeroFiles()
     {
         AddLetterAsset(assets, debugFont, character);
     }
+    for (u32 character = 0x0430 /*а*/; character <= 0x044F /*я*/; character++)
+    {
+        AddLetterAsset(assets, debugFont, character);
+    }
 
     EndAssetType(assets);
+
+    BeginAssetType(assets, AssetType_Font);
+    AddFontAsset(assets, debugFont);
+    FinalizeFont(debugFont);
+    EndAssetType(assets);
+
+    
     WriteAssetsFile(assets, "test2.hha");
 }
 

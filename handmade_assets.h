@@ -24,9 +24,10 @@ struct loaded_sound
 
 struct loaded_font
 {
-    bitmap_id *CodePoints;
-    r32 *HorizontalAdvance;
     u32 BitmapIdOffset;
+    hha_font_glyph *Glyphs;
+    r32 *HorizontalAdvance;
+    u16 *UnicodeMap;
 };
 
 enum asset_state

@@ -664,6 +664,30 @@ DEBUGReset(u32 width, u32 height)
     DEBUG_LeftEdge = -0.5f * (r32)width;
 }
 
+inline b32
+IsHex(char c)
+{
+    b32 result = (c >= '0' && c <= '9')
+        || (c >= 'A' && c <= 'F');
+    return result;
+}
+
+inline u32
+GetHex(char c)
+{
+    u32 result = 0;
+    if (c >= '0' && c <= '9')
+    {
+        result = c - '0';
+    }
+
+    if (c >= 'A' && c <= 'F')
+    {
+        result = 0xA + (c - 'A');
+    }
+    return result;
+}
+
 internal void
 DebugTextLine(char *string)
 {
@@ -696,6 +720,21 @@ DebugTextLine(char *string)
                 r32 charDim = scale;
                 u32 codePoint = *at;
 
+                if (
+                    at[0] == '\\'
+                    && IsHex(at[1])
+                    && IsHex(at[2])
+                    && IsHex(at[3])
+                    && IsHex(at[4])
+                    ) {
+                    codePoint = (GetHex(at[1]) << 12)
+                        | (GetHex(at[2]) << 8)
+                        | (GetHex(at[3]) << 4)
+                        | (GetHex(at[4]) << 0)
+                        ;
+                    at += 4;
+                }
+
                 r32 advanceX = scale*GetHorizontalAdvanceForPair(fontInfo, font, prevCodePoint, codePoint);
                 atX += advanceX;
                 //atX += scale;
@@ -718,8 +757,7 @@ internal void
 OverlayCycleCounters()
 {
 #if HANDMADE_INTERNAL
-
-    DebugTextLine("DEBUG CYCLES:_");
+    DebugTextLine("DEBUG CYCLES: \\0414\\0410\\0424\\0444\\0424!");
 
     char * counterNameTable[] =
     {
