@@ -8,8 +8,8 @@
 - катсцены
 - генерация уровней?
 
-* to be done [0/491]
-** TODO Handmade Hero Day 177 - Automatic Performance Counters
+* to be done [1/491]
+** DONE Handmade Hero Day 177 - Automatic Performance Counters
 - [[https://www.youtube.com/watch?v=uHSLHvWFkto]]
 
 ** TODO Handmade Hero Day 178 - Thread-safe Performance Counters

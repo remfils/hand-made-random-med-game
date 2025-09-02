@@ -71,41 +71,13 @@ typedef double r64;
 #if HANDMADE_SLOW
 #define Assert(expression) if (!(expression)) {*(int *)0 = 0;}
 
-enum
-{
-    DebugCounter_GameUpdateAndRender,
-    DebugCounter_RenderGroupToOutput,
-    DebugCounter_RenderRectangleSlowly,
-    DebugCounter_Slowly_TestPixel,
-    DebugCounter_Slowly_FillPixel,
-    DebugCounter_RenderRectangleHopefullyQuickly,
-    DebugCounter_RenderRectangle,
-    // NOTE: MUST BE LAST
-    DebugCounter_Count
-};
-
-typedef struct debug_cycle_counter
-{
-    uint64 CycleCount;
-    uint32 HitCount;
-} debug_cycle_counter;
-
 extern struct game_memory *DebugGlobalMemory;
 
 #if COMPILER_MSVC
-#define BEGIN_TIMED_BLOCK(ID) uint64 startCycleCount##ID = __rdtsc();
-#define END_TIMED_BLOCK(ID) DebugGlobalMemory->DebugCounters[DebugCounter_##ID].CycleCount += __rdtsc() - startCycleCount##ID; DebugGlobalMemory->DebugCounters[DebugCounter_##ID].HitCount++;
-#define END_TIMED_BLOCK_COUNTED(ID, count) DebugGlobalMemory->DebugCounters[DebugCounter_##ID].CycleCount += __rdtsc() - startCycleCount##ID; DebugGlobalMemory->DebugCounters[DebugCounter_##ID].HitCount += count;
 #else
-#define BEGIN_TIMED_BLOCK(ID)
-#define END_TIMED_BLOCK(ID)
-#define END_TIMED_BLOCK_COUNTED(ID, count)
 #endif
 #else
 #define Assert(expression)
-#define BEGIN_TIMED_BLOCK(ID)
-#define END_TIMED_BLOCK(ID)
-#define END_TIMED_BLOCK_COUNTED(ID, count)
 #endif
 
 #define InvalidCodePath Assert(!"Invalid code path");
@@ -315,10 +287,6 @@ struct game_memory
 
     uint64 TransientStorageSize;
     void *TransientStorage; // should be initialized to zero
-    
-#if HANDMADE_SLOW
-    debug_cycle_counter DebugCounters[DebugCounter_Count];
-#endif
 };
 
 

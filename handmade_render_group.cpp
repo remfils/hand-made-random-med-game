@@ -157,7 +157,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                       render_environment_map *top, render_environment_map *middle, render_environment_map *bottom,
                       real32 pixelsToMeters)
 {
-    TIMED_BLOCK(RenderRectangleSlowly);
+    TIMED_BLOCK;
     
     // color.rgb *= color.a;
 
@@ -213,7 +213,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
         
         for (int32 x = minX; x <= maxX; ++x)
         {
-            BEGIN_TIMED_BLOCK(Slowly_TestPixel);
+            TIMED_BLOCK;
             
             v2 pixelP = V2i(x, y);
             v2 d = pixelP - origin;
@@ -232,7 +232,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                 && edge3 < 0
                 )
             {
-                BEGIN_TIMED_BLOCK(Slowly_FillPixel);
+                TIMED_BLOCK;
                 
                 v2 screenSpaceUV = {
                     (real32)x * invWidthMax, fixedCastY
@@ -341,12 +341,9 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                         | ((uint32)(blended.g + 0.5f) << 8)
                         | ((uint32)(blended.b + 0.5f) << 0)
                         );
-
-                END_TIMED_BLOCK(Slowly_FillPixel);
             }
             pixel++;
 
-            END_TIMED_BLOCK(Slowly_TestPixel);
         }
         row += drawBuffer->Pitch;
     }
@@ -355,7 +352,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 internal void
 RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture, rectangle2i clipRect, bool32 even)
 {
-    TIMED_BLOCK(RenderRectangleHopefullyQuickly);
+    TIMED_BLOCK;
     
     // color.rgb *= color.a;
 
@@ -481,7 +478,7 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     int32 maxX = fillRect.MaxX;
     int32 maxY = fillRect.MaxY;
 
-    BEGIN_TIMED_BLOCK(Slowly_TestPixel);
+    TIMED_BLOCK;
     for (int32 y = minY; y < maxY; y+=2)
     {
         uint32 *pixel = (uint32 *)row;
@@ -681,7 +678,6 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
         }
         row += rowPitch;
     }
-    END_TIMED_BLOCK_COUNTED(Slowly_TestPixel, (maxX - minX) * (maxY - minY) / 2);
 }
 
 internal void
@@ -1196,7 +1192,7 @@ internal void
 RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i clipRect, bool32 even)
 {
     Assert(renderGroup->InsideRender);
-    BEGIN_TIMED_BLOCK(RenderGroupToOutput);
+    TIMED_BLOCK;
 
     real32 NullPixelsToMeters = 1.0f;
     
@@ -1284,8 +1280,6 @@ RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i 
 
         }
     }
-
-    END_TIMED_BLOCK(RenderGroupToOutput);
 }
 
 struct tile_render_work

@@ -100,7 +100,7 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     uint32 rowPitch = 2 * drawBuffer->Pitch;
 
 
-    BEGIN_TIMED_BLOCK(RenderRectangle);
+    TIMED_BLOCK;
 
     __m128 zero_4x = _mm_set1_ps(0.0f);
     __m128i maskFF_4x = _mm_set1_epi32(0xff);
@@ -178,6 +178,7 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
         }
         row += rowPitch;
     }
-
-    END_TIMED_BLOCK(RenderRectangle);
 }
+
+
+DEBUG_INIT_RECORD_ARRAY;
