@@ -157,7 +157,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                       render_environment_map *top, render_environment_map *middle, render_environment_map *bottom,
                       real32 pixelsToMeters)
 {
-    BEGIN_TIMED_BLOCK(RenderRectangleSlowly);
+    TIMED_BLOCK(RenderRectangleSlowly);
     
     // color.rgb *= color.a;
 
@@ -350,14 +350,12 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
         }
         row += drawBuffer->Pitch;
     }
-
-    END_TIMED_BLOCK(RenderRectangleSlowly);
 }
 
 internal void
 RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture, rectangle2i clipRect, bool32 even)
 {
-    BEGIN_TIMED_BLOCK(RenderRectangleHopefullyQuickly);
+    TIMED_BLOCK(RenderRectangleHopefullyQuickly);
     
     // color.rgb *= color.a;
 
@@ -684,8 +682,6 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
         row += rowPitch;
     }
     END_TIMED_BLOCK_COUNTED(Slowly_TestPixel, (maxX - minX) * (maxY - minY) / 2);
-
-    END_TIMED_BLOCK(RenderRectangleHopefullyQuickly);
 }
 
 internal void

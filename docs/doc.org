@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [10/502]
+* to be done [11/502]
 ** DONE Handmade Hero Day 166 - Adding Locks to the Asset Operations
 - [[https://www.youtube.com/watch?v=jIWa0AZz2Sk]]
 
@@ -39,7 +39,7 @@
 ** DONE Handmade Hero Day 175 - Finishing Sparse Unicode Support
 - [[https://www.youtube.com/watch?v=kXQMyg4Prfo]]
 
-** TODO Handmade Hero Day 176 - Introduction to Debug Infrastructure
+** DONE Handmade Hero Day 176 - Introduction to Debug Infrastructure
 - [[https://www.youtube.com/watch?v=vhSIwxAWDIY]]
 
 ** TODO Handmade Hero Day 177 - Automatic Performance Counters

@@ -82,6 +82,7 @@
 #include "handmade_platform.h"
 #include "handmade_intrinsics.h"
 #include "handmade_math.h"
+#include "handmade_debug.h"
 #include "handmade_file_formats.h"
 #include "handmade_assets.h"
 #include "handmade_render_group.h"
