@@ -78,16 +78,17 @@ struct debug_counter_state
     char *Function;
     u16 Line;
 
-    u32 SnapshotIndex;
-
     debug_counter_data_snapshot DataSnapshots[DEBUG_MAX_SNAPSHOT_COUNT];
 };
 
 struct debug_state
 {
+    u32 SnapshotIndex;
     u32 CounterCount;
 
     debug_counter_state CounterStates[512];
+
+    frame_end_info FrameEndInfos[DEBUG_MAX_SNAPSHOT_COUNT];
 };
 
 #endif

@@ -2,6 +2,7 @@
 #include "handmade_platform.cpp"
 #include "handmade_assets.cpp"
 #include "handmade_render_group.cpp"
+#include "handmade_debug.cpp"
 #include "handmade_world.cpp"
 #include "handmade_sim_region.cpp"
 #include "handmade_audio.cpp"
@@ -596,193 +597,6 @@ MakeSphereDiffuseMap(loaded_bitmap *bitmap)
         }
 
         row += bitmap->Pitch;
-    }
-}
-
-
-#if 0
-#define STB_TRUETYPE_IMPLEMENTATION 1
-#include "stb_truetype.h"
-
-internal loaded_bitmap
-MakeNothingsTest(memory_arena *arena)
-{
-    stbtt_fontinfo font;
-    debug_read_file_result fileResult = PlatformAPI.DEBUG_ReadEntireFile("c:/Windows/Fonts/arial.ttf");
-    stbtt_InitFont(&font, (u8 *)fileResult.Content, stbtt_GetFontOffsetForIndex((u8 *)fileResult.Content, 0));
-
-    int width=0,height=0;
-
-    float fontSize = 3*512.0f;
-    u8 *bitmap = stbtt_GetCodepointBitmap(&font, 0, stbtt_ScaleForPixelHeight(&font, fontSize), 'N', &width, &height, 0,0);
-
-    loaded_bitmap result = MakeEmptyBitmap(arena, width, height, false);
-
-    u8 *source = bitmap;
-    u8 *destRow = (u8 *)result.Memory + (height - 1) * result.Pitch;
-    for (s32 y=0; y < height; y++)
-    {
-        u32 *dest = (u32 *)destRow;
-        for (s32 x=0; x < width; x++)
-        {
-            u8 alpha = *source++;
-            *dest++ = (
-                  (alpha << 24)
-                | (alpha << 16)
-                | (alpha << 8)
-                | (alpha << 0));
-        }
-        destRow -= result.Pitch;
-    }
-
-    stbtt_FreeBitmap(bitmap, 0);
-
-    return result;
-}
-#endif
-
-global_variable render_group *DEBUGRenderGroup;
-global_variable r32 DEBUG_LeftEdge = 0.0f;
-global_variable r32 DEBUG_LineY = 0.0f;
-global_variable r32 DEBUG_FontScale = 0.0f;
-
-internal void
-DEBUGReset(u32 width, u32 height)
-{
-    MakeOrthographic(DEBUGRenderGroup, width, height, 1.0f);
-    asset_vector mV = {};
-    asset_vector weight = {};
-    weight.E[Tag_UnicodePoint] = 1.0f;
-
-    font_id fontId = BestMatchFont(DEBUGRenderGroup->Assets, &mV, &weight);
-
-    hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
-    
-    DEBUG_FontScale = 1.0f;
-    DEBUG_LineY = 0.5f * (r32)height - fontInfo->Ascend * DEBUG_FontScale + 1.0f;
-    DEBUG_LeftEdge = -0.5f * (r32)width;
-}
-
-inline b32
-IsHex(char c)
-{
-    b32 result = (c >= '0' && c <= '9')
-        || (c >= 'A' && c <= 'F');
-    return result;
-}
-
-inline u32
-GetHex(char c)
-{
-    u32 result = 0;
-    if (c >= '0' && c <= '9')
-    {
-        result = c - '0';
-    }
-
-    if (c >= 'A' && c <= 'F')
-    {
-        result = 0xA + (c - 'A');
-    }
-    return result;
-}
-
-internal void
-DebugTextLine(char *string)
-{
-    if (DEBUGRenderGroup) {
-
-        // TODO: move to static variables
-        asset_vector mV = {};
-        asset_vector weight = {};
-        mV.E[Tag_FontType] = (r32)FontType_Debug;
-        weight.E[Tag_FontType] = 1.0f;
-        font_id fontId = BestMatchFont(DEBUGRenderGroup->Assets, &mV, &weight);
-        loaded_font *font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
-
-        if (!font)
-        {
-            LoadFont(DEBUGRenderGroup->Assets, fontId, true);
-            font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
-        }
-
-        if (font)
-        {
-            hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
-            r32 atX = DEBUG_LeftEdge;
-            r32 scale = DEBUG_FontScale;
-
-            u32 prevCodePoint = 0;
-
-            for (char *at = string;
-                 *at;
-                 ++at)
-            {
-                r32 charDim = scale;
-                u32 codePoint = *at;
-
-                if (
-                    at[0] == '\\'
-                    && IsHex(at[1])
-                    && IsHex(at[2])
-                    && IsHex(at[3])
-                    && IsHex(at[4])
-                    ) {
-                    codePoint = (GetHex(at[1]) << 12)
-                        | (GetHex(at[2]) << 8)
-                        | (GetHex(at[3]) << 4)
-                        | (GetHex(at[4]) << 0)
-                        ;
-                    at += 4;
-                }
-
-                r32 advanceX = scale*GetHorizontalAdvanceForPair(fontInfo, font, prevCodePoint, codePoint);
-                atX += advanceX;
-                //atX += scale;
-                if (codePoint != ' ') {
-                    bitmap_id bitmapId = GetBitmapForGlyph(DEBUGRenderGroup->Assets, fontInfo, font, codePoint);
-                
-                    hha_bitmap *info = GetBitmapInfo(DEBUGRenderGroup->Assets, bitmapId);
-
-                    PushBitmap(DEBUGRenderGroup, bitmapId, scale*(r32)info->Dim[1], ToV3(atX,DEBUG_LineY,0), ToV4(1,1,1,1));
-                }
-
-                prevCodePoint = *at;
-            }
-            DEBUG_LineY -= GetVerticalLineAdvance(fontInfo) * scale;
-        }
-    }
-}
-
-// NOTE: has to be after all code is loaded
-internal void
-OverlayDebugCycleCounters(game_memory *memory)
-{
-    debug_state *debugState = (debug_state *)memory->DebugStorage;
-
-    if (debugState)
-    {
-        DebugTextLine("DEBUG CYCLES: \\0414\\0410\\0424\\0444\\0424!");
-        for (u32 debugIndex=0;
-             debugIndex < debugState->CounterCount;
-             debugIndex++)
-        {
-            debug_counter_state *counterState = debugState->CounterStates + debugIndex;
-            u32 hitCount = counterState->DataSnapshots[0].HitCount;
-            u32 cycleCount = counterState->DataSnapshots[0].CycleCount;
-
-            if (hitCount)
-            {
-#if 0
-                char buffer[256];
-                _sprintf_s(buffer, 256, "\t%s: %I64u hits: %u, cycles per hit: %u\n", counterState->Function, cycleCount, hitCount, cycleCount / hitCount);
-
-                DebugTextLine(buffer);
-#else
-                DebugTextLine(counterState->Function);
-#endif
-            }
-        }
     }
 }
 
@@ -1980,31 +1794,6 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
 DEBUG_INIT_RECORD_ARRAY;
 DEBUG_DECLARE_RECORD_ARRAY_(Optimized);
 
-internal void
-UpdateCycleCounterArray(debug_state *debugState, debug_record *records, u32 recordsCount)
-{
-    for (u32 debugIndex=0;
-         debugIndex < recordsCount;
-         debugIndex++)
-    {
-        debug_record *src = records + debugIndex;
-        debug_counter_state *dst = debugState->CounterStates + debugState->CounterCount++;
-
-        dst->FileName = src->FileName;
-        dst->Function = src->Function;
-        dst->Line = src->Line;
-
-        u64 value = AtomicExchange64(&src->Clocks_and_HitCount, 0);
-        dst->DataSnapshots[dst->SnapshotIndex].HitCount = (u32)(value >> 32);
-        dst->DataSnapshots[dst->SnapshotIndex].CycleCount = (u32)(value & 0xFFFFFFFF);
-
-        dst->SnapshotIndex++;
-        if (dst->SnapshotIndex >= DEBUG_MAX_SNAPSHOT_COUNT) {
-            dst->SnapshotIndex = 0;
-        }
-    }
-}
-
 extern "C" GAME_FRAME_END(GameFrameEnd)
 {
     debug_state *debugState = (debug_state *)memory->DebugStorage;
@@ -2013,5 +1802,11 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
         debugState->CounterCount = 0;
         UpdateCycleCounterArray(debugState, Main_DebugRecords, Main_DebugRecordsCount);
         UpdateCycleCounterArray(debugState, Optimized_DebugRecords, Optimized_DebugRecordsCount);
+
+        debugState->FrameEndInfos[debugState->SnapshotIndex++] = *frameInfo;
+
+        if (debugState->SnapshotIndex >= DEBUG_MAX_SNAPSHOT_COUNT) {
+            debugState->SnapshotIndex = 0;
+        }
     }
 }
