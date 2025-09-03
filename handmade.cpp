@@ -754,8 +754,38 @@ DebugTextLine(char *string)
     }
 }
 
-internal void OverlayCycleCounters();
-    
+// NOTE: has to be after all code is loaded
+internal void
+OverlayDebugCycleCounters(game_memory *memory)
+{
+    debug_state *debugState = (debug_state *)memory->DebugStorage;
+
+    if (debugState)
+    {
+        DebugTextLine("DEBUG CYCLES: \\0414\\0410\\0424\\0444\\0424!");
+        for (u32 debugIndex=0;
+             debugIndex < debugState->CounterCount;
+             debugIndex++)
+        {
+            debug_counter_state *counterState = debugState->CounterStates + debugIndex;
+            u32 hitCount = counterState->DataSnapshots[0].HitCount;
+            u32 cycleCount = counterState->DataSnapshots[0].CycleCount;
+
+            if (hitCount)
+            {
+#if 0
+                char buffer[256];
+                _sprintf_s(buffer, 256, "\t%s: %I64u hits: %u, cycles per hit: %u\n", counterState->Function, cycleCount, hitCount, cycleCount / hitCount);
+
+                DebugTextLine(buffer);
+#else
+                DebugTextLine(counterState->Function);
+#endif
+            }
+        }
+    }
+}
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
     PlatformAPI = memory->PlatformAPI;
@@ -1931,7 +1961,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     CheckArena(&gameState->WorldArena);
     CheckArena(&tranState->TransientArena);
 
-    OverlayCycleCounters();
+    OverlayDebugCycleCounters(memory);
     if (DEBUGRenderGroup)
     {
         //RenderGroupToOutput(drawBuffer, DEBUGRenderGroup);
@@ -1940,7 +1970,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
 }
 
-
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
 {
     game_state *gameState = (game_state *)memory->PermanentStorage;
@@ -1948,44 +1977,41 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
     OutputPlayingSounds(&gameState->AudioState, soundBuffer, tranState->Assets, &tranState->TransientArena);
 }
 
-
 DEBUG_INIT_RECORD_ARRAY;
 DEBUG_DECLARE_RECORD_ARRAY_(Optimized);
 
 internal void
-RenderCycleCounterArray(debug_record *records, u32 recordsCount)
+UpdateCycleCounterArray(debug_state *debugState, debug_record *records, u32 recordsCount)
 {
     for (u32 debugIndex=0;
          debugIndex < recordsCount;
          debugIndex++)
     {
-        debug_record *record = records + debugIndex;
+        debug_record *src = records + debugIndex;
+        debug_counter_state *dst = debugState->CounterStates + debugState->CounterCount++;
 
-        u64 value = AtomicExchange64(&record->Clocks_and_HitCount, 0);
-        u32 hitCount = (u32)(value >> 32);
-        u32 cycleCount = (u32)(value & 0xFFFFFFFF);
+        dst->FileName = src->FileName;
+        dst->Function = src->Function;
+        dst->Line = src->Line;
 
-        if (cycleCount > 0){
-            #if 0
-            char buffer[256];
-            _sprintf_s(buffer, 256, "\t%s: %I64u hits: %u, cycles per hit: %u\n", record->Function, cycleCount, hitCount, cycleCount / hitCount);
+        u64 value = AtomicExchange64(&src->Clocks_and_HitCount, 0);
+        dst->DataSnapshots[dst->SnapshotIndex].HitCount = (u32)(value >> 32);
+        dst->DataSnapshots[dst->SnapshotIndex].CycleCount = (u32)(value & 0xFFFFFFFF);
 
-            DebugTextLine(buffer);
-            #else
-            DebugTextLine(record->Function);
-            #endif
+        dst->SnapshotIndex++;
+        if (dst->SnapshotIndex >= DEBUG_MAX_SNAPSHOT_COUNT) {
+            dst->SnapshotIndex = 0;
         }
     }
 }
 
-// NOTE: has to be after all code is loaded
-internal void
-OverlayCycleCounters()
+extern "C" GAME_FRAME_END(GameFrameEnd)
 {
-#if HANDMADE_INTERNAL
-    DebugTextLine("DEBUG CYCLES: \\0414\\0410\\0424\\0444\\0424!");
-
-    RenderCycleCounterArray(Main_DebugRecords, Main_DebugRecordsCount);
-    RenderCycleCounterArray(Optimized_DebugRecords, Optimized_DebugRecordsCount);
-#endif
+    debug_state *debugState = (debug_state *)memory->DebugStorage;
+    if (debugState)
+    {
+        debugState->CounterCount = 0;
+        UpdateCycleCounterArray(debugState, Main_DebugRecords, Main_DebugRecordsCount);
+        UpdateCycleCounterArray(debugState, Optimized_DebugRecords, Optimized_DebugRecordsCount);
+    }
 }

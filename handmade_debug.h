@@ -1,6 +1,8 @@
 #if !defined(HANDMADE_DEBUG_H)
 #define HANDMADE_DEBUG_H
 
+#define DEBUG_MAX_SNAPSHOT_COUNT 120
+
 // c++ template compiler junk
 #define COMBINE1(X,Y) X##Y  // helper macro
 #define COMBINE(X,Y) COMBINE1(X,Y)
@@ -59,5 +61,33 @@ struct debug_timed_block
 
 #define TIMED_BLOCK debug_timed_block COMBINE(debugCounterBlock, __LINE__)(__COUNTER__, (char *)__FILE__, (char *)__FUNCTION__, (u16)__LINE__);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// debug storage
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+struct debug_counter_data_snapshot
+{
+    u32 HitCount;
+    u32 CycleCount;
+};
+
+struct debug_counter_state
+{
+    char *FileName;
+    char *Function;
+    u16 Line;
+
+    u32 SnapshotIndex;
+
+    debug_counter_data_snapshot DataSnapshots[DEBUG_MAX_SNAPSHOT_COUNT];
+};
+
+struct debug_state
+{
+    u32 CounterCount;
+
+    debug_counter_state CounterStates[512];
+};
 
 #endif

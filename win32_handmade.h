@@ -9,6 +9,7 @@ struct win32_game_code
     FILETIME DLLLastWriteTime;
     game_update_and_render *UpdateAndRender;
     game_get_sound_samples *GetSoundSamples;
+    game_frame_end *FrameEnd;
 };
 
 struct win32_offscreen_buffer

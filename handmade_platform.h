@@ -83,6 +83,18 @@ extern struct game_memory *DebugGlobalMemory;
 #define InvalidCodePath Assert(!"Invalid code path");
 #define InvalidDefaultCase default: { InvalidCodePath; } break;
 
+struct frame_end_info
+{
+    r32 PerFrame;
+
+    r32 Step_ExecutableReady;
+    r32 Step_InputProcessed;
+    r32 Step_GameUpdated;
+    r32 Step_SoundPlay;
+    r32 Step_FrameSleep;
+    r32 Step_FrameEnd;
+};
+
 struct debug_read_file_result
 {
     void *Content;
@@ -279,14 +291,16 @@ struct game_memory
     uint64 PermanentStorageSize;
     void *PermanentStorage; // should be initialized to zero
 
+    uint64 TransientStorageSize;
+    void *TransientStorage; // should be initialized to zero
+
+    uint64 DebugStorageSize;
+    void *DebugStorage; // should be initialized to zero
+
     platform_work_queue *HighPriorityQueue;
     platform_work_queue *LowPriorityQueue;
 
     platform_api PlatformAPI;
-
-
-    uint64 TransientStorageSize;
-    void *TransientStorage; // should be initialized to zero
 };
 
 
@@ -298,6 +312,9 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 
 #define GAME_GET_SOUND_SAMPLES(name) void name(game_memory *memory, game_sound_output_buffer *soundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
+
+#define GAME_FRAME_END(name) void name(game_memory *memory, frame_end_info *frameInfo)
+typedef GAME_FRAME_END(game_frame_end);
 
 
 inline uint32

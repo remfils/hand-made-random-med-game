@@ -8,14 +8,14 @@
 - катсцены
 - генерация уровней?
 
-* to be done [2/454]
+* to be done [3/454]
 ** DONE Handmade Hero Day 177 - Automatic Performance Counters
 - [[https://www.youtube.com/watch?v=uHSLHvWFkto]]
 
 ** DONE Handmade Hero Day 178 - Thread-safe Performance Counters
 - [[https://www.youtube.com/watch?v=oDZ-sh0cKoY]]
 
-** TODO Handmade Hero Day 179 - Tracking Debug Information Over Time
+** DONE Handmade Hero Day 179 - Tracking Debug Information Over Time
 - [[https://www.youtube.com/watch?v=k_1FzhI3kv4]]
 
 ** TODO Handmade Hero Day 180 - Adding Debug Graphs
