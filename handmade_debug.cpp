@@ -217,10 +217,6 @@ OverlayDebugCycleCounters(game_memory *memory)
                     r32 valueNormalized = scale * (r32)counterState->DataSnapshots[snapIndex].CycleCount;
                     r32 barHeight = valueNormalized * chartHeight;
 
-                    if (barHeight > 1) {
-                        int a = 0;
-                    }
-
                     PushPieceRect(DEBUGRenderGroup, ToV3(chartLeft + (r32)snapIndex, barMinY + 0.5f * barHeight, 0), ToV2(1.0f, barHeight), ToV4(valueNormalized, 1, 0, 1));
                 }
             }
@@ -229,5 +225,53 @@ OverlayDebugCycleCounters(game_memory *memory)
             _snprintf_s(buffer, 256, "%s: %u hits: %u", counterState->Function, (u32)cycleCount.Avg, (u32)hitCount.Avg);
             DebugTextLine(buffer);
         }
+
+        r32 chartHeight = 100.0f;
+        r32 chartMinY = DEBUG_LineY - (chartHeight + 10.0f);
+        r32 chartLeft = DEBUG_LeftEdge;
+        r32 scale = 1.0f / (1.0f / 60.0f);
+        r32 barWidth = 8.0f;
+        r32 barSpacing = 5.0f;
+        r32 chartWidth = 0;
+
+        v4 colors[] = {
+            ToV4(1, 0, 0, 1),
+            ToV4(0, 1, 0, 1),
+            ToV4(0, 0, 1, 1),
+            ToV4(1, 1, 0, 1),
+            ToV4(0, 1, 1, 1),
+            ToV4(1, 0, 1, 1),
+            ToV4(0.5f, 1, 0, 1),
+            ToV4(0, 0.5f, 1, 1),
+            ToV4(1, 0, 0.5f, 1),
+        };
+
+        for (u32 snapIndex=0;
+             snapIndex < DEBUG_MAX_SNAPSHOT_COUNT;
+             snapIndex++)
+        {
+            debug_frame_info *info = debugState->FrameInfos + snapIndex;
+            r32 prevTimestamp = 0.0f;
+            r32 stackY = chartMinY;
+            for (u32 timestampIndex=0;
+                 timestampIndex < info->TimestampCount;
+                 timestampIndex++)
+            {
+                debug_frame_timestamp *stamp = info->Timestamps + timestampIndex;
+                r32 secondsElapsed = stamp->Time - prevTimestamp;
+                
+                r32 valueNormalized = secondsElapsed * scale;
+                r32 barHeight = valueNormalized * chartHeight;
+                v4 color = colors[timestampIndex % ArrayCount(colors)];
+                PushPieceRect(DEBUGRenderGroup, ToV3(chartLeft + (barWidth + barSpacing) * (r32)snapIndex,  stackY + 0.5f * barHeight, 0), ToV2(barWidth, barHeight), color);
+
+                chartWidth += barWidth + barSpacing;
+
+                stackY += barHeight;
+                prevTimestamp = stamp->Time;
+            }
+        }
+
+        PushPieceRect(DEBUGRenderGroup, ToV3(chartLeft + 0.5f * chartWidth, chartMinY + 2.0f * chartHeight, 0), ToV2(chartWidth, 1.0f), ToV4(1, 1, 1, 1));
     }
 }

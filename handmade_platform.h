@@ -83,16 +83,18 @@ extern struct game_memory *DebugGlobalMemory;
 #define InvalidCodePath Assert(!"Invalid code path");
 #define InvalidDefaultCase default: { InvalidCodePath; } break;
 
-struct frame_end_info
+struct debug_frame_timestamp
 {
-    r32 PerFrame;
+    r32 Time;
+    char *Name;
+    
+};
 
-    r32 Step_ExecutableReady;
-    r32 Step_InputProcessed;
-    r32 Step_GameUpdated;
-    r32 Step_SoundPlay;
-    r32 Step_FrameSleep;
-    r32 Step_FrameEnd;
+struct debug_frame_info
+{
+    r32 TotalSeconds;
+    u32 TimestampCount;
+    debug_frame_timestamp Timestamps[64];
 };
 
 struct debug_read_file_result
@@ -313,7 +315,7 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 #define GAME_GET_SOUND_SAMPLES(name) void name(game_memory *memory, game_sound_output_buffer *soundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
-#define GAME_FRAME_END(name) void name(game_memory *memory, frame_end_info *frameInfo)
+#define GAME_FRAME_END(name) void name(game_memory *memory, debug_frame_info *frameInfo)
 typedef GAME_FRAME_END(game_frame_end);
 
 

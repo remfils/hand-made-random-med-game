@@ -1281,6 +1281,17 @@ PLATFORM_FREE_MEMORY(Win32FreeMemory)
     }
 }
 
+inline void
+DebugRecordTimestamp(debug_frame_info *info, char *name, r32 seconds)
+{
+    Assert(info->TimestampCount < ArrayCount(info->Timestamps));
+
+    debug_frame_timestamp *stamp = info->Timestamps + info->TimestampCount++;
+    stamp->Name = name;
+    stamp->Time = seconds;
+}
+
+
 
 int CALLBACK WinMain(
     HINSTANCE instance,
@@ -1303,8 +1314,8 @@ int CALLBACK WinMain(
 
     u32 windowWidth = 960;
     u32 windowHeight = 540;
-    //windowWidth = 1920;
-    //windowHeight = 1080;
+    windowWidth = 1920;
+    windowHeight = 1080;
     Win32ResizeDIBSection(&globalBackbuffer, windowWidth, windowHeight);
     
     //Win32ResizeDIBSection(&globalBackbuffer, 1920/2, 1080/2);
@@ -1504,7 +1515,7 @@ int CALLBACK WinMain(
             
             while(GlobalRunning)
             {
-                frame_end_info frameInfo = {};
+                debug_frame_info frameInfo = {};
                 
                 newInput->DtForFrame = targetSecondsPerFrame;
 
@@ -1522,7 +1533,7 @@ int CALLBACK WinMain(
                   //reload_dlls = false;
                 }
 
-                frameInfo.Step_ExecutableReady = Win32GetSecondsElapsed(lastCounter, Win32GetWallClock());
+                DebugRecordTimestamp(&frameInfo, "ExecutableReady", Win32GetSecondsElapsed(lastCounter, Win32GetWallClock()));
                 // RemfilsStartStep(stepState, "MOS"); // TODO: remove this
 
                 // mouse
@@ -1671,7 +1682,7 @@ int CALLBACK WinMain(
                     gamePadControllerIndex++;
                 }
 
-                frameInfo.Step_InputProcessed = Win32GetSecondsElapsed(lastCounter, Win32GetWallClock());
+                DebugRecordTimestamp(&frameInfo, "InputProcessed", Win32GetSecondsElapsed(lastCounter, Win32GetWallClock()));
 
                 if (GlobalRunning)
                 {
@@ -1707,7 +1718,7 @@ int CALLBACK WinMain(
                     // XInputSetState(0, &vibration);
                 }
 
-                frameInfo.Step_GameUpdated = Win32GetSecondsElapsed(lastCounter, Win32GetWallClock());
+                DebugRecordTimestamp(&frameInfo, "GameUpdated", Win32GetSecondsElapsed(lastCounter, Win32GetWallClock()));
 
                 if (GlobalRunning)
                 {
@@ -1840,7 +1851,7 @@ int CALLBACK WinMain(
                     }
                 }
 
-                frameInfo.Step_SoundPlay = Win32GetSecondsElapsed(lastCounter, Win32GetWallClock());
+                DebugRecordTimestamp(&frameInfo, "SoundPlay", Win32GetSecondsElapsed(lastCounter, Win32GetWallClock()));
 
                 
                 // count cycles
@@ -1887,7 +1898,7 @@ int CALLBACK WinMain(
 
                 }
 
-                frameInfo.Step_FrameSleep = Win32GetSecondsElapsed(lastCounter, Win32GetWallClock());
+                DebugRecordTimestamp(&frameInfo, "FrameSleep", Win32GetSecondsElapsed(lastCounter, Win32GetWallClock()));
 
                 // TODO(vlad): wtf is this????
 
@@ -1916,7 +1927,7 @@ int CALLBACK WinMain(
 #endif
 
                 LARGE_INTEGER endCounter = Win32GetWallClock();
-                frameInfo.Step_FrameEnd = Win32GetSecondsElapsed(lastCounter, endCounter);
+                DebugRecordTimestamp(&frameInfo, "FrameEnd", Win32GetSecondsElapsed(lastCounter, Win32GetWallClock()));
                 lastCounter = endCounter;
 
                 if (game.FrameEnd)

@@ -1803,7 +1803,7 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
         UpdateCycleCounterArray(debugState, Main_DebugRecords, Main_DebugRecordsCount);
         UpdateCycleCounterArray(debugState, Optimized_DebugRecords, Optimized_DebugRecordsCount);
 
-        debugState->FrameEndInfos[debugState->SnapshotIndex++] = *frameInfo;
+        debugState->FrameInfos[debugState->SnapshotIndex++] = *frameInfo;
 
         if (debugState->SnapshotIndex >= DEBUG_MAX_SNAPSHOT_COUNT) {
             debugState->SnapshotIndex = 0;

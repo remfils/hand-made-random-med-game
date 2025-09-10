@@ -88,7 +88,7 @@ struct debug_state
 
     debug_counter_state CounterStates[512];
 
-    frame_end_info FrameEndInfos[DEBUG_MAX_SNAPSHOT_COUNT];
+    debug_frame_info FrameInfos[DEBUG_MAX_SNAPSHOT_COUNT];
 };
 
 #endif
