@@ -1792,16 +1792,28 @@ extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
 }
 
 DEBUG_INIT_RECORD_ARRAY;
-DEBUG_DECLARE_RECORD_ARRAY_(Optimized);
+DEBUG_DECLARE_RECORD_ARRAY_(0);
 
 extern "C" GAME_FRAME_END(GameFrameEnd)
 {
     debug_state *debugState = (debug_state *)memory->DebugStorage;
+
+    DebugCurrentWriteEventArrayIndex = !DebugCurrentWriteEventArrayIndex;
+    u64 arrayIndex_eventIndex = AtomicExchange64(&Debug_ArrayIndex_EventIndex, DebugCurrentWriteEventArrayIndex << 32);
+
+    u32 arrayIndex = arrayIndex_eventIndex >> 32;
+    u32 eventCount = arrayIndex_eventIndex & 0xFFFFFFFF;
+    
     if (debugState)
     {
         debugState->CounterCount = 0;
-        UpdateCycleCounterArray(debugState, Main_DebugRecords, Main_DebugRecordsCount);
-        UpdateCycleCounterArray(debugState, Optimized_DebugRecords, Optimized_DebugRecordsCount);
+
+        #if 0
+        UpdateCycleCounterArray(debugState, DebugRecords_0, DebugRecordsCount_0);
+        UpdateCycleCounterArray(debugState, DebugRecords_1, DebugRecordsCount_1);
+        #else
+        CollectDebugRecords(debugState, eventCount, DebugEventStorage[arrayIndex]);
+        #endif
 
         debugState->FrameInfos[debugState->SnapshotIndex++] = *frameInfo;
 

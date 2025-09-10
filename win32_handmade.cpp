@@ -1534,7 +1534,6 @@ int CALLBACK WinMain(
                 }
 
                 DebugRecordTimestamp(&frameInfo, "ExecutableReady", Win32GetSecondsElapsed(lastCounter, Win32GetWallClock()));
-                // RemfilsStartStep(stepState, "MOS"); // TODO: remove this
 
                 // mouse
 

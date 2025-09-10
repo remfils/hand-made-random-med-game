@@ -5,6 +5,13 @@ global_variable r32 DEBUG_LeftEdge = 0.0f;
 global_variable r32 DEBUG_LineY = 0.0f;
 global_variable r32 DEBUG_FontScale = 0.0f;
 
+DEBUG_DECLARE_RECORD_ARRAY_(0);
+DEBUG_DECLARE_RECORD_ARRAY_(1);
+
+u64 DebugCurrentWriteEventArrayIndex = 0;
+volatile u64 Debug_ArrayIndex_EventIndex;
+debug_event DebugEventStorage[2][MAX_DEBUG_EVENT_COUNT];
+
 internal void
 DEBUGReset(u32 width, u32 height)
 {
@@ -130,6 +137,54 @@ UpdateCycleCounterArray(debug_state *debugState, debug_record *records, u32 reco
         u64 value = AtomicExchange64(&src->Clocks_and_HitCount, 0);
         dst->DataSnapshots[debugState->SnapshotIndex].HitCount = (u32)(value >> 32);
         dst->DataSnapshots[debugState->SnapshotIndex].CycleCount = (u32)(value & 0xFFFFFFFF);
+    }
+}
+
+internal void
+CollectDebugRecords(debug_state *debugState, u32 eventCount, debug_event *debugEventArray)
+{
+    for (u32 debugIndex=0;
+         debugIndex < DebugRecordsCount_0 + DebugRecordsCount_1;
+         debugIndex++)
+    {
+        debug_counter_state *dst = debugState->CounterStates + debugIndex;
+        dst->DataSnapshots[debugState->SnapshotIndex].HitCount = 0;
+        dst->DataSnapshots[debugState->SnapshotIndex].CycleCount = 0;
+        debugState->CounterCount++;
+    }
+
+    debug_counter_state *counters[2] = {
+        debugState->CounterStates,
+        debugState->CounterStates + DebugRecordsCount_0,
+    };
+
+    debug_record *records[2] = {
+        DebugRecords_0,
+        DebugRecords_1,
+    };
+
+    for (u32 eventIndex=0;
+         eventIndex < eventCount;
+         eventIndex++)
+    {
+        debug_event *event = debugEventArray + eventIndex;
+        debug_counter_state *dst = counters[event->DebugRecordArrayIndex] + event->DebugRecordIndex;
+        debug_record *src = records[event->DebugRecordArrayIndex] + event->DebugRecordIndex;
+
+        dst->FileName = src->FileName;
+        dst->Function = src->Function;
+        dst->Line = src->Line;
+
+        if (event->Type == DebugEvent_BeginBlock)
+        {
+            dst->DataSnapshots[debugState->SnapshotIndex].HitCount++;
+            dst->DataSnapshots[debugState->SnapshotIndex].CycleCount -= event->Clock;
+        }
+        else
+        {
+            dst->DataSnapshots[debugState->SnapshotIndex].CycleCount += event->Clock;
+        }
+        
     }
 }
 
