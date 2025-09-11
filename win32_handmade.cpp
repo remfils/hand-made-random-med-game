@@ -27,6 +27,8 @@
 #include "handmade_platform.cpp"
 
 #include "win32_handmade.h"
+
+// TODO: remove?
 #include "remfils_tracker.cpp"
 
 
@@ -1952,3 +1954,5 @@ int CALLBACK WinMain(
     
     return(0);
 }
+
+DEBUG_INIT_RECORD_ARRAY;

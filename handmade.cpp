@@ -1798,8 +1798,8 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
 {
     debug_state *debugState = (debug_state *)memory->DebugStorage;
 
-    DebugCurrentWriteEventArrayIndex = !DebugCurrentWriteEventArrayIndex;
-    u64 arrayIndex_eventIndex = AtomicExchange64(&Debug_ArrayIndex_EventIndex, DebugCurrentWriteEventArrayIndex << 32);
+    GlobalDebugTable.CurrentWriteEventArrayIndex = !GlobalDebugTable.CurrentWriteEventArrayIndex;
+    u64 arrayIndex_eventIndex = AtomicExchange64(&GlobalDebugTable.ArrayIndex_EventIndex, GlobalDebugTable.CurrentWriteEventArrayIndex << 32);
 
     u32 arrayIndex = arrayIndex_eventIndex >> 32;
     u32 eventCount = arrayIndex_eventIndex & 0xFFFFFFFF;
@@ -1812,7 +1812,7 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
         UpdateCycleCounterArray(debugState, DebugRecords_0, DebugRecordsCount_0);
         UpdateCycleCounterArray(debugState, DebugRecords_1, DebugRecordsCount_1);
         #else
-        CollectDebugRecords(debugState, eventCount, DebugEventStorage[arrayIndex]);
+        CollectDebugRecords(debugState, eventCount, GlobalDebugTable.Events[arrayIndex]);
         #endif
 
         debugState->FrameInfos[debugState->SnapshotIndex++] = *frameInfo;

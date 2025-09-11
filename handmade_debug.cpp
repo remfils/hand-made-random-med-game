@@ -1,16 +1,17 @@
 #include <stdio.h>
 
+DEBUG_DECLARE_RECORD_ARRAY_(0);
+DEBUG_DECLARE_RECORD_ARRAY_(1);
+DEBUG_DECLARE_RECORD_ARRAY_(2);
+
+
 global_variable render_group *DEBUGRenderGroup;
 global_variable r32 DEBUG_LeftEdge = 0.0f;
 global_variable r32 DEBUG_LineY = 0.0f;
 global_variable r32 DEBUG_FontScale = 0.0f;
 
-DEBUG_DECLARE_RECORD_ARRAY_(0);
-DEBUG_DECLARE_RECORD_ARRAY_(1);
-
-u64 DebugCurrentWriteEventArrayIndex = 0;
-volatile u64 Debug_ArrayIndex_EventIndex;
-debug_event DebugEventStorage[2][MAX_DEBUG_EVENT_COUNT];
+debug_table GlobalDebugTable;
+const u32 DebugRecordsCount_2 = 0;
 
 internal void
 DEBUGReset(u32 width, u32 height)
@@ -120,6 +121,7 @@ DebugTextLine(char *string)
     }
 }
 
+// TODO: remove this
 internal void
 UpdateCycleCounterArray(debug_state *debugState, debug_record *records, u32 recordsCount)
 {
@@ -144,7 +146,7 @@ internal void
 CollectDebugRecords(debug_state *debugState, u32 eventCount, debug_event *debugEventArray)
 {
     for (u32 debugIndex=0;
-         debugIndex < DebugRecordsCount_0 + DebugRecordsCount_1;
+         debugIndex < DebugRecordsCount_0 + DebugRecordsCount_1 + DebugRecordsCount_2;
          debugIndex++)
     {
         debug_counter_state *dst = debugState->CounterStates + debugIndex;
@@ -153,14 +155,10 @@ CollectDebugRecords(debug_state *debugState, u32 eventCount, debug_event *debugE
         debugState->CounterCount++;
     }
 
-    debug_counter_state *counters[2] = {
+    debug_counter_state *counters[3] = {
         debugState->CounterStates,
         debugState->CounterStates + DebugRecordsCount_0,
-    };
-
-    debug_record *records[2] = {
-        DebugRecords_0,
-        DebugRecords_1,
+        debugState->CounterStates + DebugRecordsCount_0 + DebugRecordsCount_1,
     };
 
     for (u32 eventIndex=0;
@@ -169,7 +167,7 @@ CollectDebugRecords(debug_state *debugState, u32 eventCount, debug_event *debugE
     {
         debug_event *event = debugEventArray + eventIndex;
         debug_counter_state *dst = counters[event->DebugRecordArrayIndex] + event->DebugRecordIndex;
-        debug_record *src = records[event->DebugRecordArrayIndex] + event->DebugRecordIndex;
+        debug_record *src = GlobalDebugTable.Records[event->DebugRecordArrayIndex] + event->DebugRecordIndex;
 
         dst->FileName = src->FileName;
         dst->Function = src->Function;

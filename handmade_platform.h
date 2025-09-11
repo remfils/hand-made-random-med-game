@@ -1,7 +1,6 @@
 #if !defined(HANDMADE_PLATFORM_H)
 #define HANDMADE_PLATFORM_H
 
-
 #if _MSC_VER
 #define COMPILER_MSVC 1
 #endif
@@ -346,5 +345,26 @@ SafeTruncateToInt16(s16 value)
     
 }
 
+
+#if COMPILER_MSVC
+inline u64
+AtomicAdd64(u64 volatile *value, u64 addend)
+{
+    u64 prevValue = InterlockedAdd64((LONG64 *)value, addend);
+    return prevValue;
+}
+
+inline u32
+MyGetCurrentThreadId()
+{
+    u8 *threadLocalStorage = (u8*)__readgsqword(0x30);
+    u32 threadId = *(u32 *)(threadLocalStorage + 0x48);
+    return threadId;
+}
+
+#endif
+
+
+#include "handmade_debug_platform.h"
 
 #endif

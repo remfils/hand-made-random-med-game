@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [5/454]
+* to be done [6/454]
 ** DONE Handmade Hero Day 177 - Automatic Performance Counters
 - [[https://www.youtube.com/watch?v=uHSLHvWFkto]]
 
@@ -24,7 +24,7 @@
 ** DONE Handmade Hero Day 181 - Log-based Performance Counters
 - [[https://www.youtube.com/watch?v=s_qSvBp6nFw]]
 
-** TODO Handmade Hero Day 182 - Fast Thread ID Retrieval
+** DONE Handmade Hero Day 182 - Fast Thread ID Retrieval
 - [[https://www.youtube.com/watch?v=fNufyLQacDw]]
 
 ** TODO Handmade Hero Day 183 - Platform Layer Debug Events
