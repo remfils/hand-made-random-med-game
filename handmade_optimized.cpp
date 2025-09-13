@@ -6,7 +6,7 @@
 void
 RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, real32 realMaxX, real32 realMaxY, v4 color, rectangle2i clipRect, bool32 even, bool32 renderFringes=false)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     int32 minX = RoundReal32ToInt32(realMinX);
     int32 minY = RoundReal32ToInt32(realMinY);
@@ -102,7 +102,7 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     uint32 rowPitch = 2 * drawBuffer->Pitch;
 
 
-    TIMED_BLOCK;
+    TIMED_BLOCK(DrawPixels);
 
     __m128 zero_4x = _mm_set1_ps(0.0f);
     __m128i maskFF_4x = _mm_set1_epi32(0xff);

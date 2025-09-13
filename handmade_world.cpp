@@ -16,7 +16,7 @@ IsValid(world_position wp)
 inline bool32
 IsCanonical(real32 chunkDim, real32 tileRel)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
     
     real32 eps = 0.001f;
     bool32 result = ((tileRel >= -(0.5 * chunkDim + eps)) &&
@@ -27,7 +27,7 @@ IsCanonical(real32 chunkDim, real32 tileRel)
 inline bool32
 IsCanonical(world *world, v3 offset)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
     
     bool32 result = IsCanonical(world->ChunkDimInMeters.x, offset.x)
         && IsCanonical(world->ChunkDimInMeters.y, offset.y)

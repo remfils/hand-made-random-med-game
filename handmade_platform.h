@@ -70,6 +70,8 @@ typedef double r64;
 #if HANDMADE_SLOW
 #define Assert(expression) if (!(expression)) {*(int *)0 = 0;}
 
+
+// TODO: use this?
 extern struct game_memory *DebugGlobalMemory;
 
 #if COMPILER_MSVC
@@ -87,13 +89,6 @@ struct debug_frame_timestamp
     r32 Time;
     char *Name;
     
-};
-
-struct debug_frame_info
-{
-    r32 TotalSeconds;
-    u32 TimestampCount;
-    debug_frame_timestamp Timestamps[64];
 };
 
 struct debug_read_file_result
@@ -314,8 +309,12 @@ typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 #define GAME_GET_SOUND_SAMPLES(name) void name(game_memory *memory, game_sound_output_buffer *soundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
-#define GAME_FRAME_END(name) void name(game_memory *memory, debug_frame_info *frameInfo)
+#define GAME_FRAME_END(name) void name(game_memory *memory, u32 platformRecordCount)
 typedef GAME_FRAME_END(game_frame_end);
+
+struct debug_table;
+#define GET_GLOBAL_DEBUG_TABLE(name) debug_table* name()
+typedef GET_GLOBAL_DEBUG_TABLE(get_global_debug_table);
 
 
 inline uint32

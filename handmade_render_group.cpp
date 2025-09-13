@@ -157,7 +157,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                       render_environment_map *top, render_environment_map *middle, render_environment_map *bottom,
                       real32 pixelsToMeters)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
     
     // color.rgb *= color.a;
 
@@ -213,8 +213,6 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
         
         for (int32 x = minX; x <= maxX; ++x)
         {
-            TIMED_BLOCK;
-            
             v2 pixelP = V2i(x, y);
             v2 d = pixelP - origin;
 
@@ -232,8 +230,6 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
                 && edge3 < 0
                 )
             {
-                TIMED_BLOCK;
-                
                 v2 screenSpaceUV = {
                     (real32)x * invWidthMax, fixedCastY
                 };
@@ -352,7 +348,7 @@ RenderRectangleSlowly(loaded_bitmap *drawBuffer,
 internal void
 RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture, rectangle2i clipRect, bool32 even)
 {
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
     
     // color.rgb *= color.a;
 
@@ -478,7 +474,7 @@ RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, 
     int32 maxX = fillRect.MaxX;
     int32 maxY = fillRect.MaxY;
 
-    TIMED_BLOCK;
+    TIMED_BLOCK(DrawPixels);
     for (int32 y = minY; y < maxY; y+=2)
     {
         uint32 *pixel = (uint32 *)row;
@@ -1192,7 +1188,7 @@ internal void
 RenderGroup(loaded_bitmap *outputTarget, render_group *renderGroup, rectangle2i clipRect, bool32 even)
 {
     Assert(renderGroup->InsideRender);
-    TIMED_BLOCK;
+    TIMED_FUNCTION;
 
     real32 NullPixelsToMeters = 1.0f;
     

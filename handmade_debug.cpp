@@ -10,7 +10,8 @@ global_variable r32 DEBUG_LeftEdge = 0.0f;
 global_variable r32 DEBUG_LineY = 0.0f;
 global_variable r32 DEBUG_FontScale = 0.0f;
 
-debug_table GlobalDebugTable;
+global_variable debug_table GlobalDebugTable_;
+debug_table *GlobalDebugTable = &GlobalDebugTable_;
 const u32 DebugRecordsCount_2 = 0;
 
 internal void
@@ -133,7 +134,7 @@ UpdateCycleCounterArray(debug_state *debugState, debug_record *records, u32 reco
         debug_counter_state *dst = debugState->CounterStates + debugState->CounterCount++;
 
         dst->FileName = src->FileName;
-        dst->Function = src->Function;
+        dst->BlockName = src->BlockName;
         dst->Line = src->Line;
 
         u64 value = AtomicExchange64(&src->Clocks_and_HitCount, 0);
@@ -145,8 +146,23 @@ UpdateCycleCounterArray(debug_state *debugState, debug_record *records, u32 reco
 internal void
 CollectDebugRecords(debug_state *debugState, u32 eventCount, debug_event *debugEventArray)
 {
+    u32 totalCounterCount = 0;
+    debug_counter_state *counters[MAX_UNIT_COUNT];
+    debug_counter_state *currentCounterState = debugState->CounterStates;
+
+    for (u32 unitIndex=0;
+         unitIndex < MAX_UNIT_COUNT;
+         unitIndex++)
+    {
+        counters[unitIndex] = currentCounterState;
+
+        totalCounterCount += GlobalDebugTable->RecordCount[unitIndex];
+        currentCounterState += GlobalDebugTable->RecordCount[unitIndex];
+    }
+
+    
     for (u32 debugIndex=0;
-         debugIndex < DebugRecordsCount_0 + DebugRecordsCount_1 + DebugRecordsCount_2;
+         debugIndex < totalCounterCount;
          debugIndex++)
     {
         debug_counter_state *dst = debugState->CounterStates + debugIndex;
@@ -155,31 +171,28 @@ CollectDebugRecords(debug_state *debugState, u32 eventCount, debug_event *debugE
         debugState->CounterCount++;
     }
 
-    debug_counter_state *counters[3] = {
-        debugState->CounterStates,
-        debugState->CounterStates + DebugRecordsCount_0,
-        debugState->CounterStates + DebugRecordsCount_0 + DebugRecordsCount_1,
-    };
-
     for (u32 eventIndex=0;
          eventIndex < eventCount;
          eventIndex++)
     {
         debug_event *event = debugEventArray + eventIndex;
-        debug_counter_state *dst = counters[event->DebugRecordArrayIndex] + event->DebugRecordIndex;
-        debug_record *src = GlobalDebugTable.Records[event->DebugRecordArrayIndex] + event->DebugRecordIndex;
-
-        dst->FileName = src->FileName;
-        dst->Function = src->Function;
-        dst->Line = src->Line;
+        debug_counter_state *dst = counters[event->UnitIndex] + event->DebugRecordIndex;
+        debug_record *src = GlobalDebugTable->Records[event->UnitIndex] + event->DebugRecordIndex;
 
         if (event->Type == DebugEvent_BeginBlock)
         {
+            Assert(src->BlockName);
+            
+            dst->FileName = src->FileName;
+            dst->BlockName = src->BlockName;
+            dst->Line = src->Line;
+
             dst->DataSnapshots[debugState->SnapshotIndex].HitCount++;
             dst->DataSnapshots[debugState->SnapshotIndex].CycleCount -= event->Clock;
         }
-        else
+        else if (event->Type == DebugEvent_EndBlock)
         {
+            Assert(src->BlockName);
             dst->DataSnapshots[debugState->SnapshotIndex].CycleCount += event->Clock;
         }
         
@@ -272,11 +285,11 @@ OverlayDebugCycleCounters(game_memory *memory)
 
                     PushPieceRect(DEBUGRenderGroup, ToV3(chartLeft + (r32)snapIndex, barMinY + 0.5f * barHeight, 0), ToV2(1.0f, barHeight), ToV4(valueNormalized, 1, 0, 1));
                 }
-            }
 
-            char buffer[256];
-            _snprintf_s(buffer, 256, "%s: %u hits: %u", counterState->Function, (u32)cycleCount.Avg, (u32)hitCount.Avg);
-            DebugTextLine(buffer);
+                char buffer[256];
+                _snprintf_s(buffer, 256, "%s: %u hits: %u", counterState->BlockName, (u32)cycleCount.Avg, (u32)hitCount.Max);
+                DebugTextLine(buffer);
+            }
         }
 
         r32 chartHeight = 100.0f;
@@ -298,6 +311,8 @@ OverlayDebugCycleCounters(game_memory *memory)
             ToV4(0, 0.5f, 1, 1),
             ToV4(1, 0, 0.5f, 1),
         };
+
+        #if 0
 
         for (u32 snapIndex=0;
              snapIndex < DEBUG_MAX_SNAPSHOT_COUNT;
@@ -324,6 +339,8 @@ OverlayDebugCycleCounters(game_memory *memory)
                 prevTimestamp = stamp->Time;
             }
         }
+
+        #endif
 
         PushPieceRect(DEBUGRenderGroup, ToV3(chartLeft + 0.5f * chartWidth, chartMinY + 2.0f * chartHeight, 0), ToV2(chartWidth, 1.0f), ToV4(1, 1, 1, 1));
     }

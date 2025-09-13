@@ -24,7 +24,7 @@ struct debug_counter_data_snapshot
 struct debug_counter_state
 {
     char *FileName;
-    char *Function;
+    char *BlockName;
     u16 Line;
 
     debug_counter_data_snapshot DataSnapshots[DEBUG_MAX_SNAPSHOT_COUNT];
@@ -36,8 +36,6 @@ struct debug_state
     u32 CounterCount;
 
     debug_counter_state CounterStates[512];
-
-    debug_frame_info FrameInfos[DEBUG_MAX_SNAPSHOT_COUNT];
 };
 
 #endif
