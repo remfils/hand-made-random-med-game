@@ -1352,14 +1352,21 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     part->dColor = ToV4(0, 0, 0, -0.3f);
                     part->Height = RandomBetween(&gameState->ParticleEntropy, (r32)0.1f, (r32)0.2f);
 
-                    char nothings[] = "NOTHINGS";
-                    char letter = nothings[RandomChoice(&gameState->ParticleEntropy, ArrayCount(nothings)-1)];
 
                     asset_vector mV = {};
-                    mV.E[Tag_UnicodePoint] = (r32)letter;
                     asset_vector weight = {};
-                    weight.E[Tag_UnicodePoint] = 1.0f;
-                    part->BitmapId = BestMatchBitmap(tranState->Assets, AssetType_Font, &mV, &weight);
+                    part->BitmapId = BestMatchBitmap(tranState->Assets, AssetType_ParticleStar, &mV, &weight);
+
+                    // TODO: fonts are broken...
+                    //
+                    //char nothings[] = "NOTHINGS";
+                    //char letter = nothings[RandomChoice(&gameState->ParticleEntropy, ArrayCount(nothings)-1)];
+                    //
+                    //asset_vector mV = {};
+                    //mV.E[Tag_UnicodePoint] = (r32)letter;
+                    //asset_vector weight = {};
+                    //weight.E[Tag_UnicodePoint] = 1.0f;
+                    //part->BitmapId = BestMatchBitmap(tranState->Assets, AssetType_Font, &mV, &weight);
                 }
                 
                 ZeroStruct(gameState->ParticleCells);
@@ -1373,23 +1380,24 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                      particleIndex++)
                 {
                     particle *part = gameState->Particles + particleIndex;
-
+                
                     v3 p = (part->P - gridOrigin) * invCellDim;
-
+                
                     s32 cellX = TruncateReal32ToInt32(p.x);
                     s32 cellY = TruncateReal32ToInt32(p.y);
-
+                
                     if (cellX < 0) cellX = 0;
                     if (cellX > 15) cellX = 15;
                     if (cellY < 0) cellY = 0;
                     if (cellY > 15) cellY = 15;
-
+                
                     particle_cell *cell = &gameState->ParticleCells[cellY][cellX];
                     cell->Density += part->Color.a;
                     cell->VelocityTimeDensity += cell->Density * part->dP;
                 }
 
 
+                #if 0
                 for (u32 cellX=0; cellX<16; cellX++)
                 {
                     for (u32 cellY=0; cellY<16; cellY++)
@@ -1399,9 +1407,10 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         v3 offset = cellDim * ToV3((r32)cellX, (r32)cellY, 0.0f) + gridOrigin;
                         r32 value = Clamp01MapToRange(0.0f, cell->Density, 16.0f);
                         
-                        //PushPieceRect(renderGroup, offset, ToV2(cellDim, cellDim), ToV4(value, value, value, 1.0f));
+                        PushPieceRect(renderGroup, offset, ToV2(cellDim, cellDim), ToV4(value, value, value, 1.0f));
                     }
                 }
+                #endif
 
                 // NOTE: particle system test
                 for (u32 particleIndex = 0;
@@ -1802,28 +1811,35 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
     GlobalDebugTable->RecordCount[1] = DebugRecordsCount_1;
     GlobalDebugTable->RecordCount[2] = platformRecordCount;
 
-    GlobalDebugTable->CurrentWriteEventArrayIndex = !GlobalDebugTable->CurrentWriteEventArrayIndex;
+    GlobalDebugTable->CurrentWriteEventArrayIndex++;
+    if (GlobalDebugTable->CurrentWriteEventArrayIndex > ArrayCount(GlobalDebugTable->Events)) {
+        GlobalDebugTable->CurrentWriteEventArrayIndex = 0;
+    }
     u64 arrayIndex_eventIndex = AtomicExchange64(&GlobalDebugTable->ArrayIndex_EventIndex, GlobalDebugTable->CurrentWriteEventArrayIndex << 32);
 
     u32 arrayIndex = arrayIndex_eventIndex >> 32;
     u32 eventCount = arrayIndex_eventIndex & 0xFFFFFFFF;
+
+    GlobalDebugTable->EventCount[arrayIndex] = eventCount;
     
     if (debugState)
     {
-        debugState->CounterCount = 0;
+        if (!debugState->Initialized) {
+            InitializeArena(
+                &debugState->CollateArena,
+                memory->DebugStorageSize - sizeof(debug_state),
+                debugState+1
+                );
 
-        #if 0
-        UpdateCycleCounterArray(debugState, DebugRecords_0, DebugRecordsCount_0);
-        UpdateCycleCounterArray(debugState, DebugRecords_1, DebugRecordsCount_1);
-        #else
-        CollectDebugRecords(debugState, eventCount, GlobalDebugTable->Events[arrayIndex]);
-        #endif
-
-        debugState->SnapshotIndex++;
-
-        if (debugState->SnapshotIndex >= DEBUG_MAX_SNAPSHOT_COUNT) {
-            debugState->SnapshotIndex = 0;
+            debugState->CollateTemp = BeginTemporaryMemory(&debugState->CollateArena);
+            
+            debugState->Initialized = true;
         }
+
+        EndTemporaryMemory(debugState->CollateTemp);
+        debugState->CollateTemp = BeginTemporaryMemory(&debugState->CollateArena);
+
+        CollectDebugRecords(debugState, GlobalDebugTable->CurrentWriteEventArrayIndex);
     }
 }
 

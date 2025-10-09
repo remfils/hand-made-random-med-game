@@ -10,6 +10,7 @@
 #define MAX_DEBUG_EVENT_COUNT 16*65536
 #define MAX_DEBUG_RECORD_COUNT 65536
 #define MAX_UNIT_COUNT 3
+#define MAX_DEBUG_FRAME_COUNT 64
 
 #define DEBUG_INIT_RECORD_ARRAY extern const u32 COMBINE(DebugRecordsCount_, __UnitIndex) = __COUNTER__;
 #define DEBUG_DECLARE_RECORD_ARRAY_(suffix) extern const u32 COMBINE(DebugRecordsCount_, suffix);
@@ -17,8 +18,6 @@
 
 struct debug_record
 {
-    u64 Clocks_and_HitCount;
-
     char *FileName;
     char *BlockName;
     u16 Line;
@@ -46,7 +45,8 @@ struct debug_table
     volatile u64 ArrayIndex_EventIndex;
     u64 CurrentWriteEventArrayIndex;
     // NOTE: double rotating buffer logic implemented
-    debug_event Events[2][MAX_DEBUG_EVENT_COUNT];
+    u32 EventCount[MAX_DEBUG_FRAME_COUNT];
+    debug_event Events[MAX_DEBUG_FRAME_COUNT][MAX_DEBUG_EVENT_COUNT];
 
     u32 RecordCount[MAX_UNIT_COUNT];
     debug_record Records[MAX_UNIT_COUNT][MAX_DEBUG_RECORD_COUNT];

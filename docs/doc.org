@@ -8,29 +8,8 @@
 - катсцены
 - генерация уровней?
 
-* to be done [6/454]
-** DONE Handmade Hero Day 177 - Automatic Performance Counters
-- [[https://www.youtube.com/watch?v=uHSLHvWFkto]]
-
-** DONE Handmade Hero Day 178 - Thread-safe Performance Counters
-- [[https://www.youtube.com/watch?v=oDZ-sh0cKoY]]
-
-** DONE Handmade Hero Day 179 - Tracking Debug Information Over Time
-- [[https://www.youtube.com/watch?v=k_1FzhI3kv4]]
-
-** DONE Handmade Hero Day 180 - Adding Debug Graphs
-- [[https://www.youtube.com/watch?v=U2RnqT6xSFk]]
-
-** DONE Handmade Hero Day 181 - Log-based Performance Counters
-- [[https://www.youtube.com/watch?v=s_qSvBp6nFw]]
-
-** DONE Handmade Hero Day 182 - Fast Thread ID Retrieval
-- [[https://www.youtube.com/watch?v=fNufyLQacDw]]
-
-** TODO Handmade Hero Day 183 - Platform Layer Debug Events
-- [[https://www.youtube.com/watch?v=tdrTk9Ba3VM]]
-
-** TODO Handmade Hero Day 184 - Collating Debug Events
+* to be done [1/447]
+** DONE Handmade Hero Day 184 - Collating Debug Events
 - [[https://www.youtube.com/watch?v=YP9oNMb_VIg]]
 
 ** TODO Handmade Hero Day 185 - Finishing Basic Debug Collation
@@ -2697,3 +2676,24 @@ Build bitmaps that capture fonts at certain resolution
 
 ** DONE Handmade Hero Day 176 - Introduction to Debug Infrastructure
 - [[https://www.youtube.com/watch?v=vhSIwxAWDIY]]
+** DONE Handmade Hero Day 177 - Automatic Performance Counters
+- [[https://www.youtube.com/watch?v=uHSLHvWFkto]]
+
+** DONE Handmade Hero Day 178 - Thread-safe Performance Counters
+- [[https://www.youtube.com/watch?v=oDZ-sh0cKoY]]
+
+** DONE Handmade Hero Day 179 - Tracking Debug Information Over Time
+- [[https://www.youtube.com/watch?v=k_1FzhI3kv4]]
+
+** DONE Handmade Hero Day 180 - Adding Debug Graphs
+- [[https://www.youtube.com/watch?v=U2RnqT6xSFk]]
+
+** DONE Handmade Hero Day 181 - Log-based Performance Counters
+- [[https://www.youtube.com/watch?v=s_qSvBp6nFw]]
+
+** DONE Handmade Hero Day 182 - Fast Thread ID Retrieval
+- [[https://www.youtube.com/watch?v=fNufyLQacDw]]
+
+** DONE Handmade Hero Day 183 - Platform Layer Debug Events
+- [[https://www.youtube.com/watch?v=tdrTk9Ba3VM]]
+

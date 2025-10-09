@@ -30,12 +30,39 @@ struct debug_counter_state
     debug_counter_data_snapshot DataSnapshots[DEBUG_MAX_SNAPSHOT_COUNT];
 };
 
+struct debug_frame_region
+{
+    r32 MinValue;
+    r32 MaxValue;
+    u32 LaneIndex;
+};
+
+struct debug_frame
+{
+    u64 BeginClock;
+    u64 EndClock;
+    u32 RegionCount;
+    debug_frame_region *Regions;
+};
+
+
+
 struct debug_state
 {
-    u32 SnapshotIndex;
-    u32 CounterCount;
+//     u32 SnapshotIndex;
+//     u32 CounterCount;
+// 
+//     debug_counter_state CounterStates[512];
 
-    debug_counter_state CounterStates[512];
+    b32 Initialized;
+    memory_arena CollateArena;
+    temporary_memory CollateTemp;
+
+    u32 FrameBarLaneCount;
+    r32 FrameBarScale;
+
+    u32 FrameCount;
+    debug_frame *Frames;
 };
 
 #endif

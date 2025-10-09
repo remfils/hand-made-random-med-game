@@ -122,30 +122,81 @@ DebugTextLine(char *string)
     }
 }
 
-// TODO: remove this
-internal void
-UpdateCycleCounterArray(debug_state *debugState, debug_record *records, u32 recordsCount)
+inline u32
+GetLaneFromThreadIndex(debug_state *debugState, u32 threadIndex)
 {
-    for (u32 debugIndex=0;
-         debugIndex < recordsCount;
-         debugIndex++)
-    {
-        debug_record *src = records + debugIndex;
-        debug_counter_state *dst = debugState->CounterStates + debugState->CounterCount++;
-
-        dst->FileName = src->FileName;
-        dst->BlockName = src->BlockName;
-        dst->Line = src->Line;
-
-        u64 value = AtomicExchange64(&src->Clocks_and_HitCount, 0);
-        dst->DataSnapshots[debugState->SnapshotIndex].HitCount = (u32)(value >> 32);
-        dst->DataSnapshots[debugState->SnapshotIndex].CycleCount = (u32)(value & 0xFFFFFFFF);
-    }
+    // TODO:
+    return 0;
 }
 
 internal void
-CollectDebugRecords(debug_state *debugState, u32 eventCount, debug_event *debugEventArray)
+CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
 {
+    debugState->FrameBarLaneCount = 0;
+    debugState->FrameCount = 0;
+    debugState->FrameBarScale = 0;
+
+
+    u64 frameIndex = invalidArrayIndex + 1;
+    debug_frame *currentFrame = 0;
+    for (;;)
+    {
+        if (frameIndex == MAX_DEBUG_FRAME_COUNT) {
+            frameIndex = 0;
+        }
+        if (frameIndex == invalidArrayIndex) {
+            break;
+        }
+
+        for (u32 eventIndex=0;
+             eventIndex < GlobalDebugTable->EventCount[frameIndex];
+            eventIndex++)
+        {
+            debug_event *event = GlobalDebugTable->Events[frameIndex] + eventIndex;
+            debug_record *src = GlobalDebugTable->Records[event->UnitIndex] + event->DebugRecordIndex;
+
+            if (event->Type == DebugEvent_FrameMarker)
+            {
+                currentFrame->EndClock = event->Clock;
+                
+                currentFrame = debugState->Frames + debugState->FrameCount++;
+                currentFrame->BeginClock = event->Clock;
+                currentFrame->EndClock = 0;
+                currentFrame->RegionCount = 0;
+
+                //currentFrame = AddDebugFrame();
+                
+            } else if (currentFrame) {
+                u64 relativeClock = event->Clock - currentFrame->BeginClock;
+                u32 laneIndex = GetLaneFromThreadIndex(debugState, event->ThreadIndex);
+
+                if (event->Type == DebugEvent_BeginBlock) {
+                    
+                } else if (event->Type == DebugEvent_EndBlock) {
+                    
+                }
+            }
+
+            
+            
+            switch (event->Type) {
+            case DebugEvent_FrameMarker: {
+                
+            } break;
+            case DebugEvent_BeginBlock: {
+                
+            } break;
+            case DebugEvent_EndBlock: {
+                
+            } break;
+            }
+        }
+        
+        frameIndex++;
+    }
+
+    
+    #if 0
     u32 totalCounterCount = 0;
     debug_counter_state *counters[MAX_UNIT_COUNT];
     debug_counter_state *currentCounterState = debugState->CounterStates;
@@ -197,6 +248,8 @@ CollectDebugRecords(debug_state *debugState, u32 eventCount, debug_event *debugE
         }
         
     }
+
+    #endif
 }
 
 struct debug_stat_record
@@ -253,6 +306,8 @@ OverlayDebugCycleCounters(game_memory *memory)
     if (debugState)
     {
         DebugTextLine("DEBUG CYCLES: \\0414\\0410\\0424\\0444\\0424!");
+
+        #if 0
         for (u32 debugIndex=0;
              debugIndex < debugState->CounterCount;
              debugIndex++)
@@ -292,12 +347,16 @@ OverlayDebugCycleCounters(game_memory *memory)
             }
         }
 
+        #endif
+
+        r32 laneWidth = 8.0f;
+        u32 laneCount = debugState->FrameBarLaneCount;
+        r32 barWidth = laneWidth * laneCount;
+        r32 barSpacing = barWidth + 0.5f;
         r32 chartHeight = 100.0f;
         r32 chartMinY = DEBUG_LineY - (chartHeight + 10.0f);
         r32 chartLeft = DEBUG_LeftEdge;
-        r32 scale = 1.0f / (1.0f / 60.0f);
-        r32 barWidth = 8.0f;
-        r32 barSpacing = 5.0f;
+        r32 scale = debugState->FrameBarScale;
         r32 chartWidth = 0;
 
         v4 colors[] = {
@@ -312,35 +371,37 @@ OverlayDebugCycleCounters(game_memory *memory)
             ToV4(1, 0, 0.5f, 1),
         };
 
-        #if 0
-
-        for (u32 snapIndex=0;
-             snapIndex < DEBUG_MAX_SNAPSHOT_COUNT;
-             snapIndex++)
+        for (u32 frameIndex=0;
+             frameIndex < debugState->FrameCount;
+             frameIndex++)
         {
-            debug_frame_info *info = debugState->FrameInfos + snapIndex;
-            r32 prevTimestamp = 0.0f;
+            debug_frame *frame = debugState->Frames + frameIndex;
+
+            r32 stackX = chartLeft + barSpacing * (r32) frameIndex;
             r32 stackY = chartMinY;
-            for (u32 timestampIndex=0;
-                 timestampIndex < info->TimestampCount;
-                 timestampIndex++)
+            
+            for (u32 regionIndex=0;
+                 regionIndex < frame->RegionCount;
+                 regionIndex++)
             {
-                debug_frame_timestamp *stamp = info->Timestamps + timestampIndex;
-                r32 secondsElapsed = stamp->Time - prevTimestamp;
-                
-                r32 valueNormalized = secondsElapsed * scale;
-                r32 barHeight = valueNormalized * chartHeight;
-                v4 color = colors[timestampIndex % ArrayCount(colors)];
-                PushPieceRect(DEBUGRenderGroup, ToV3(chartLeft + (barWidth + barSpacing) * (r32)snapIndex,  stackY + 0.5f * barHeight, 0), ToV2(barWidth, barHeight), color);
+                debug_frame_region *region = frame->Regions + regionIndex;
+
+                v4 color = colors[regionIndex % ArrayCount(colors)];
+                r32 thisMinY = stackY + scale * region->MinValue;
+                r32 thisMaxY = stackY + scale * region->MaxValue;
+            
+                PushPieceRect(
+                    DEBUGRenderGroup,
+                    ToV3(stackX + 0.5f * laneWidth + laneWidth * region->LaneIndex,  thisMinY + 0.5f * (thisMaxY - thisMinY), 0),
+                    //ToV3(stackX + 0.5f * laneWidth + laneWidth * region->LaneIndex,  0.5f * (thisMinY + thisMaxY), 0), // original
+                    ToV2(laneWidth, thisMaxY - thisMinY), color
+                    );
 
                 chartWidth += barWidth + barSpacing;
 
-                stackY += barHeight;
-                prevTimestamp = stamp->Time;
+                stackY += thisMaxY;
             }
         }
-
-        #endif
 
         PushPieceRect(DEBUGRenderGroup, ToV3(chartLeft + 0.5f * chartWidth, chartMinY + 2.0f * chartHeight, 0), ToV2(chartWidth, 1.0f), ToV4(1, 1, 1, 1));
     }
