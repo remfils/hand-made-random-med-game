@@ -1812,7 +1812,7 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
     GlobalDebugTable->RecordCount[2] = platformRecordCount;
 
     GlobalDebugTable->CurrentWriteEventArrayIndex++;
-    if (GlobalDebugTable->CurrentWriteEventArrayIndex > ArrayCount(GlobalDebugTable->Events)) {
+    if (GlobalDebugTable->CurrentWriteEventArrayIndex >= ArrayCount(GlobalDebugTable->Events)) {
         GlobalDebugTable->CurrentWriteEventArrayIndex = 0;
     }
     u64 arrayIndex_eventIndex = AtomicExchange64(&GlobalDebugTable->ArrayIndex_EventIndex, GlobalDebugTable->CurrentWriteEventArrayIndex << 32);
@@ -1838,6 +1838,9 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
 
         EndTemporaryMemory(debugState->CollateTemp);
         debugState->CollateTemp = BeginTemporaryMemory(&debugState->CollateArena);
+
+        debugState->FirstThread = 0;
+        debugState->FirstFreeBlock = 0;
 
         CollectDebugRecords(debugState, GlobalDebugTable->CurrentWriteEventArrayIndex);
     }

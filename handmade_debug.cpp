@@ -122,26 +122,58 @@ DebugTextLine(char *string)
     }
 }
 
-inline u32
-GetLaneFromThreadIndex(debug_state *debugState, u32 threadIndex)
+inline debug_thread*
+GetDebugThread(debug_state *debugState, u32 threadId)
 {
-    // TODO:
-    return 0;
+    debug_thread *result = 0;
+    for (debug_thread *thread = debugState->FirstThread;
+         thread;
+        thread = thread->Next)
+    {
+        if (thread->ThreadId == threadId) {
+            result = thread;
+            break;
+        }
+    }
+
+    if (!result) {
+        result = PushStruct(&debugState->CollateArena, debug_thread);
+        result->ThreadId = (u16)threadId;
+        result->FirstOpenBlock = 0;
+        result->LaneIndex = debugState->FrameBarLaneCount++;
+        result->Next = debugState->FirstThread;
+        debugState->FirstThread = result;
+    }
+    
+    return result;
+}
+
+inline debug_frame_region*
+AddRegion(debug_state *debugState, debug_frame *currentFrame)
+{
+    Assert(currentFrame->RegionCount < MAX_DEBUG_REGIONS_PER_FRAME);
+    debug_frame_region *result = currentFrame->Regions + currentFrame->RegionCount++;
+    result->MinValue = 0;
+    result->MaxValue = 0;
+    result->LaneIndex = 0;
+
+    return result;
 }
 
 internal void
 CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
 {
+    debugState->Frames = PushArray(&debugState->CollateArena, MAX_DEBUG_FRAME_COUNT, debug_frame);
+    
     debugState->FrameBarLaneCount = 0;
     debugState->FrameCount = 0;
     debugState->FrameBarScale = 0;
-
 
     u64 frameIndex = invalidArrayIndex + 1;
     debug_frame *currentFrame = 0;
     for (;;)
     {
-        if (frameIndex == MAX_DEBUG_FRAME_COUNT) {
+        if (frameIndex >= MAX_DEBUG_FRAME_COUNT) {
             frameIndex = 0;
         }
         if (frameIndex == invalidArrayIndex) {
@@ -157,23 +189,74 @@ CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
 
             if (event->Type == DebugEvent_FrameMarker)
             {
-                currentFrame->EndClock = event->Clock;
+                if (currentFrame) {
+                    currentFrame->EndClock = event->Clock;
+                }
                 
                 currentFrame = debugState->Frames + debugState->FrameCount++;
                 currentFrame->BeginClock = event->Clock;
                 currentFrame->EndClock = 0;
                 currentFrame->RegionCount = 0;
-
-                //currentFrame = AddDebugFrame();
-                
-            } else if (currentFrame) {
+                currentFrame->Regions = PushArray(&debugState->CollateArena, MAX_DEBUG_REGIONS_PER_FRAME, debug_frame_region);
+            }
+            else if (currentFrame)
+            {
+                u32 eventFrameIndex = debugState->FrameCount - 1;
                 u64 relativeClock = event->Clock - currentFrame->BeginClock;
-                u32 laneIndex = GetLaneFromThreadIndex(debugState, event->ThreadIndex);
+                debug_thread *thread = GetDebugThread(debugState, event->ThreadId);
+                
+                if (event->Type == DebugEvent_BeginBlock)
+                {
+                    open_debug_block *block = debugState->FirstFreeBlock;
+                    if (block) {
+                        debugState->FirstFreeBlock = block->NextFree;
+                    } else {
+                        block = PushStruct(&debugState->CollateArena, open_debug_block);
+                    }
 
-                if (event->Type == DebugEvent_BeginBlock) {
+                    block->StartingFrameIndex = eventFrameIndex;
+                    block->OpeningEvent = event;
+                    block->Parent = thread->FirstOpenBlock;
+                    block->NextFree = 0;
+                    thread->FirstOpenBlock = block;
                     
-                } else if (event->Type == DebugEvent_EndBlock) {
-                    
+                }
+                else if (event->Type == DebugEvent_EndBlock)
+                {
+                    if (thread->FirstOpenBlock)
+                    {
+                        if (thread->FirstOpenBlock->OpeningEvent)
+                        {
+                            open_debug_block *matchingBlock = thread->FirstOpenBlock;
+                            debug_event *openEvent = matchingBlock->OpeningEvent;
+                            if (openEvent->ThreadId == event->ThreadId
+                                && openEvent->DebugRecordIndex == event->DebugRecordIndex
+                                && openEvent->UnitIndex == event->UnitIndex)
+                            {
+                                if (matchingBlock->StartingFrameIndex == eventFrameIndex)
+                                {
+                                    if (matchingBlock->Parent == 0) {
+                                        debug_frame_region *region = AddRegion(debugState, currentFrame);
+                                        region->LaneIndex = thread->LaneIndex;
+                                        region->MinValue = (r32)(openEvent->Clock - currentFrame->BeginClock);
+                                        region->MaxValue = (r32)(event->Clock - currentFrame->BeginClock);
+                                    }
+                                }
+                                else
+                                {
+                                    // TODO: function spans multiple frames
+                                }
+                            }
+                            else
+                            {
+                                // TODO: 
+                            }
+
+                            thread->FirstOpenBlock->NextFree = debugState->FirstFreeBlock;
+                            debugState->FirstFreeBlock = thread->FirstOpenBlock;
+                            thread->FirstOpenBlock = matchingBlock->Parent;
+                        }
+                    }
                 }
             }
 

@@ -6,11 +6,13 @@
 #define COMBINE1(X,Y) X##Y  // helper macro
 #define COMBINE(X,Y) COMBINE1(X,Y)
 
+#define MAX_DEBUG_THREAD_COUNT 256
 #define DEBUG_MAX_SNAPSHOT_COUNT 120
 #define MAX_DEBUG_EVENT_COUNT 16*65536
 #define MAX_DEBUG_RECORD_COUNT 65536
 #define MAX_UNIT_COUNT 3
 #define MAX_DEBUG_FRAME_COUNT 64
+#define MAX_DEBUG_REGIONS_PER_FRAME 64
 
 #define DEBUG_INIT_RECORD_ARRAY extern const u32 COMBINE(DebugRecordsCount_, __UnitIndex) = __COUNTER__;
 #define DEBUG_DECLARE_RECORD_ARRAY_(suffix) extern const u32 COMBINE(DebugRecordsCount_, suffix);
@@ -25,6 +27,7 @@ struct debug_record
 
 enum debug_array_type
 {
+    DebugEvent_UNK,
     DebugEvent_FrameMarker,
     DebugEvent_BeginBlock,
     DebugEvent_EndBlock,
@@ -33,7 +36,7 @@ enum debug_array_type
 struct debug_event
 {
     u64 Clock;
-    u16 ThreadIndex;
+    u16 ThreadId;
     u16 CoreIndex;
     u16 DebugRecordIndex;
     u8 UnitIndex;
@@ -62,7 +65,7 @@ RecordDebugEvent(u16 counter, debug_array_type type)
     Assert(eventIndex < MAX_DEBUG_EVENT_COUNT); 
     debug_event *event = GlobalDebugTable->Events[arrayIndex_eventIndex >> 32] + eventIndex; 
     event->Clock = __rdtsc();                                       
-    event->ThreadIndex = (u16)MyGetCurrentThreadId();                   
+    event->ThreadId = (u16)MyGetCurrentThreadId();                   
     event->CoreIndex = 0;
     event->UnitIndex = __UnitIndex;
     event->DebugRecordIndex = counter;

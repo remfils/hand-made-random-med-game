@@ -45,7 +45,23 @@ struct debug_frame
     debug_frame_region *Regions;
 };
 
+struct open_debug_block
+{
+    debug_event *OpeningEvent;
+    open_debug_block *Parent;
+    open_debug_block *NextFree;
+    u32 StartingFrameIndex;
+};
 
+struct debug_thread
+{
+    u16 ThreadId;
+    u32 LaneIndex;
+    
+    open_debug_block *FirstOpenBlock;
+
+    debug_thread *Next;
+};
 
 struct debug_state
 {
@@ -63,6 +79,9 @@ struct debug_state
 
     u32 FrameCount;
     debug_frame *Frames;
+
+    debug_thread *FirstThread;
+    open_debug_block *FirstFreeBlock;
 };
 
 #endif
