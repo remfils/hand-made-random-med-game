@@ -9,6 +9,8 @@ global_variable render_group *DEBUGRenderGroup;
 global_variable r32 DEBUG_LeftEdge = 0.0f;
 global_variable r32 DEBUG_LineY = 0.0f;
 global_variable r32 DEBUG_FontScale = 0.0f;
+global_variable r32 GlobalWidth = 0.0f;
+global_variable r32 GlobalHeight = 0.0f;
 
 global_variable debug_table GlobalDebugTable_;
 debug_table *GlobalDebugTable = &GlobalDebugTable_;
@@ -29,6 +31,9 @@ DEBUGReset(u32 width, u32 height)
     DEBUG_FontScale = 1.0f;
     DEBUG_LineY = 0.5f * (r32)height - fontInfo->Ascend * DEBUG_FontScale + 1.0f;
     DEBUG_LeftEdge = -0.5f * (r32)width;
+
+    GlobalWidth = (r32)width;
+    GlobalHeight = (r32)height;
 }
 
 inline b32
@@ -191,10 +196,11 @@ CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
             {
                 if (currentFrame) {
                     currentFrame->EndClock = event->Clock;
+                    debugState->FrameCount++;
                     currentFrame->WallSecondsElapsed = event->WallClock;
                 }
                 
-                currentFrame = debugState->Frames + debugState->FrameCount++;
+                currentFrame = debugState->Frames + debugState->FrameCount;
                 currentFrame->BeginClock = event->Clock;
                 currentFrame->EndClock = 0;
                 currentFrame->RegionCount = 0;
@@ -242,6 +248,9 @@ CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
                                         region->LaneIndex = thread->LaneIndex;
                                         region->MinValue = (r32)(openEvent->Clock - currentFrame->BeginClock);
                                         region->MaxValue = (r32)(event->Clock - currentFrame->BeginClock);
+
+                                        region->CycleCount = (event->Clock - openEvent->Clock);
+                                        region->Record = src;
 
                                         if (region->MaxValue > debugState->MaxValue) {
                                             debugState->MaxValue = region->MaxValue;
@@ -372,19 +381,25 @@ EndStatRecord(debug_stat_record *record)
 }
 
 internal void
-OverlayDebugCycleCounters(game_memory *memory)
+OverlayDebugCycleCounters(game_memory *memory, game_input *input)
 {
     debug_state *debugState = (debug_state *)memory->DebugStorage;
 
     if (!DEBUGRenderGroup) return;
 
+    if (WasPressed(input->MouseButtons[PlatformMouseButton_Right])) {
+        debugState->Paused = !debugState->Paused;
+    }
+
     if (debugState)
     {
+        v2 mouseP = ToV2(input->MouseX, input->MouseY);
+        
         // DebugTextLine("DEBUG CYCLES: \\0414\\0410\\0424\\0444\\0424!");
 
         if (debugState->FrameCount) {
             char buffer[256];
-            _snprintf_s(buffer, 256, "last frame: %.02fms", debugState->Frames[0].WallSecondsElapsed * 1000.0f);
+            _snprintf_s(buffer, 256, "last frame: %.02fms", debugState->Frames[debugState->FrameCount-1].WallSecondsElapsed * 1000.0f);
             DebugTextLine(buffer);
         }
 
@@ -435,7 +450,7 @@ OverlayDebugCycleCounters(game_memory *memory)
         r32 barWidth = laneWidth * laneCount;
         r32 barSpacing = barWidth + 0.5f;
         r32 chartHeight = 200.0f;
-        r32 chartMinY = DEBUG_LineY - (chartHeight + 10.0f);
+        r32 chartMinY = -0.5f * GlobalHeight + 100.0f;
         r32 chartLeft = DEBUG_LeftEdge;
         r32 scale = 1.0f;
         if (debugState->MaxValue > 0) {
@@ -477,12 +492,26 @@ OverlayDebugCycleCounters(game_memory *memory)
                 v4 color = colors[regionIndex % ArrayCount(colors)];
                 r32 thisMinY = chartMinY + scale * region->MinValue;
                 r32 thisMaxY = chartMinY + scale * region->MaxValue;
-            
-                PushPieceRect(
-                    DEBUGRenderGroup,
-                    ToV3(stackX + laneWidth * region->LaneIndex + 0.5f * laneWidth,  0.5f * (thisMinY + thisMaxY), 0), // original
-                    ToV2(laneWidth, thisMaxY - thisMinY), color
+
+                rectangle2 regionRect = RectMinMax(
+                    ToV2(stackX + laneWidth * region->LaneIndex, thisMinY),
+                    ToV2(stackX + laneWidth * region->LaneIndex + laneWidth, thisMaxY)
                     );
+            
+                PushPieceRect(DEBUGRenderGroup, regionRect, 0.0f, color);
+
+                if (IsInRectangle(regionRect, mouseP))
+                {
+                    debug_record *record = region->Record;
+                    char buffer[256];
+                    _snprintf_s(buffer, 256,
+                                "%32s: %10I64ucy [%s(%d)]",
+                                record->BlockName,
+                                region->CycleCount,
+                                record->FileName,
+                                record->Line);
+                    DebugTextLine(buffer);
+                }
 
                 chartWidth += barWidth + barSpacing;
             }

@@ -181,12 +181,13 @@ struct game_controller_input
 struct game_input
 {
     game_button_state MouseButtons[5];
-    int32 MouseX;
-    int32 MouseY;
-    int32 MouseZ;
+    r32 MouseX;
+    r32 MouseY;
+    // support mouse wheel
+    r32 MouseZ;
 
-    bool32 ExecutableReloaded;
-    real32 DtForFrame;
+    b32 ExecutableReloaded;
+    r32 DtForFrame;
     
     game_controller_input Controllers[5];
 };
@@ -362,6 +363,24 @@ MyGetCurrentThreadId()
 }
 
 #endif
+
+enum game_input_mouse_button
+{
+    PlatformMouseButton_Left,
+    PlatformMouseButton_Middle,
+    PlatformMouseButton_Right,
+    PlatformMouseButton_Extended1,
+    PlatformMouseButton_Extended2,
+    PlatformMouseButton_Count,
+};
+
+
+inline b32
+WasPressed(game_button_state state)
+{
+    b32 result = (state.HalfTransitionCount > 1) || (state.HalfTransitionCount == 1 && state.EndedDown);
+    return result;
+}
 
 
 #include "handmade_debug_platform.h"

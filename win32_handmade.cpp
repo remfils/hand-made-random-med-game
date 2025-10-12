@@ -1548,15 +1548,26 @@ int CALLBACK WinMain(
                 GetCursorPos(&mouseP);
                 ScreenToClient(windowHandle, &mouseP);
 
-                newInput->MouseX = mouseP.x;
-                newInput->MouseY = mouseP.y;
-                newInput->MouseZ = 0;
+                // 0.5f - is for pixel boundry allignment
+                newInput->MouseX = mouseP.x - 0.5f * (r32)globalBackbuffer.Width + 0.5f;
+                newInput->MouseY = 0.5f * (r32)globalBackbuffer.Height - 0.5f - mouseP.y;
+                newInput->MouseZ = 0; // TODO: support mouse wheel
 
-                Win32ProcessKeyboardButtonPress(&newInput->MouseButtons[0], GetKeyState(VK_LBUTTON) & (1 << 15));
-                Win32ProcessKeyboardButtonPress(&newInput->MouseButtons[1], GetKeyState(VK_MBUTTON) & (1 << 15));
-                Win32ProcessKeyboardButtonPress(&newInput->MouseButtons[2], GetKeyState(VK_RBUTTON) & (1 << 15));
+                DWORD Win32ButtonIds[PlatformMouseButton_Count] = {
+                    VK_LBUTTON,
+                    VK_MBUTTON,
+                    VK_RBUTTON,
+                    VK_XBUTTON1,
+                    VK_XBUTTON2
+                };
 
-
+                for (u32 mouseButtonIndex = 0; mouseButtonIndex < PlatformMouseButton_Count; mouseButtonIndex++)
+                {
+                    newInput->MouseButtons[mouseButtonIndex] = oldInput->MouseButtons[mouseButtonIndex];
+                    newInput->MouseButtons[mouseButtonIndex].HalfTransitionCount = 0;
+                    Win32ProcessKeyboardButtonPress(&newInput->MouseButtons[mouseButtonIndex], GetKeyState(Win32ButtonIds[mouseButtonIndex]) & (1 << 15));
+                }
+                
                 // controllers
                 game_controller_input *oldKeyboardController = &oldInput->Controllers[0];
                 game_controller_input *keyboardController = &newInput->Controllers[0];

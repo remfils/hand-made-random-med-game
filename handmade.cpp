@@ -1642,11 +1642,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         v4 color = {1.0f, 0.0f, 1.0f, 1.0f};
 
         // TODO: mouse is in screen pixel space
-        
+
+        /*
         PushScreenSquareDot(renderGroup, V2i(input->MouseX + testSpace, input->MouseY + testSpace), width, color);
         PushScreenSquareDot(renderGroup, V2i(input->MouseX - testSpace, input->MouseY - testSpace), width, color);
         PushScreenSquareDot(renderGroup, V2i(input->MouseX + testSpace, input->MouseY - testSpace), width, color);
         PushScreenSquareDot(renderGroup, V2i(input->MouseX - testSpace, input->MouseY + testSpace), width, color);
+        */
     }
     
     if (input->MouseButtons[1].EndedDown)
@@ -1656,11 +1658,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         v4 color = {1.0f, 0.0f, 1.0f, 1.0f};
 
         // TODO: mouse is in screen pixel space
-        
+
+        /*
         PushScreenSquareDot(renderGroup, V2i(input->MouseX + testSpace, input->MouseY), width, color);
         PushScreenSquareDot(renderGroup, V2i(input->MouseX - testSpace, input->MouseY), width, color);
         PushScreenSquareDot(renderGroup, V2i(input->MouseX, input->MouseY - testSpace), width, color);
         PushScreenSquareDot(renderGroup, V2i(input->MouseX, input->MouseY + testSpace), width, color);
+        */
     }
 
     gameState->CurrentTime += input->DtForFrame;
@@ -1784,7 +1788,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     CheckArena(&gameState->WorldArena);
     CheckArena(&tranState->TransientArena);
 
-    OverlayDebugCycleCounters(memory);
+    OverlayDebugCycleCounters(memory, input);
     if (DEBUGRenderGroup)
     {
         //RenderGroupToOutput(drawBuffer, DEBUGRenderGroup);
@@ -1834,15 +1838,18 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
             debugState->CollateTemp = BeginTemporaryMemory(&debugState->CollateArena);
             
             debugState->Initialized = true;
+            debugState->Paused = false;
         }
 
-        EndTemporaryMemory(debugState->CollateTemp);
-        debugState->CollateTemp = BeginTemporaryMemory(&debugState->CollateArena);
+        if (!debugState->Paused) {
+            EndTemporaryMemory(debugState->CollateTemp);
+            debugState->CollateTemp = BeginTemporaryMemory(&debugState->CollateArena);
 
-        debugState->FirstThread = 0;
-        debugState->FirstFreeBlock = 0;
+            debugState->FirstThread = 0;
+            debugState->FirstFreeBlock = 0;
 
-        CollectDebugRecords(debugState, GlobalDebugTable->CurrentWriteEventArrayIndex);
+            CollectDebugRecords(debugState, GlobalDebugTable->CurrentWriteEventArrayIndex);
+        }
     }
 }
 

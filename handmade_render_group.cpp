@@ -1057,6 +1057,12 @@ PushPieceRect(render_group *grp, v3 offset, v2 dim, v4 color, bool32 renderFring
 }
 
 inline void
+PushPieceRect(render_group *grp, rectangle2 rectangle, r32 z, v4 color, bool32 renderFringes=false)
+{
+    PushPieceRect(grp, ToV3(GetCenter(rectangle), z), GetDim(rectangle), color, renderFringes);
+}
+
+inline void
 PushPieceRectOutline(render_group *grp, v3 offset, v2 dim, v4 color)
 {
     // TODO: redo to offset is left corner + dim

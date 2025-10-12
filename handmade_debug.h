@@ -32,6 +32,8 @@ struct debug_counter_state
 
 struct debug_frame_region
 {
+    debug_record *Record;
+    u64 CycleCount;
     r32 MinValue;
     r32 MaxValue;
     u32 LaneIndex;
@@ -72,6 +74,7 @@ struct debug_state
 //     debug_counter_state CounterStates[512];
 
     b32 Initialized;
+    b32 Paused;
     memory_arena CollateArena;
     temporary_memory CollateTemp;
 
