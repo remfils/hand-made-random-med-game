@@ -926,7 +926,7 @@ Win32GetWallClock(void)
 {
     LARGE_INTEGER result;
     QueryPerformanceCounter(&result);
-    return(result);
+    return result;
 }
 
 inline real32
@@ -1518,7 +1518,6 @@ int CALLBACK WinMain(
             
             while(GlobalRunning)
             {
-                FRAME_MARKER;
                 
                 BEGIN_TIMED_BLOCK(ExecutableReady);
 
@@ -1940,10 +1939,10 @@ int CALLBACK WinMain(
                 OutputDebugStringA(buffer);
 #endif
 
-                LARGE_INTEGER endCounter = Win32GetWallClock();
-                lastCounter = endCounter;
 
                 END_TIMED_BLOCK(EndOfFrame);
+
+                BEGIN_TIMED_BLOCK(DebugCollation);
 
                 if (game.FrameEnd)
                 {
@@ -1951,11 +1950,18 @@ int CALLBACK WinMain(
                     GlobalDebugTable = game.GetGlobalDebugTable();
                     GlobalDebugTable_.CurrentWriteEventArrayIndex = 0;
                 }
+                END_TIMED_BLOCK(DebugCollation);
                 
                 game_input *tmpInput = newInput;
                 newInput = oldInput;
                 oldInput = tmpInput;
 
+
+                LARGE_INTEGER endCounter = Win32GetWallClock();
+                
+                FRAME_MARKER(Win32GetSecondsElapsed(lastCounter, endCounter));
+
+                lastCounter = endCounter;
             }
         }
         else

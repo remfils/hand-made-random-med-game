@@ -163,48 +163,50 @@ AddRegion(debug_state *debugState, debug_frame *currentFrame)
 internal void
 CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
 {
-    debugState->Frames = PushArray(&debugState->CollateArena, MAX_DEBUG_FRAME_COUNT, debug_frame);
+    debugState->Frames = PushArray(&debugState->CollateArena, MAX_DEBUG_EVENT_ARRAY_COUNT * 4, debug_frame);
     
     debugState->FrameBarLaneCount = 0;
     debugState->FrameCount = 0;
-    debugState->FrameBarScale = 0;
+    debugState->MaxValue = 1.0f; // TODO:
 
-    u64 frameIndex = invalidArrayIndex + 1;
+    u64 eventArrayIndex = invalidArrayIndex + 1;
     debug_frame *currentFrame = 0;
     for (;;)
     {
-        if (frameIndex >= MAX_DEBUG_FRAME_COUNT) {
-            frameIndex = 0;
+        if (eventArrayIndex >= MAX_DEBUG_EVENT_ARRAY_COUNT) {
+            eventArrayIndex = 0;
         }
-        if (frameIndex == invalidArrayIndex) {
+        if (eventArrayIndex == invalidArrayIndex) {
             break;
         }
 
         for (u32 eventIndex=0;
-             eventIndex < GlobalDebugTable->EventCount[frameIndex];
+             eventIndex < GlobalDebugTable->EventCount[eventArrayIndex];
             eventIndex++)
         {
-            debug_event *event = GlobalDebugTable->Events[frameIndex] + eventIndex;
+            debug_event *event = GlobalDebugTable->Events[eventArrayIndex] + eventIndex;
             debug_record *src = GlobalDebugTable->Records[event->UnitIndex] + event->DebugRecordIndex;
 
             if (event->Type == DebugEvent_FrameMarker)
             {
                 if (currentFrame) {
                     currentFrame->EndClock = event->Clock;
+                    currentFrame->WallSecondsElapsed = event->WallClock;
                 }
                 
                 currentFrame = debugState->Frames + debugState->FrameCount++;
                 currentFrame->BeginClock = event->Clock;
                 currentFrame->EndClock = 0;
                 currentFrame->RegionCount = 0;
+                currentFrame->WallSecondsElapsed = 0.0f;
                 currentFrame->Regions = PushArray(&debugState->CollateArena, MAX_DEBUG_REGIONS_PER_FRAME, debug_frame_region);
             }
             else if (currentFrame)
             {
                 u32 eventFrameIndex = debugState->FrameCount - 1;
                 u64 relativeClock = event->Clock - currentFrame->BeginClock;
-                debug_thread *thread = GetDebugThread(debugState, event->ThreadId);
-                
+                debug_thread *thread = GetDebugThread(debugState, event->TC.ThreadId);
+
                 if (event->Type == DebugEvent_BeginBlock)
                 {
                     open_debug_block *block = debugState->FirstFreeBlock;
@@ -229,7 +231,7 @@ CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
                         {
                             open_debug_block *matchingBlock = thread->FirstOpenBlock;
                             debug_event *openEvent = matchingBlock->OpeningEvent;
-                            if (openEvent->ThreadId == event->ThreadId
+                            if (openEvent->TC.ThreadId == event->TC.ThreadId
                                 && openEvent->DebugRecordIndex == event->DebugRecordIndex
                                 && openEvent->UnitIndex == event->UnitIndex)
                             {
@@ -240,6 +242,10 @@ CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
                                         region->LaneIndex = thread->LaneIndex;
                                         region->MinValue = (r32)(openEvent->Clock - currentFrame->BeginClock);
                                         region->MaxValue = (r32)(event->Clock - currentFrame->BeginClock);
+
+                                        if (region->MaxValue > debugState->MaxValue) {
+                                            debugState->MaxValue = region->MaxValue;
+                                        }
                                     }
                                 }
                                 else
@@ -252,30 +258,16 @@ CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
                                 // TODO: 
                             }
 
-                            thread->FirstOpenBlock->NextFree = debugState->FirstFreeBlock;
+                            matchingBlock->NextFree = debugState->FirstFreeBlock;
                             debugState->FirstFreeBlock = thread->FirstOpenBlock;
                             thread->FirstOpenBlock = matchingBlock->Parent;
                         }
                     }
                 }
             }
-
-            
-            
-            switch (event->Type) {
-            case DebugEvent_FrameMarker: {
-                
-            } break;
-            case DebugEvent_BeginBlock: {
-                
-            } break;
-            case DebugEvent_EndBlock: {
-                
-            } break;
-            }
         }
         
-        frameIndex++;
+        eventArrayIndex++;
     }
 
     
@@ -388,7 +380,13 @@ OverlayDebugCycleCounters(game_memory *memory)
 
     if (debugState)
     {
-        DebugTextLine("DEBUG CYCLES: \\0414\\0410\\0424\\0444\\0424!");
+        // DebugTextLine("DEBUG CYCLES: \\0414\\0410\\0424\\0444\\0424!");
+
+        if (debugState->FrameCount) {
+            char buffer[256];
+            _snprintf_s(buffer, 256, "last frame: %.02fms", debugState->Frames[0].WallSecondsElapsed * 1000.0f);
+            DebugTextLine(buffer);
+        }
 
         #if 0
         for (u32 debugIndex=0;
@@ -436,10 +434,13 @@ OverlayDebugCycleCounters(game_memory *memory)
         u32 laneCount = debugState->FrameBarLaneCount;
         r32 barWidth = laneWidth * laneCount;
         r32 barSpacing = barWidth + 0.5f;
-        r32 chartHeight = 100.0f;
+        r32 chartHeight = 200.0f;
         r32 chartMinY = DEBUG_LineY - (chartHeight + 10.0f);
         r32 chartLeft = DEBUG_LeftEdge;
-        r32 scale = debugState->FrameBarScale;
+        r32 scale = 1.0f;
+        if (debugState->MaxValue > 0) {
+            scale = chartHeight / debugState->MaxValue;
+        }
         r32 chartWidth = 0;
 
         v4 colors[] = {
@@ -454,14 +455,18 @@ OverlayDebugCycleCounters(game_memory *memory)
             ToV4(1, 0, 0.5f, 1),
         };
 
+        u32 maxFrameCount = 10;
+        if (debugState->FrameCount < maxFrameCount) {
+            maxFrameCount = debugState->FrameCount;
+        }
+
         for (u32 frameIndex=0;
-             frameIndex < debugState->FrameCount;
+             frameIndex < maxFrameCount;
              frameIndex++)
         {
             debug_frame *frame = debugState->Frames + frameIndex;
 
             r32 stackX = chartLeft + barSpacing * (r32) frameIndex;
-            r32 stackY = chartMinY;
             
             for (u32 regionIndex=0;
                  regionIndex < frame->RegionCount;
@@ -470,19 +475,16 @@ OverlayDebugCycleCounters(game_memory *memory)
                 debug_frame_region *region = frame->Regions + regionIndex;
 
                 v4 color = colors[regionIndex % ArrayCount(colors)];
-                r32 thisMinY = stackY + scale * region->MinValue;
-                r32 thisMaxY = stackY + scale * region->MaxValue;
+                r32 thisMinY = chartMinY + scale * region->MinValue;
+                r32 thisMaxY = chartMinY + scale * region->MaxValue;
             
                 PushPieceRect(
                     DEBUGRenderGroup,
-                    ToV3(stackX + 0.5f * laneWidth + laneWidth * region->LaneIndex,  thisMinY + 0.5f * (thisMaxY - thisMinY), 0),
-                    //ToV3(stackX + 0.5f * laneWidth + laneWidth * region->LaneIndex,  0.5f * (thisMinY + thisMaxY), 0), // original
+                    ToV3(stackX + laneWidth * region->LaneIndex + 0.5f * laneWidth,  0.5f * (thisMinY + thisMaxY), 0), // original
                     ToV2(laneWidth, thisMaxY - thisMinY), color
                     );
 
                 chartWidth += barWidth + barSpacing;
-
-                stackY += thisMaxY;
             }
         }
 

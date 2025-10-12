@@ -413,5 +413,17 @@ internal task_with_memory* BeginTaskWithMemory(transient_state *tranState);
 internal void EndTaskWithMemory(task_with_memory *task);
 #endif
 
+inline b32
+AreStringsEqual(char *left, char *right)
+{
+    while (*left && *right && (*left == *right))
+    {
+        left++;
+        right++;
+    }
+    b32 result = (*left == 0) && (*right == 0);
+    return result;
+}
+
 
 global_variable platform_api PlatformAPI;

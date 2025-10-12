@@ -8,14 +8,14 @@
 - катсцены
 - генерация уровней?
 
-* to be done [2/447]
+* to be done [3/447]
 ** DONE Handmade Hero Day 184 - Collating Debug Events
 - [[https://www.youtube.com/watch?v=YP9oNMb_VIg]]
 
 ** DONE Handmade Hero Day 185 - Finishing Basic Debug Collation
 - [[https://www.youtube.com/watch?v=kkoiLQO5JGo]]
 
-** TODO Handmade Hero Day 186 - Starting to Debug Event Recording
+** DONE Handmade Hero Day 186 - Starting to Debug Event Recording
 - [[https://www.youtube.com/watch?v=BbfFZLUre3s]]
 
 ** TODO Handmade Hero Day 187 - Fixing an Event Recording Bug

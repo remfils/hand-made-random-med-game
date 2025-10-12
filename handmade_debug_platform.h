@@ -11,8 +11,8 @@
 #define MAX_DEBUG_EVENT_COUNT 16*65536
 #define MAX_DEBUG_RECORD_COUNT 65536
 #define MAX_UNIT_COUNT 3
-#define MAX_DEBUG_FRAME_COUNT 64
-#define MAX_DEBUG_REGIONS_PER_FRAME 64
+#define MAX_DEBUG_EVENT_ARRAY_COUNT 64
+#define MAX_DEBUG_REGIONS_PER_FRAME 256*4
 
 #define DEBUG_INIT_RECORD_ARRAY extern const u32 COMBINE(DebugRecordsCount_, __UnitIndex) = __COUNTER__;
 #define DEBUG_DECLARE_RECORD_ARRAY_(suffix) extern const u32 COMBINE(DebugRecordsCount_, suffix);
@@ -33,11 +33,20 @@ enum debug_array_type
     DebugEvent_EndBlock,
 };
 
+struct threadid_coreindex
+{
+    u16 ThreadId;
+    u16 CoreIndex;
+};
+
 struct debug_event
 {
     u64 Clock;
-    u16 ThreadId;
-    u16 CoreIndex;
+    union
+    {
+        threadid_coreindex TC;
+        r32 WallClock;
+    };
     u16 DebugRecordIndex;
     u8 UnitIndex;
     u8 Type;
@@ -48,8 +57,8 @@ struct debug_table
     volatile u64 ArrayIndex_EventIndex;
     u64 CurrentWriteEventArrayIndex;
     // NOTE: double rotating buffer logic implemented
-    u32 EventCount[MAX_DEBUG_FRAME_COUNT];
-    debug_event Events[MAX_DEBUG_FRAME_COUNT][MAX_DEBUG_EVENT_COUNT];
+    u32 EventCount[MAX_DEBUG_EVENT_ARRAY_COUNT];
+    debug_event Events[MAX_DEBUG_EVENT_ARRAY_COUNT][MAX_DEBUG_EVENT_COUNT];
 
     u32 RecordCount[MAX_UNIT_COUNT];
     debug_record Records[MAX_UNIT_COUNT][MAX_DEBUG_RECORD_COUNT];
@@ -57,20 +66,26 @@ struct debug_table
 
 extern debug_table *GlobalDebugTable;
 
-inline void
-RecordDebugEvent(u16 counter, debug_array_type type)
-{
-    u64 arrayIndex_eventIndex = AtomicAdd64(&GlobalDebugTable->ArrayIndex_EventIndex, 1); 
-    u32 eventIndex = arrayIndex_eventIndex & 0xFFFFFFFF; 
-    Assert(eventIndex < MAX_DEBUG_EVENT_COUNT); 
-    debug_event *event = GlobalDebugTable->Events[arrayIndex_eventIndex >> 32] + eventIndex; 
-    event->Clock = __rdtsc();                                       
-    event->ThreadId = (u16)MyGetCurrentThreadId();                   
-    event->CoreIndex = 0;
-    event->UnitIndex = __UnitIndex;
-    event->DebugRecordIndex = counter;
+
+#if HANDMADE_PROFILE
+
+#define RecordDebugEventCommon(counter, type)                           \
+    u64 arrayIndex_eventIndex = AtomicAdd64(&GlobalDebugTable->ArrayIndex_EventIndex, 1); \
+    u32 eventIndex = arrayIndex_eventIndex & 0xFFFFFFFF;                \
+    Assert(eventIndex < MAX_DEBUG_EVENT_COUNT);                         \
+    debug_event *event = GlobalDebugTable->Events[arrayIndex_eventIndex >> 32] + eventIndex; \
+    event->Clock = __rdtsc();                                           \
+    event->UnitIndex = __UnitIndex;                                     \
+    event->DebugRecordIndex = counter;                                  \
     event->Type = (u8)type;
-}
+
+#define RecordDebugEvent(counter, type)                         \
+    {                                                           \
+        RecordDebugEventCommon(counter, type)                   \
+            event->TC.ThreadId = (u16)MyGetCurrentThreadId();   \
+        event->TC.CoreIndex = 0;                                \
+    }
+
 
 struct debug_timed_block
 {
@@ -111,15 +126,28 @@ struct debug_timed_block
 #define END_TIMED_BLOCK(label) COMBINE(debugNamedCounterBlock_, label).EndRecording();
 
 
-#define FRAME_MARKER \
+#define FRAME_MARKER(secondsElapsed)                                    \
     {                                                                   \
         u16 counter = __COUNTER__;                                      \
         debug_record *record = GlobalDebugTable->Records[__UnitIndex] + counter; \
         record->FileName = __FILE__;                                    \
         record->BlockName = "Frame Marker";                             \
         record->Line = __LINE__;                                        \
-                                                                        \
-        RecordDebugEvent(counter, DebugEvent_FrameMarker);              \
+        RecordDebugEventCommon(counter, DebugEvent_FrameMarker);        \
+        event->WallClock = secondsElapsed;                              \
     }
 
+#else
+
+#define TIMED_FUNCTION
+#define TIMED_BLOCK(blockName)
+
+#define BEGIN_TIMED_BLOCK(label)
+#define END_TIMED_BLOCK(label)
+
+#define FRAME_MARKER
+
 #endif
+
+#endif
+

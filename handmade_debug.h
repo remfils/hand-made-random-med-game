@@ -42,7 +42,8 @@ struct debug_frame
     u64 BeginClock;
     u64 EndClock;
     u32 RegionCount;
-    debug_frame_region *Regions;
+    r32 WallSecondsElapsed;
+debug_frame_region *Regions;
 };
 
 struct open_debug_block
@@ -75,7 +76,7 @@ struct debug_state
     temporary_memory CollateTemp;
 
     u32 FrameBarLaneCount;
-    r32 FrameBarScale;
+    r32 MaxValue;
 
     u32 FrameCount;
     debug_frame *Frames;
