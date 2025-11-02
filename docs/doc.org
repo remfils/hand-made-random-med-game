@@ -12,7 +12,10 @@
 ** DONE Handmade Hero Day 189 - Incremental Debug Frame Processing
 - [[https://www.youtube.com/watch?v=87V4GNfqTpY]]
 
-code in bad shape, should be reviewed and fixed
+what to look
+
+- concave vs convex shapes
+- point in polygon
 
 ** TODO Handmade Hero Day 190 - Cleaning Up Debug Globals
 - [[https://www.youtube.com/watch?v=7jmDV_Hk42U]]

@@ -61,10 +61,10 @@ GetHex(char c)
 }
 
 internal void
-DebugTextLine(char *string)
+DebugTextAtPoint(char *string, v2 p)
 {
-    if (DEBUGRenderGroup) {
-
+    if (DEBUGRenderGroup)
+    {
         // TODO: move to static variables
         asset_vector mV = {};
         asset_vector weight = {};
@@ -82,7 +82,7 @@ DebugTextLine(char *string)
         if (font)
         {
             hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
-            r32 atX = DEBUG_LeftEdge;
+            r32 atX = p.x;
             r32 scale = DEBUG_FontScale;
 
             u32 prevCodePoint = 0;
@@ -117,12 +117,38 @@ DebugTextLine(char *string)
                 
                     hha_bitmap *info = GetBitmapInfo(DEBUGRenderGroup->Assets, bitmapId);
 
-                    PushBitmap(DEBUGRenderGroup, bitmapId, scale*(r32)info->Dim[1], ToV3(atX,DEBUG_LineY,0), ToV4(1,1,1,1));
+                    PushBitmap(DEBUGRenderGroup, bitmapId, scale*(r32)info->Dim[1], ToV3(atX, p.y, 0), ToV4(1,1,1,1));
                 }
 
                 prevCodePoint = *at;
             }
-            DEBUG_LineY -= GetVerticalLineAdvance(fontInfo) * scale;
+        }
+    }
+}
+
+internal void
+DebugTextLine(char *string)
+{
+    if (DEBUGRenderGroup)
+    {
+        asset_vector mV = {};
+        asset_vector weight = {};
+        mV.E[Tag_FontType] = (r32)FontType_Debug;
+        weight.E[Tag_FontType] = 1.0f;
+        font_id fontId = BestMatchFont(DEBUGRenderGroup->Assets, &mV, &weight);
+        loaded_font *font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
+
+        if (!font)
+        {
+            LoadFont(DEBUGRenderGroup->Assets, fontId, true);
+            font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
+        }
+
+        if (font)
+        {
+            hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
+            DebugTextAtPoint(string, ToV2(DEBUG_LeftEdge, DEBUG_LineY));
+            DEBUG_LineY -= GetVerticalLineAdvance(fontInfo) * DEBUG_FontScale;
         }
     }
 }
@@ -542,12 +568,13 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input)
                     debug_record *record = region->Record;
                     char buffer[256];
                     _snprintf_s(buffer, 256,
-                                "%32s: %10I64ucy [%s(%d)]",
+                                "%s: %10I64ucy [%s(%d)]",
                                 record->BlockName,
                                 region->CycleCount,
                                 record->FileName,
                                 record->Line);
-                    DebugTextLine(buffer);
+
+                    DebugTextAtPoint(buffer, mouseP);
 
                     if (WasPressed(input->MouseButtons[PlatformMouseButton_Left])) {
                         debugState->ScopeToRecord = record;
