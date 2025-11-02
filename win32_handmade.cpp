@@ -1503,6 +1503,14 @@ int CALLBACK WinMain(
 
             GlobalRunning = true;
 
+            DWORD Win32ButtonIds[PlatformMouseButton_Count] = {
+                VK_LBUTTON,
+                VK_MBUTTON,
+                VK_RBUTTON,
+                VK_XBUTTON1,
+                VK_XBUTTON2
+            };
+
 #if 0
             // NOTE: this is debug sound, result for writeCursor delta increase = 1920
             while (GlobalRunning) {
@@ -1552,14 +1560,6 @@ int CALLBACK WinMain(
                 newInput->MouseX = mouseP.x - 0.5f * (r32)globalBackbuffer.Width + 0.5f;
                 newInput->MouseY = 0.5f * (r32)globalBackbuffer.Height - 0.5f - mouseP.y;
                 newInput->MouseZ = 0; // TODO: support mouse wheel
-
-                DWORD Win32ButtonIds[PlatformMouseButton_Count] = {
-                    VK_LBUTTON,
-                    VK_MBUTTON,
-                    VK_RBUTTON,
-                    VK_XBUTTON1,
-                    VK_XBUTTON2
-                };
 
                 for (u32 mouseButtonIndex = 0; mouseButtonIndex < PlatformMouseButton_Count; mouseButtonIndex++)
                 {
@@ -1880,6 +1880,8 @@ int CALLBACK WinMain(
 
                 if (GlobalRunning)
                 {
+                    // TODO: implement vblank support
+
                     real32 workSecondsElapsed = Win32GetSecondsElapsed(lastCounter, Win32GetWallClock());
                 
                     real32 secondsElapsedForFrame = workSecondsElapsed;

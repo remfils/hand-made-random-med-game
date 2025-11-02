@@ -849,7 +849,7 @@ void WriteNonHeroFiles()
 
     loaded_font *fonts[FONT_COUNT];
     fonts[0] = LoadFont("C:/Windows/Fonts/LiberationMono-Regular.ttf", codePointCount, 20.0f);
-    fonts[1] = LoadFont("D:/Projects/local__HandmadeHero/data/iosevka-regular.ttf", codePointCount, 128.0f);
+    fonts[1] = LoadFont("G:/Projects/local__HandmadeHero/data/iosevka-regular.ttf", codePointCount, 128.0f);
 
     asset_font_type fontTypes[FONT_COUNT];
     fontTypes[0] = FontType_Debug;

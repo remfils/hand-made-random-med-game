@@ -51,6 +51,7 @@ debug_frame_region *Regions;
 struct open_debug_block
 {
     debug_event *OpeningEvent;
+    debug_record *Source;
     open_debug_block *Parent;
     open_debug_block *NextFree;
     u32 StartingFrameIndex;
@@ -78,8 +79,14 @@ struct debug_state
     memory_arena CollateArena;
     temporary_memory CollateTemp;
 
+    debug_record *ScopeToRecord;
+    b32 ForceCollcationRefresh;
+
     u32 FrameBarLaneCount;
     r32 MaxValue;
+
+    u32 CollectionArrayIndex;
+    debug_frame *CollectionFrame;
 
     u32 FrameCount;
     debug_frame *Frames;

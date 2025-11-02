@@ -575,6 +575,7 @@ AllocateGameAssets(memory_arena *arena, memory_index assetSize, transient_state 
                     for (u32 assetIndex = 0; assetIndex < assetCountForType; assetIndex++)
                     {
                         asset *asset = assets->Assets + assetCount++;
+                        //asset->State = AssetState_Unloaded;
                         asset->FileIndex = i;
                         asset->HHA = hhaAssetArray[assetIndex];
                         

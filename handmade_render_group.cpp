@@ -1315,6 +1315,8 @@ RenderGroupToOutput(loaded_bitmap *outputTarget, render_group *renderGroup)
 internal void
 TiledRenderGroup(platform_work_queue *renderQueue, loaded_bitmap *outputTarget, render_group *renderGroup)
 {
+    TIMED_FUNCTION;
+
     // TODO: fix this
     int32 padd = 0;
 

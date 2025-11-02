@@ -1353,20 +1353,34 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     part->Height = RandomBetween(&gameState->ParticleEntropy, (r32)0.1f, (r32)0.2f);
 
 
+                    #if 0
                     asset_vector mV = {};
                     asset_vector weight = {};
                     part->BitmapId = BestMatchBitmap(tranState->Assets, AssetType_ParticleStar, &mV, &weight);
+                    #else
+                    char nothings[] = "nothings";
+                    char letter = nothings[RandomChoice(&gameState->ParticleEntropy, ArrayCount(nothings)-1)];
+
+                    asset_vector mV = {};
+                    asset_vector weight = {};
+                    mV.E[Tag_FontType] = (r32)FontType_Debug;
+                    weight.E[Tag_FontType] = 1.0f;
+                    font_id fontId = BestMatchFont(DEBUGRenderGroup->Assets, &mV, &weight);
+                    loaded_font *font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
+
+                    if (!font) {
+                        LoadFont(DEBUGRenderGroup->Assets, fontId, true);
+                        font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
+                    }
+                    if (font) {
+                        hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
+                        part->BitmapId = GetBitmapForGlyph(tranState->Assets, fontInfo, font, letter);
+                    }
+                    #endif
 
                     // TODO: fonts are broken...
                     //
-                    //char nothings[] = "NOTHINGS";
-                    //char letter = nothings[RandomChoice(&gameState->ParticleEntropy, ArrayCount(nothings)-1)];
-                    //
-                    //asset_vector mV = {};
-                    //mV.E[Tag_UnicodePoint] = (r32)letter;
-                    //asset_vector weight = {};
-                    //weight.E[Tag_UnicodePoint] = 1.0f;
-                    //part->BitmapId = BestMatchBitmap(tranState->Assets, AssetType_Font, &mV, &weight);
+                    
                 }
                 
                 ZeroStruct(gameState->ParticleCells);
@@ -1839,16 +1853,15 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
             
             debugState->Initialized = true;
             debugState->Paused = false;
+
+            debugState->ScopeToRecord = 0;
+
+            RestartCollector(debugState, GlobalDebugTable->CurrentWriteEventArrayIndex);
         }
 
-        if (!debugState->Paused) {
-            EndTemporaryMemory(debugState->CollateTemp);
-            debugState->CollateTemp = BeginTemporaryMemory(&debugState->CollateArena);
-
-            debugState->FirstThread = 0;
-            debugState->FirstFreeBlock = 0;
-
-            CollectDebugRecords(debugState, GlobalDebugTable->CurrentWriteEventArrayIndex);
+        if (!debugState->Paused || debugState->ForceCollcationRefresh) {
+            debugState->ForceCollcationRefresh = false;
+            RefreshCollation(debugState);
         }
     }
 }
