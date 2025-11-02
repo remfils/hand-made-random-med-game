@@ -175,6 +175,8 @@ GetRecordFrom(open_debug_block *block)
 internal void
 CollectDebugRecords(debug_state *debugState, u64 invalidArrayIndex)
 {
+    debugState->MaxValue = 0;
+    
     for (;;debugState->CollectionArrayIndex++)
     {
         if (debugState->CollectionArrayIndex >= MAX_DEBUG_EVENT_ARRAY_COUNT) {
@@ -407,7 +409,7 @@ RestartCollector(debug_state *debugState, u64 invalidArrayIndex)
 internal void
 RefreshCollation(debug_state *debugState)
 {
-    if (debugState->FrameCount > MAX_DEBUG_EVENT_ARRAY_COUNT * 4) {
+    if (debugState->FrameCount > MAX_DEBUG_EVENT_ARRAY_COUNT) {
         RestartCollector(debugState, GlobalDebugTable->CurrentWriteEventArrayIndex);
     }
     CollectDebugRecords(debugState, GlobalDebugTable->CurrentWriteEventArrayIndex);   
@@ -508,14 +510,14 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input)
             ToV4(1, 0, 0.5f, 1),
         };
 
-        for (u32 frameIndex=0;
-             frameIndex < maxFrameCount;
+        for (u32 frameIndex=debugState->FrameCount - maxFrameCount;
+             frameIndex < debugState->FrameCount;
              frameIndex++)
         {
             debug_frame *frame = debugState->Frames + frameIndex;
 
             r32 stackX = chartLeft;
-            r32 stackY = chartTop - barSpacing * (r32) frameIndex;
+            r32 stackY = chartTop - barSpacing * (r32) (frameIndex - debugState->FrameCount + maxFrameCount);
             
             for (u32 regionIndex=0;
                  regionIndex < frame->RegionCount;

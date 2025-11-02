@@ -11,8 +11,8 @@
 #define MAX_DEBUG_EVENT_COUNT 16*65536
 #define MAX_DEBUG_RECORD_COUNT 65536
 #define MAX_UNIT_COUNT 3
-#define MAX_DEBUG_EVENT_ARRAY_COUNT 10
-#define MAX_DEBUG_REGIONS_PER_FRAME 256*8
+#define MAX_DEBUG_EVENT_ARRAY_COUNT 64
+#define MAX_DEBUG_REGIONS_PER_FRAME 256*12
 
 #define DEBUG_INIT_RECORD_ARRAY extern const u32 COMBINE(DebugRecordsCount_, __UnitIndex) = __COUNTER__;
 #define DEBUG_DECLARE_RECORD_ARRAY_(suffix) extern const u32 COMBINE(DebugRecordsCount_, suffix);
@@ -56,6 +56,8 @@ struct debug_table
 {
     volatile u64 ArrayIndex_EventIndex;
     u64 CurrentWriteEventArrayIndex;
+
+    // TODO: what is difference between events and records?
     // NOTE: double rotating buffer logic implemented
     u32 EventCount[MAX_DEBUG_EVENT_ARRAY_COUNT];
     debug_event Events[MAX_DEBUG_EVENT_ARRAY_COUNT][MAX_DEBUG_EVENT_COUNT];
