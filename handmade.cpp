@@ -604,6 +604,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
     PlatformAPI = memory->PlatformAPI;
 
+    debug_state *debugState = 0;
+
     #if HANDMADE_SLOW
     DebugGlobalMemory = memory;
     #endif
@@ -893,7 +895,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         // TODO: asset release doesnt work at all, causes crashes
         tranState->Assets = AllocateGameAssets(&tranState->TransientArena, Megabytes(256), tranState);
 
-        DEBUGRenderGroup = AllocateRenderGroup(&tranState->TransientArena, tranState->Assets, Megabytes(15), SafeTruncateToUInt16(buffer->Width), SafeTruncateToUInt16(buffer->Height), false);
+        
 
         // TODO: sound plays really bad for some reason. With stutters...
         /*
@@ -953,11 +955,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         tranState->EnvMaps[2].PositionZ = 2.0f;
     }
 
-    if (DEBUGRenderGroup)
-    {
-        BeginRender(DEBUGRenderGroup);
-        DEBUGReset(buffer->Width, buffer->Height);
-    }
+    DEBUGStart(memory, tranState->Assets, buffer->Width, buffer->Height);
 
     if (input->ExecutableReloaded)
     {
@@ -1358,6 +1356,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     asset_vector weight = {};
                     part->BitmapId = BestMatchBitmap(tranState->Assets, AssetType_ParticleStar, &mV, &weight);
                     #else
+                    
+
                     char nothings[] = "nothings";
                     char letter = nothings[RandomChoice(&gameState->ParticleEntropy, ArrayCount(nothings)-1)];
 
@@ -1365,17 +1365,19 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     asset_vector weight = {};
                     mV.E[Tag_FontType] = (r32)FontType_Debug;
                     weight.E[Tag_FontType] = 1.0f;
-                    font_id fontId = BestMatchFont(DEBUGRenderGroup->Assets, &mV, &weight);
-                    loaded_font *font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
+                    font_id fontId = BestMatchFont(renderGroup->Assets, &mV, &weight);
+                    loaded_font *font = GetFont(renderGroup->Assets, fontId, renderGroup->GenerationId);
 
                     if (!font) {
-                        LoadFont(DEBUGRenderGroup->Assets, fontId, true);
-                        font = GetFont(DEBUGRenderGroup->Assets, fontId, DEBUGRenderGroup->GenerationId);
+                        LoadFont(renderGroup->Assets, fontId, true);
+                        font = GetFont(renderGroup->Assets, fontId, renderGroup->GenerationId);
                     }
                     if (font) {
-                        hha_font *fontInfo = GetFontInfo(DEBUGRenderGroup->Assets, fontId);
+                        hha_font *fontInfo = GetFontInfo(renderGroup->Assets, fontId);
                         part->BitmapId = GetBitmapForGlyph(tranState->Assets, fontInfo, font, letter);
                     }
+
+                    
                     #endif
 
                     // TODO: fonts are broken...
@@ -1802,13 +1804,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     CheckArena(&gameState->WorldArena);
     CheckArena(&tranState->TransientArena);
 
-    OverlayDebugCycleCounters(memory, input);
-    if (DEBUGRenderGroup)
-    {
-        //RenderGroupToOutput(drawBuffer, DEBUGRenderGroup);
-        TiledRenderGroup(tranState->HighPriorityQueue, drawBuffer, DEBUGRenderGroup);
-        EndRender(DEBUGRenderGroup);
-    }
+    OverlayDebugCycleCounters(memory, input, drawBuffer);
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
@@ -1842,26 +1838,11 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
     
     if (debugState)
     {
-        if (!debugState->Initialized) {
-            InitializeArena(
-                &debugState->CollateArena,
-                memory->DebugStorageSize - sizeof(debug_state),
-                debugState+1
-                );
-
-            debugState->CollateTemp = BeginTemporaryMemory(&debugState->CollateArena);
-            
-            debugState->Initialized = true;
-            debugState->Paused = false;
-
-            debugState->ScopeToRecord = 0;
-
-            RestartCollector(debugState, GlobalDebugTable->CurrentWriteEventArrayIndex);
-        }
+        
 
         if (!debugState->Paused || debugState->ForceCollcationRefresh) {
             debugState->ForceCollcationRefresh = false;
-            RefreshCollation(debugState);
+            RefreshCollation();
         }
     }
 }

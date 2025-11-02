@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [1/442]
+* to be done [2/442]
 ** DONE Handmade Hero Day 189 - Incremental Debug Frame Processing
 - [[https://www.youtube.com/watch?v=87V4GNfqTpY]]
 
@@ -17,7 +17,7 @@ what to look
 - concave vs convex shapes
 - point in polygon
 
-** TODO Handmade Hero Day 190 - Cleaning Up Debug Globals
+** DONE Handmade Hero Day 190 - Cleaning Up Debug Globals
 - [[https://www.youtube.com/watch?v=7jmDV_Hk42U]]
 
 ** TODO Handmade Hero Day 191 - Implementing a Radial Menu

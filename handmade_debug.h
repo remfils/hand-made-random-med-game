@@ -76,6 +76,11 @@ struct debug_state
 
     b32 Initialized;
     b32 Paused;
+
+    platform_work_queue *HighPriorityQueue;
+    
+    memory_arena DebugArena;
+    
     memory_arena CollateArena;
     temporary_memory CollateTemp;
 
@@ -93,6 +98,17 @@ struct debug_state
 
     debug_thread *FirstThread;
     open_debug_block *FirstFreeBlock;
+
+
+    render_group *RenderGroup;
+
+    r32 LeftEdge = 0.0f;
+    r32 LineY = 0.0f;
+    r32 FontScale = 0.0f;
+    r32 GlobalWidth = 0.0f;
+    r32 GlobalHeight = 0.0f;
+
+    rectangle2 ProfileRect;
 };
 
 #endif
