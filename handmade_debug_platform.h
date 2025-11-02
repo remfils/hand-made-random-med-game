@@ -56,8 +56,6 @@ struct debug_table
 {
     volatile u64 ArrayIndex_EventIndex;
     u64 CurrentWriteEventArrayIndex;
-
-    // TODO: what is difference between events and records?
     // NOTE: double rotating buffer logic implemented
     u32 EventCount[MAX_DEBUG_EVENT_ARRAY_COUNT];
     debug_event Events[MAX_DEBUG_EVENT_ARRAY_COUNT][MAX_DEBUG_EVENT_COUNT];
