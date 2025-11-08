@@ -56,6 +56,7 @@ typedef double r64;
 
 
 #define Pi32 3.1415926535f
+#define Tau32 Pi32 * 2
 #define Real32Maximum FLT_MAX
 
 #define Kilobytes(val) ((val)*1024LL)

@@ -4,14 +4,6 @@ DEBUG_DECLARE_RECORD_ARRAY_(0);
 DEBUG_DECLARE_RECORD_ARRAY_(1);
 DEBUG_DECLARE_RECORD_ARRAY_(2);
 
-
-//global_variable render_group *DEBUGRenderGroup;
-// global_variable r32 DEBUG_LeftEdge = 0.0f;
-// global_variable r32 DEBUG_LineY = 0.0f;
-// global_variable r32 DEBUG_FontScale = 0.0f;
-// global_variable r32 GlobalWidth = 0.0f;
-// global_variable r32 GlobalHeight = 0.0f;
-
 global_variable debug_table GlobalDebugTable_;
 debug_table *GlobalDebugTable = &GlobalDebugTable_;
 const u32 DebugRecordsCount_2 = 0;
@@ -74,17 +66,22 @@ DEBUGStart(game_memory *memory, game_assets *assets, u32 width, u32 height)
 
     BeginRender(debugState->RenderGroup);
 
-    MakeOrthographic(debugState->RenderGroup, width, height, 1.0f);
     asset_vector mV = {};
     asset_vector weight = {};
-    weight.E[Tag_UnicodePoint] = 1.0f;
-
+    mV.E[Tag_FontType] = (r32)FontType_Debug;
+    weight.E[Tag_FontType] = 1.0f;
     font_id fontId = BestMatchFont(debugState->RenderGroup->Assets, &mV, &weight);
+    debugState->Font = GetFont(debugState->RenderGroup->Assets, fontId, debugState->RenderGroup->GenerationId);
 
-    hha_font *fontInfo = GetFontInfo(debugState->RenderGroup->Assets, fontId);
-    
+    if (!debugState->Font) {
+        LoadFont(debugState->RenderGroup->Assets, fontId, true);
+        debugState->Font = GetFont(debugState->RenderGroup->Assets, fontId, debugState->RenderGroup->GenerationId);
+    }
+    debugState->FontInfo = GetFontInfo(debugState->RenderGroup->Assets, fontId);
+
+    MakeOrthographic(debugState->RenderGroup, width, height, 1.0f);
     debugState->FontScale = 1.0f;
-    debugState->LineY = 0.5f * (r32)height - fontInfo->Ascend * debugState->FontScale + 1.0f;
+    debugState->LineY = 0.5f * (r32)height - debugState->FontInfo->Ascend * debugState->FontScale + 1.0f;
     debugState->LeftEdge = -0.5f * (r32)width;
 
     debugState->GlobalWidth = (r32)width;
@@ -115,74 +112,100 @@ GetHex(char c)
     return result;
 }
 
-internal void
-DebugTextAtPoint(char *string, v2 p)
+internal rectangle2
+DebugTextOperation(
+    debug_text_operation operation,
+    debug_state *debugState, char *string, v2 p, v4 textColor)
 {
-    debug_state *debugState = DEBUGGetState();
+    rectangle2 result = {};
     
-    if (!debugState) return;
+    loaded_font *font = debugState->Font;
+    hha_font *fontInfo = debugState->FontInfo;
 
-    if (debugState->RenderGroup)
+    if (font && fontInfo)
     {
-        // TODO: move to static variables
-        asset_vector mV = {};
-        asset_vector weight = {};
-        mV.E[Tag_FontType] = (r32)FontType_Debug;
-        weight.E[Tag_FontType] = 1.0f;
-        font_id fontId = BestMatchFont(debugState->RenderGroup->Assets, &mV, &weight);
-        loaded_font *font = GetFont(debugState->RenderGroup->Assets, fontId, debugState->RenderGroup->GenerationId);
+        
+        r32 atX = p.x;
+        r32 scale = debugState->FontScale;
 
-        if (!font)
+        u32 prevCodePoint = 0;
+
+        for (char *at = string;
+             *at;
+             ++at)
         {
-            LoadFont(debugState->RenderGroup->Assets, fontId, true);
-            font = GetFont(debugState->RenderGroup->Assets, fontId, debugState->RenderGroup->GenerationId);
-        }
+            r32 charDim = scale;
+            u32 codePoint = *at;
 
-        if (font)
-        {
-            hha_font *fontInfo = GetFontInfo(debugState->RenderGroup->Assets, fontId);
-            r32 atX = p.x;
-            r32 scale = debugState->FontScale;
-
-            u32 prevCodePoint = 0;
-
-            for (char *at = string;
-                 *at;
-                 ++at)
-            {
-                r32 charDim = scale;
-                u32 codePoint = *at;
-
-                if (
-                    at[0] == '\\'
-                    && IsHex(at[1])
-                    && IsHex(at[2])
-                    && IsHex(at[3])
-                    && IsHex(at[4])
-                    ) {
-                    codePoint = (GetHex(at[1]) << 12)
-                        | (GetHex(at[2]) << 8)
-                        | (GetHex(at[3]) << 4)
-                        | (GetHex(at[4]) << 0)
-                        ;
-                    at += 4;
-                }
-
-                r32 advanceX = scale*GetHorizontalAdvanceForPair(fontInfo, font, prevCodePoint, codePoint);
-                atX += advanceX;
-                //atX += scale;
-                if (codePoint != ' ') {
-                    bitmap_id bitmapId = GetBitmapForGlyph(debugState->RenderGroup->Assets, fontInfo, font, codePoint);
-                
-                    hha_bitmap *info = GetBitmapInfo(debugState->RenderGroup->Assets, bitmapId);
-
-                    PushBitmap(debugState->RenderGroup, bitmapId, scale*(r32)info->Dim[1], ToV3(atX, p.y, 0), ToV4(1,1,1,1));
-                }
-
-                prevCodePoint = *at;
+            if (
+                at[0] == '\\'
+                && IsHex(at[1])
+                && IsHex(at[2])
+                && IsHex(at[3])
+                && IsHex(at[4])
+                ) {
+                codePoint = (GetHex(at[1]) << 12)
+                    | (GetHex(at[2]) << 8)
+                    | (GetHex(at[3]) << 4)
+                    | (GetHex(at[4]) << 0)
+                    ;
+                at += 4;
             }
+
+            r32 advanceX = scale*GetHorizontalAdvanceForPair(fontInfo, font, prevCodePoint, codePoint);
+            atX += advanceX;
+            //atX += scale;
+            if (codePoint != ' ') {
+                bitmap_id bitmapId = GetBitmapForGlyph(debugState->RenderGroup->Assets, fontInfo, font, codePoint);
+                hha_bitmap *info = GetBitmapInfo(debugState->RenderGroup->Assets, bitmapId);
+
+                r32 bitmapScale = scale*(r32)info->Dim[1];
+                v3 bitmapOffset = ToV3(atX, p.y, 0);
+                if (operation == DebugTextOperation_Draw) {
+                    PushBitmap(debugState->RenderGroup, bitmapId, bitmapScale, bitmapOffset, textColor);
+                } else if (operation == DebugTextOperation_Size) {
+                    loaded_bitmap * bitmap = GetBitmap(debugState->RenderGroup->Assets, bitmapId, debugState->RenderGroup->GenerationId);
+                    if (bitmap) {
+                        used_bitmap_dim dim = GetBitmapDim(debugState->RenderGroup, bitmap, bitmapScale, bitmapOffset);
+                        rectangle2 glyphDim = RectMinDim(dim.P.xy, dim.Size);
+                        result = Union(result, glyphDim);
+                    }
+                } else {
+                    InvalidCodePath;
+                }
+            }
+
+            prevCodePoint = *at;
         }
     }
+    
+
+    return result;
+}
+
+internal void
+DebugTextAtPoint(char *string, v2 p, v4 color)
+{
+    debug_state *debugState = DEBUGGetState();
+    if (!debugState) return;
+
+    if (debugState->RenderGroup && debugState->Font && debugState->FontInfo)
+    {
+        DebugTextOperation(DebugTextOperation_Draw, debugState, string, p, color);
+    }
+}
+internal rectangle2
+DebugTextSize(char *string)
+{
+    rectangle2 result = {};
+    debug_state *debugState = DEBUGGetState();
+    if (!debugState) return result;
+
+    if (debugState->RenderGroup && debugState->Font && debugState->FontInfo)
+    {
+        result = DebugTextOperation(DebugTextOperation_Size, debugState, string, ToV2(0,0), ToV4(1,1,1,1));
+    }
+    return result;
 }
 
 internal void
@@ -208,8 +231,9 @@ DebugTextLine(char *string)
 
         if (font)
         {
+            
             hha_font *fontInfo = GetFontInfo(debugState->RenderGroup->Assets, fontId);
-            DebugTextAtPoint(string, ToV2(debugState->LeftEdge, debugState->LineY));
+            DebugTextAtPoint(string, ToV2(debugState->LeftEdge, debugState->LineY), ToV4(1,1,1,1));
             debugState->LineY -= GetVerticalLineAdvance(fontInfo) * debugState->FontScale;
         }
     }
@@ -515,15 +539,70 @@ RefreshCollation()
 }
 
 internal void
+DrawDebugContextMenu(v2 mouseP)
+{
+    debug_state *debugState = DEBUGGetState();
+    if (!debugState->RenderGroup) return;
+
+    char *menuItems[] = {
+        "toggle profile graphs",
+        "toggle collation graphs",
+        "toggle framerate counter",
+        //"mark loop point",
+        //"toggle enity bounds",
+        //"togle world chunk bounds",
+    };
+
+
+    u32 bestMenuIndex = 0;
+    r32 bestMenuDistanceSq = FLT_MAX;
+
+    r32 menuRadius = 200.0f;
+    r32 angleStep = Tau32 / (r32) ArrayCount(menuItems);
+
+    v4 outlineColor = {0.0f,1.0f,0.0f, 0.2f};
+    v4 textColor = {1.0f,1.0f,1.0f, 1.0f};
+    v4 highlightedColor = {0.0f, 0.0f, 0.0f, 1.0f};
+    v4 highlightedBgColor = {0.0f,0.3f,0.0f, 0.2f};
+
+    for (s32 menuIndex=0; menuIndex < ArrayCount(menuItems); menuIndex++)
+    {
+        r32 angle = (r32)menuIndex * angleStep;
+        v2 textP = debugState->MenuP + menuRadius * Arm2(angle);
+
+        rectangle2 textBox = DebugTextSize(menuItems[menuIndex]);
+
+        textP = textP - 0.5f * GetDim(textBox);
+
+        r32 menuDistanceSq = LengthSq(textP - mouseP);
+
+        if (menuDistanceSq < bestMenuDistanceSq) {
+            bestMenuDistanceSq = menuDistanceSq;
+            bestMenuIndex = menuIndex;
+        }
+
+        v4 color = textColor;
+        v4 bgColor = outlineColor;
+        if (menuIndex == debugState->HoverMenuIndex) {
+            color = highlightedColor;
+            bgColor = highlightedBgColor;
+        }
+
+        PushPieceRect(debugState->RenderGroup, Offset(textBox, textP), 0.0f, outlineColor);
+        DebugTextAtPoint(menuItems[menuIndex], textP, color);
+    }
+
+
+    debugState->HoverMenuIndex = bestMenuIndex;
+}
+
+internal void
 OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap *drawBuffer)
 {
     debug_state *debugState = (debug_state *)memory->DebugStorage;
-
     if (!debugState->RenderGroup) return;
 
-    if (WasPressed(input->MouseButtons[PlatformMouseButton_Right])) {
-        debugState->Paused = !debugState->Paused;
-    }
+    
 
     if (debugState)
     {
@@ -535,6 +614,26 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
             char buffer[256];
             _snprintf_s(buffer, 256, "last frame: %.02fms", debugState->Frames[debugState->FrameCount-1].WallSecondsElapsed * 1000.0f);
             DebugTextLine(buffer);
+        }
+
+        if (input->MouseButtons[PlatformMouseButton_Right].EndedDown) {
+            if (input->MouseButtons[PlatformMouseButton_Right].HalfTransitionCount > 0) {
+                debugState->MenuP = mouseP;
+            }
+            DrawDebugContextMenu(mouseP);
+        } else {
+            if (input->MouseButtons[PlatformMouseButton_Right].HalfTransitionCount > 0) {
+                switch (debugState->HoverMenuIndex) {
+                case 0: {
+                    debugState->IsProfileOn = !debugState->IsProfileOn;  
+                } break;
+                case 1: {
+                        debugState->Paused = !debugState->Paused;  
+                } break;
+                }
+
+                DrawDebugContextMenu(mouseP);
+            }
         }
 
         #if 0
@@ -579,92 +678,94 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
 
         #endif
 
-        debugState->ProfileRect = RectMinMax(ToV2(-650.0f, -200.0f), ToV2(-100.0f, 200.0f));
+        if (debugState->IsProfileOn) {
+            debugState->ProfileRect = RectMinMax(ToV2(-650.0f, -200.0f), ToV2(-100.0f, 200.0f));
 
-        u32 maxFrameCount = 10;
-        if (debugState->FrameCount < maxFrameCount) {
-            maxFrameCount = debugState->FrameCount;
-        }
+            u32 maxFrameCount = 10;
+            if (debugState->FrameCount < maxFrameCount) {
+                maxFrameCount = debugState->FrameCount;
+            }
 
-        r32 laneHeight = 0;
-        u32 laneCount = debugState->FrameBarLaneCount;
-        r32 barSpacing = 0.5f;
+            r32 laneHeight = 0;
+            u32 laneCount = debugState->FrameBarLaneCount;
+            r32 barSpacing = 0.5f;
 
-        if (maxFrameCount > 0 && laneCount > 0) {
-            laneHeight = ((GetDim(debugState->ProfileRect).y / maxFrameCount) + barSpacing) / laneCount;
-        }
+            if (maxFrameCount > 0 && laneCount > 0) {
+                laneHeight = ((GetDim(debugState->ProfileRect).y / maxFrameCount) + barSpacing) / laneCount;
+            }
         
-        r32 barHeight = laneHeight * laneCount;
-        r32 barHeightAndSpace = barHeight + barSpacing;
-        r32 chartHeight = barHeightAndSpace * maxFrameCount;
-        r32 chartWidth = GetDim(debugState->ProfileRect).x;
-        r32 chartTop = debugState->ProfileRect.Max.y;
-        r32 chartLeft = debugState->ProfileRect.Min.x;
-        r32 scale = 1.0f;
-        if (debugState->MaxValue > 0) {
-            scale = chartWidth / debugState->MaxValue;
-        }
+            r32 barHeight = laneHeight * laneCount;
+            r32 barHeightAndSpace = barHeight + barSpacing;
+            r32 chartHeight = barHeightAndSpace * maxFrameCount;
+            r32 chartWidth = GetDim(debugState->ProfileRect).x;
+            r32 chartTop = debugState->ProfileRect.Max.y;
+            r32 chartLeft = debugState->ProfileRect.Min.x;
+            r32 scale = 1.0f;
+            if (debugState->MaxValue > 0) {
+                scale = chartWidth / debugState->MaxValue;
+            }
 
-        v4 colors[] = {
-            ToV4(1, 0, 0, 1),
-            ToV4(0, 1, 0, 1),
-            ToV4(0, 0, 1, 1),
-            ToV4(1, 1, 0, 1),
-            ToV4(0, 1, 1, 1),
-            ToV4(1, 0, 1, 1),
-            ToV4(0.5f, 1, 0, 1),
-            ToV4(0, 0.5f, 1, 1),
-            ToV4(1, 0, 0.5f, 1),
-        };
+            v4 colors[] = {
+                ToV4(1, 0, 0, 1),
+                ToV4(0, 1, 0, 1),
+                ToV4(0, 0, 1, 1),
+                ToV4(1, 1, 0, 1),
+                ToV4(0, 1, 1, 1),
+                ToV4(1, 0, 1, 1),
+                ToV4(0.5f, 1, 0, 1),
+                ToV4(0, 0.5f, 1, 1),
+                ToV4(1, 0, 0.5f, 1),
+            };
 
-        for (u32 frameIndex=debugState->FrameCount - maxFrameCount;
-             frameIndex < debugState->FrameCount;
-             frameIndex++)
-        {
-            debug_frame *frame = debugState->Frames + frameIndex;
-
-            r32 stackX = chartLeft;
-            r32 stackY = chartTop - barHeightAndSpace * (r32) (frameIndex - debugState->FrameCount + maxFrameCount);
-            
-            for (u32 regionIndex=0;
-                 regionIndex < frame->RegionCount;
-                 regionIndex++)
+            for (u32 frameIndex=debugState->FrameCount - maxFrameCount;
+                 frameIndex < debugState->FrameCount;
+                 frameIndex++)
             {
-                debug_frame_region *region = frame->Regions + regionIndex;
+                debug_frame *frame = debugState->Frames + frameIndex;
 
-                v4 color = colors[regionIndex % ArrayCount(colors)];
-                r32 thisMinX = stackX + scale * region->MinValue;
-                r32 thisMaxX = stackX + scale * region->MaxValue;
-
-                rectangle2 regionRect = RectMinMax(
-                    ToV2(thisMinX, stackY - laneHeight * region->LaneIndex - laneHeight),
-                    ToV2(thisMaxX, stackY - laneHeight * region->LaneIndex)
-                    );
+                r32 stackX = chartLeft;
+                r32 stackY = chartTop - barHeightAndSpace * (r32) (frameIndex - debugState->FrameCount + maxFrameCount);
             
-                PushPieceRect(debugState->RenderGroup, regionRect, 0.0f, color);
-
-                if (IsInRectangle(regionRect, mouseP))
+                for (u32 regionIndex=0;
+                     regionIndex < frame->RegionCount;
+                     regionIndex++)
                 {
+                    debug_frame_region *region = frame->Regions + regionIndex;
+
+                    v4 color = colors[regionIndex % ArrayCount(colors)];
+                    r32 thisMinX = stackX + scale * region->MinValue;
+                    r32 thisMaxX = stackX + scale * region->MaxValue;
+
+                    rectangle2 regionRect = RectMinMax(
+                        ToV2(thisMinX, stackY - laneHeight * region->LaneIndex - laneHeight),
+                        ToV2(thisMaxX, stackY - laneHeight * region->LaneIndex)
+                        );
+            
+                    PushPieceRect(debugState->RenderGroup, regionRect, 0.0f, color);
+
+                    if (IsInRectangle(regionRect, mouseP))
+                    {
                     
-                    debug_record *record = region->Record;
-                    char buffer[256];
-                    _snprintf_s(buffer, 256,
-                                "%s: %10I64ucy [%s(%d)]",
-                                record->BlockName,
-                                region->CycleCount,
-                                record->FileName,
-                                record->Line);
+                        debug_record *record = region->Record;
+                        char buffer[256];
+                        _snprintf_s(buffer, 256,
+                                    "%s: %10I64ucy [%s(%d)]",
+                                    record->BlockName,
+                                    region->CycleCount,
+                                    record->FileName,
+                                    record->Line);
 
-                    DebugTextAtPoint(buffer, mouseP);
+                        DebugTextAtPoint(buffer, mouseP, ToV4(1,1,1,1));
 
-                    if (WasPressed(input->MouseButtons[PlatformMouseButton_Left])) {
-                        debugState->ScopeToRecord = record;
-                        debugState->ForceCollcationRefresh = true;
-                        RefreshCollation();
+                        if (WasPressed(input->MouseButtons[PlatformMouseButton_Left])) {
+                            debugState->ScopeToRecord = record;
+                            debugState->ForceCollcationRefresh = true;
+                            RefreshCollation();
+                        }
                     }
-                }
 
-                //chartWidth += barWidth + barHeightAndSpace;
+                    //chartWidth += barWidth + barHeightAndSpace;
+                }
             }
         }
 

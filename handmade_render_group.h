@@ -144,6 +144,22 @@ struct render_group
     b32 InsideRender;
 };
 
+struct entity_basis_p_result
+{
+    v2 P;
+    real32 Scale;
+    bool32 IsValid;
+};
+
+
+struct used_bitmap_dim
+{
+    v2 Size;
+    v2 Align;
+    v3 P;
+    entity_basis_p_result BasisResult;
+};
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // renderer api
@@ -173,4 +189,5 @@ Unpack4x8(uint32 packed)
     };
     return result;
 }
+
 #endif

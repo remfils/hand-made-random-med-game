@@ -927,12 +927,7 @@ MakeOrthographic(render_group *renderGroup, uint32 pixelWidth, uint32 pixelHeigh
     renderGroup->MonitorHalfDimInMeters = 0.5f * pixelsToMeters * ToV2i(pixelWidth, pixelHeight);
 }
 
-struct entity_basis_p_result
-{
-    v2 P;
-    real32 Scale;
-    bool32 IsValid;
-};
+
 inline entity_basis_p_result
 GetTopLeftPointForEntityBasis(render_transform *transform, v3 p)
 {
@@ -987,22 +982,32 @@ PushRenderElement_(render_group *grp, uint32 size, render_entry_type type)
     return result;
 }
 
+inline used_bitmap_dim
+GetBitmapDim(render_group *grp, loaded_bitmap *bmp, real32 height, v3 offset)
+{
+    used_bitmap_dim result;
+    
+    result.Size = ToV2(height * bmp->WidthOverHeight, height);
+    result.Align = Hadamard(bmp->AlignPercent, result.Size);
+    result.P = offset - ToV3(result.Align);
+    
+    result.BasisResult = GetTopLeftPointForEntityBasis(&grp->Transform, result.P);
+
+    return result;
+}
+
 inline void
 PushBitmap(render_group *grp, loaded_bitmap *bmp, real32 height, v3 offset, v4 color = {1,1,1,1})
 {
-    v2 size = ToV2(height * bmp->WidthOverHeight, height);
-    v2 align = Hadamard(bmp->AlignPercent, size);
-    v3 p = offset - ToV3(align);
-    
-    entity_basis_p_result basisResult = GetTopLeftPointForEntityBasis(&grp->Transform, p);
+    used_bitmap_dim dim = GetBitmapDim(grp, bmp, height, offset);
 
-    if (basisResult.IsValid)
+    if (dim.BasisResult.IsValid)
     {
         render_entry_bitmap *renderEntry = PushRenderElement(grp, render_entry_bitmap);
         if (renderEntry)
         {
-            renderEntry->P = basisResult.P;
-            renderEntry->Size = basisResult.Scale * size;
+            renderEntry->P = dim.BasisResult.P;
+            renderEntry->Size = dim.BasisResult.Scale * dim.Size;
             renderEntry->Bitmap = bmp;
             color.a = color.a * grp->GlobalAlpha;
             renderEntry->Color = color;

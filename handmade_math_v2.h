@@ -142,4 +142,11 @@ Hadamard(v2 a, v2 b)
     return result;
 }
 
+inline v2
+Arm2(r32 angle)
+{
+    v2 result = ToV2(Cos(angle), Sin(angle));
+    return result;
+}
+
 #endif

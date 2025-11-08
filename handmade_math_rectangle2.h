@@ -139,6 +139,19 @@ Union(rectangle2i A, rectangle2i B)
     return result;
 }
 
+inline rectangle2
+Union(rectangle2 A, rectangle2 B)
+{
+    rectangle2 result;
+
+    result.Min.x = (A.Min.x < B.Min.x) ? A.Min.x : B.Min.x;
+    result.Min.y = (A.Min.y < B.Min.y) ? A.Min.y : B.Min.y;
+    result.Max.x = (A.Max.x > B.Max.x) ? A.Max.x : B.Max.x;
+    result.Max.y = (A.Max.y > B.Max.y) ? A.Max.y : B.Max.y;
+    
+    return result;
+}
+
 inline bool32
 HasArea(rectangle2i a)
 {
@@ -153,6 +166,17 @@ InvertedInfinityRectangle(void)
 
     result.MinX = result.MinY = INT_MAX;
     result.MaxX = result.MaxY = -INT_MAX;
+
+    return result;
+}
+
+inline rectangle2
+Offset(rectangle2 rect, v2 offset)
+{
+    rectangle2 result;
+
+    result.Min = rect.Min + offset;
+    result.Max = rect.Max + offset;
 
     return result;
 }

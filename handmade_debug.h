@@ -15,6 +15,12 @@
 
 // extern volatile u64 Debug_ArrayIndex_EventIndex;
 
+enum debug_text_operation
+{
+    DebugTextOperation_Draw,
+    DebugTextOperation_Size,
+};
+
 struct debug_counter_data_snapshot
 {
     u32 HitCount;
@@ -69,13 +75,11 @@ struct debug_thread
 
 struct debug_state
 {
-//     u32 SnapshotIndex;
-//     u32 CounterCount;
-// 
-//     debug_counter_state CounterStates[512];
-
     b32 Initialized;
+
+    
     b32 Paused;
+    b32 IsProfileOn;
 
     platform_work_queue *HighPriorityQueue;
     
@@ -101,6 +105,8 @@ struct debug_state
 
 
     render_group *RenderGroup;
+    loaded_font *Font;
+    hha_font *FontInfo;
 
     r32 LeftEdge = 0.0f;
     r32 LineY = 0.0f;
@@ -108,6 +114,10 @@ struct debug_state
     r32 GlobalWidth = 0.0f;
     r32 GlobalHeight = 0.0f;
 
+    s32 HoverMenuIndex = -1;
+    v2 MenuP = {};
+
+    
     rectangle2 ProfileRect;
 };
 
