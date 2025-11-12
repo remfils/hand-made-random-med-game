@@ -73,6 +73,8 @@ struct debug_thread
     debug_thread *Next;
 };
 
+struct debug_global_variable;
+
 struct debug_state
 {
     b32 Initialized;
@@ -86,6 +88,8 @@ struct debug_state
     platform_work_queue *HighPriorityQueue;
     
     memory_arena DebugArena;
+
+    debug_global_variable *RootVariable;
     
     memory_arena CollateArena;
     temporary_memory CollateTemp;

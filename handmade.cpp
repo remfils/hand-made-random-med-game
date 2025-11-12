@@ -302,24 +302,31 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
             color = {1.0f - (real32)chunkP.ChunkZ / 10.0f,1.0f - (real32)chunkP.ChunkZ / 10.0f,1.0f - (real32)chunkP.ChunkZ / 10.0f,1};
         }
 
-        for (int32 chunkOffsetX =  - 1;
+        for (s32 chunkOffsetX =  - 1;
              chunkOffsetX <= 1;
              ++chunkOffsetX)
         {
-            for (int32 chunkOffsetY = -1;
+            for (s32 chunkOffsetY = -1;
                  chunkOffsetY <= 1;
                  ++chunkOffsetY)
             {
-                int32 chunkX = chunkP.ChunkX + chunkOffsetX;
-                int32 chunkY = chunkP.ChunkY + chunkOffsetY;
-                int32 chunkZ = chunkP.ChunkZ;
+                s32 chunkX = chunkP.ChunkX + chunkOffsetX;
+                s32 chunkY = chunkP.ChunkY + chunkOffsetY;
+                s32 chunkZ = chunkP.ChunkZ;
 
                 // TODO: look into wang hashing here
                 random_series series = CreateRandomSeed(139*chunkX + 593*chunkY + 329*chunkZ);
     
                 v2 center = ToV2((real32)chunkOffsetX * width, (real32)chunkOffsetY * height);
 
-                for (uint32 grassIndex=0; grassIndex < 100; grassIndex++)
+                #if DEBUGUI_CheckerChunks
+                color = {1.0f, 0.0f, 0.0f, 1.0f};
+                if ((chunkX % 2) == (chunkY % 2)) {
+                    color = {0.0f, 0.0f, 1.0f, 1.0f};
+                }
+                #endif
+
+                for (u32 splatIndex=0; splatIndex < 100; splatIndex++)
                 {
                     bitmap_id stamp = RandomAssetFrom(tranState->Assets, AssetType_Ground, &series);
                     
@@ -354,7 +361,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 
                     v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
-                    PushBitmap(renderGroup, stamp, 0.4f, ToV3(grassCenter), color);
+                    PushBitmap(renderGroup, stamp, 0.4f, ToV3(grassCenter));
                 }
             }
         }

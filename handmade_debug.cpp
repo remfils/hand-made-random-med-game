@@ -42,6 +42,8 @@ DEBUGStart(game_memory *memory, game_assets *assets, u32 width, u32 height)
             debugState+1
             );
 
+        DEBUGInitVaraibles(debugState, &debugState->DebugArena);
+
         if (!debugState->RenderGroup) {
             debugState->RenderGroup = AllocateRenderGroup(
                 &debugState->DebugArena,
@@ -538,34 +540,10 @@ RefreshCollation()
     CollectDebugRecords(GlobalDebugTable->CurrentWriteEventArrayIndex);   
 }
 
-enum debug_global_variable_type
-{
-    DebugGlobalVariableType_Boolean,
-    DebugGlobalVariableType_Count,
-};
-
-struct debug_global_variable {
-    char *Name;
-    b32 Value;
-    debug_global_variable_type Type;
-};
-
-
-#define DEBUG_GLOBAL_VARIABLE_LINE(name) {#name, name, DebugGlobalVariableType_Boolean}
-
-debug_global_variable DebugVariables[] = {
-    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_UseDebugCamera),
-    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_GroundChunkOutlines),
-    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_FountainForceDisplay),
-    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_RenderEntitySpace),
-    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_CheckerChunks),
-    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_ShowLightingSamples),
-    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_CameraIsTileBased),
-};
-
 internal void
 DrawDebugContextMenu(v2 mouseP)
 {
+    #if 0
     debug_state *debugState = DEBUGGetState();
     if (!debugState->RenderGroup) return;
 
@@ -610,6 +588,8 @@ DrawDebugContextMenu(v2 mouseP)
 
 
     debugState->HoverMenuIndex = bestMenuIndex;
+
+    #endif
 }
 
 internal void
@@ -620,17 +600,53 @@ WriteHandmadeConfig(debug_state *debugState)
 
         char *at = temp;
 
-        for (u32 variableIndex=0; variableIndex < ArrayCount(DebugVariables); variableIndex++)
+        debug_global_variable *var = debugState->RootVariable;
+
+        while (var)
         {
-            debug_global_variable *var = DebugVariables + variableIndex;
-            u32 bytesLeftToWrite = (u32)((temp + ArrayCount(temp)) - at);
-            at += _snprintf_s(
-                at, bytesLeftToWrite, bytesLeftToWrite,
-                "#define %s %d // b32\n",
-                var->Name, var->Value
-                );
+            u32 bytesLeftToWrite = (u32)(temp + ArrayCount(temp) - at);
+            switch (var->Type)
+            {
+            case DebugGlobalVariableType_Boolean:
+            {
+                at += _snprintf_s(
+                    at, bytesLeftToWrite, bytesLeftToWrite,
+                    "#define %s %d // b32\n",
+                    var->Name, var->Bool
+                    );
+            } break;
+            case DebugGlobalVariableType_Group:
+            {
+                at += _snprintf_s(
+                    at, bytesLeftToWrite, bytesLeftToWrite,
+                    "// %s \n",
+                    var->Name
+                    );
+            } break;
+            }
+
+
+            if (var->Type == DebugGlobalVariableType_Group)
+            {
+                var = var->Group.FirstChild;
+            }
+            else
+            {
+                while(var)
+                {
+                    if (var->Next)
+                    {
+                        var = var->Next;
+                        break;
+                    }
+                    else
+                    {
+                        var = var->Parent;
+                    }
+                }
+            }
         }
-        
+
         PlatformAPI.DEBUG_WriteEntireFile("../code/handmade_config.h", (u32)(at - temp), temp);
 
         debugState->CompilerProcess = PlatformAPI.DEBUG_ExecuteSystemCommand("../misc/", "c:\\Windows\\System32\\cmd.exe", "/C build.bat");
@@ -672,6 +688,8 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
             
         }
 
+        WriteHandmadeConfig(debugState); // DEBUG
+
         if (input->MouseButtons[PlatformMouseButton_Right].EndedDown) {
             if (input->MouseButtons[PlatformMouseButton_Right].HalfTransitionCount > 0) {
                 debugState->MenuP = mouseP;
@@ -680,9 +698,11 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
         } else {
             if (input->MouseButtons[PlatformMouseButton_Right].HalfTransitionCount > 0) {
 
+                #if 0
                 if (debugState->HoverMenuIndex < ArrayCount(DebugVariables)) {
                     DebugVariables[debugState->HoverMenuIndex].Value = !DebugVariables[debugState->HoverMenuIndex].Value;
                 }
+                #endif
                 WriteHandmadeConfig(debugState);
                 DrawDebugContextMenu(mouseP);
             }

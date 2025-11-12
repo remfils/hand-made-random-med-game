@@ -407,6 +407,133 @@ WasPressed(game_button_state state)
     return result;
 }
 
+#define PushStruct(arena, type, ...) (type *)PushSize_(arena, sizeof(type), ##__VA_ARGS__)
+#define PushArray(arena, count,  type, ...) (type *)PushSize_(arena, count * sizeof(type), ##__VA_ARGS__)
+#define PushSize(arena, size, ...) PushSize_(arena, size, ##__VA_ARGS__)
+
+inline memory_index
+GetMemoryBitAlignmentOffset(memory_arena *arena, memory_index alignment)
+{
+    memory_index ptr = (memory_index)(arena->Base + arena->Used);
+    memory_index alignOffset = 0;
+    memory_index alignMask = alignment - 1;
+    if (ptr & alignMask)
+    {
+        alignOffset = alignment - (ptr & alignMask);
+    }
+
+    return alignOffset;
+}
+
+
+inline void*
+PushSize_(memory_arena *arena, memory_index size, memory_index alignment = 4)
+{
+    memory_index alignOffset = GetMemoryBitAlignmentOffset(arena, alignment);
+
+    size += alignOffset;
+    
+    Assert((arena->Used + size) <= arena->Size);
+    
+    void *result = (void *) (arena->Base + arena->Used + alignOffset);
+    arena->Used += size;
+    return result;
+}
+
+inline char*
+PushString(memory_arena *arena, char *source)
+{
+    u32 size = 1;
+    // calc char length
+    for (char *c = source; *c; ++c) { size++; }
+    
+    char *dest = (char *)PushSize_(arena, size);
+    for (u32 i = 0; i < size; i++) {
+        dest[i] = source[i];
+    }
+
+    return dest;
+}
+
+#define ZeroStruct(instance) ZeroSize(sizeof(instance), &(instance))
+inline void
+ZeroSize(memory_index size, void *ptr)
+{
+    // TODO(casey): performance
+    uint8 *byte = (uint8*)ptr;
+    while (size--)
+    {
+        *byte++ = 0;
+    }
+}
+
+
+inline void
+Copy(memory_index size, void*source, void *dest)
+{
+    u8 *s = (u8 *)source;
+    u8 *d = (u8 *)dest;
+
+    while (size--) { *d++ = *s++; }
+}
+
+
+
+inline temporary_memory
+BeginTemporaryMemory(memory_arena *arena)
+{
+    temporary_memory result;
+
+    result.Arena = arena;
+    result.Used = arena->Used;
+    result.Arena->TempCount++;
+
+    return result;
+}
+
+inline void
+EndTemporaryMemory(temporary_memory tempMem)
+{
+    memory_arena *arena = tempMem.Arena;
+    Assert(arena->Used >= tempMem.Used)
+    arena->Used = tempMem.Used;
+    Assert(arena->TempCount > 0);
+    arena->TempCount--;
+}
+
+internal void
+InitializeArena(memory_arena *arena, memory_index size, void *base)
+{
+    arena->Size = size;
+    arena->Base = (uint8 *)base;
+    arena->Used = 0;
+    arena->TempCount = 0;
+}
+
+inline memory_index
+GetArenaSizeRemaining(memory_arena *arena, memory_index alignment=4)
+{
+    memory_index result = arena->Size - (arena->Used + GetMemoryBitAlignmentOffset(arena, alignment));
+    return result;
+}
+
+inline void
+CheckArena(memory_arena *arena)
+{
+    Assert(arena->TempCount == 0);
+}
+
+inline void
+SubArena(memory_arena *result, memory_arena *arena, memory_index size, memory_index alignment = 4)
+{
+    result->Size = size;
+    result->Base = (uint8 *)PushSize_(arena, size, alignment);
+    result->Used = 0;
+    result->TempCount = 0;
+}
+
+
+
 
 #include "handmade_debug_platform.h"
 
