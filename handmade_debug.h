@@ -81,6 +81,8 @@ struct debug_state
     b32 Paused;
     b32 IsProfileOn;
 
+    debug_process CompilerProcess;
+
     platform_work_queue *HighPriorityQueue;
     
     memory_arena DebugArena;

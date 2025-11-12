@@ -138,7 +138,7 @@ SampleEnvironmentMap(v2 screenSpaceUV, v3 sampleDirection, real32 roughness, ren
     real32 fY = tY - (real32)mapY;
 
 
-#if 0
+#if DEBUGUI_ShowLightingSamples
     uint8 *texelPtr = (uint8 *)level->Memory + mapY * level->Pitch + mapX * sizeof(uint32);
     *(uint32 *)texelPtr = 0xffffffff;
 #endif
@@ -349,8 +349,8 @@ internal void
 RenderRectangleQuickly(loaded_bitmap *drawBuffer,v2 origin, v2 xAxis, v2 yAxis, v4 color, loaded_bitmap *texture, rectangle2i clipRect, bool32 even)
 {
     TIMED_FUNCTION;
-    
-    // color.rgb *= color.a;
+
+    color.rgb *= color.a;
 
     real32 xAxisLen = Length(xAxis);
     real32 yAxisLen = Length(yAxis);
@@ -937,7 +937,9 @@ GetTopLeftPointForEntityBasis(render_transform *transform, v3 p)
     
     if (transform->Perspective)
     {
-        if (0) { transform->DistanceToTarget = 100.0f; }; // DEBUG: HIGH CAMERA VIEW
+        #if DEBUGUI_UseDebugCamera
+        if (1) { transform->DistanceToTarget = 100.0f; }; // DEBUG: HIGH CAMERA VIEW
+        #endif
         
         real32 distanceToPointZ = transform->DistanceToTarget - entityBaseP.z;
         real32 nearClipPlane = 0.2f;

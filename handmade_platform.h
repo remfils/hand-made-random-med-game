@@ -1,6 +1,8 @@
 #if !defined(HANDMADE_PLATFORM_H)
 #define HANDMADE_PLATFORM_H
 
+#include "handmade_config.h"
+
 #if _MSC_VER
 #define COMPILER_MSVC 1
 #endif
@@ -84,6 +86,19 @@ extern struct game_memory *DebugGlobalMemory;
 
 #define InvalidCodePath Assert(!"Invalid code path");
 #define InvalidDefaultCase default: { InvalidCodePath; } break;
+
+struct debug_process
+{
+    u64 ProcessHandle;
+    b32 IsRunning;
+};
+
+struct debug_process_state
+{
+    b32 Ok;
+    b32 Finished;
+    u64 ExitCode;
+};
 
 struct debug_frame_timestamp
 {
@@ -187,7 +202,6 @@ struct game_input
     // support mouse wheel
     r32 MouseZ;
 
-    b32 ExecutableReloaded;
     r32 DtForFrame;
     
     game_controller_input Controllers[5];
@@ -261,6 +275,12 @@ typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
 #define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(char *filename, uint32 memorySize, void *memory)
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 
+#define DEBUG_PLATFORM_EXECUTE_SYSTEM_COMMAND(name) debug_process name(char *dir, char *command, char *params)
+typedef DEBUG_PLATFORM_EXECUTE_SYSTEM_COMMAND(debug_platform_execute_system_command);
+
+#define DEBUG_PLATFORM_GET_PROCESS_STATE(name) debug_process_state name(debug_process process)
+typedef DEBUG_PLATFORM_GET_PROCESS_STATE(debug_platform_get_process_state);
+
 
 extern platform_work_queue *RenderQueue;
 
@@ -281,6 +301,8 @@ struct platform_api
     debug_platform_free_file_memory *DEBUG_FreeFileMemory;
     debug_platform_read_entire_file *DEBUG_ReadEntireFile;
     debug_platform_write_entire_file *DEBUG_WriteEntireFile;
+    debug_platform_execute_system_command *DEBUG_ExecuteSystemCommand;
+    debug_platform_get_process_state *DEBUG_GetProcessState;
 };
 
 struct game_memory
@@ -297,6 +319,8 @@ struct game_memory
 
     platform_work_queue *HighPriorityQueue;
     platform_work_queue *LowPriorityQueue;
+
+    b32 ExecutableReloaded;
 
     platform_api PlatformAPI;
 };

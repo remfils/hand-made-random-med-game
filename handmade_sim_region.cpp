@@ -387,11 +387,12 @@ EndSim(sim_region *region, game_state *gameState)
 
     world *world = gameState->World;
 
-    sim_entity * simEntity = region->Entities;
+    
     for (uint32 entityIndex=0;
          entityIndex < region->EntityCount;
-         ++entityIndex, ++simEntity)
+         ++entityIndex)
     {
+        sim_entity * simEntity = region->Entities + entityIndex;
         low_entity * stored = gameState->LowEntities + simEntity->StorageIndex;
 
         stored->Sim = *simEntity;
@@ -410,24 +411,26 @@ EndSim(sim_region *region, game_state *gameState)
             world_position newCameraPosition = gameState->CameraPosition;
             newCameraPosition.ChunkZ = stored->WorldP.ChunkZ;
 
-#if 0
-            if (simEntity->P.y > (5 * world->TileSideInMeters))
+#if DEBUGUI_CameraIsTileBased
+            if (simEntity->P.x > 3)
             {
-                newCameraPosition.ChunkY += 9;
+                newCameraPosition = MapIntoChunkSpace(region->World, newCameraPosition, ToV3(6, 0, 0));
             }
-            if (simEntity->P.y < -(5 * world->TileSideInMeters))
+            if (simEntity->P.x < -3)
             {
-                newCameraPosition.ChunkY -= 9;
+                newCameraPosition = MapIntoChunkSpace(region->World, newCameraPosition, ToV3(-6, 0, 0));
             }
+            if (simEntity->P.y > 2)
+            {
+                newCameraPosition = MapIntoChunkSpace(region->World, newCameraPosition, ToV3(0, 2, 0));
+            }
+            if (simEntity->P.y < -2)
+            {
+                newCameraPosition = MapIntoChunkSpace(region->World, newCameraPosition, ToV3(0, -2, 0));
+            }
+
+            gameState->CameraPosition = newCameraPosition;
             
-            if (simEntity->P.x > (9 * world->TileSideInMeters))
-            {
-                newCameraPosition.ChunkX += 17;
-            }
-            if (simEntity->P.x < -(9 * world->TileSideInMeters))
-            {
-                newCameraPosition.ChunkX -= 17;
-            }
 #else
             //real32 offsetZ = gameState->CameraPosition._Offset.z;
             gameState->CameraPosition = stored->WorldP;

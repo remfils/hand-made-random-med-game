@@ -46,7 +46,7 @@ DEBUGStart(game_memory *memory, game_assets *assets, u32 width, u32 height)
             debugState->RenderGroup = AllocateRenderGroup(
                 &debugState->DebugArena,
                 assets,
-                Megabytes(15),
+                Megabytes(30),
                 SafeTruncateToUInt16(width),
                 SafeTruncateToUInt16(height),
                 false
@@ -538,39 +538,55 @@ RefreshCollation()
     CollectDebugRecords(GlobalDebugTable->CurrentWriteEventArrayIndex);   
 }
 
+enum debug_global_variable_type
+{
+    DebugGlobalVariableType_Boolean,
+    DebugGlobalVariableType_Count,
+};
+
+struct debug_global_variable {
+    char *Name;
+    b32 Value;
+    debug_global_variable_type Type;
+};
+
+
+#define DEBUG_GLOBAL_VARIABLE_LINE(name) {#name, name, DebugGlobalVariableType_Boolean}
+
+debug_global_variable DebugVariables[] = {
+    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_UseDebugCamera),
+    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_GroundChunkOutlines),
+    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_FountainForceDisplay),
+    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_RenderEntitySpace),
+    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_CheckerChunks),
+    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_ShowLightingSamples),
+    DEBUG_GLOBAL_VARIABLE_LINE(DEBUGUI_CameraIsTileBased),
+};
+
 internal void
 DrawDebugContextMenu(v2 mouseP)
 {
     debug_state *debugState = DEBUGGetState();
     if (!debugState->RenderGroup) return;
 
-    char *menuItems[] = {
-        "toggle profile graphs",
-        "toggle collation graphs",
-        "toggle framerate counter",
-        //"mark loop point",
-        //"toggle enity bounds",
-        //"togle world chunk bounds",
-    };
-
 
     u32 bestMenuIndex = 0;
     r32 bestMenuDistanceSq = FLT_MAX;
 
     r32 menuRadius = 200.0f;
-    r32 angleStep = Tau32 / (r32) ArrayCount(menuItems);
+    r32 angleStep = Tau32 / (r32) ArrayCount(DebugVariables);
 
     v4 outlineColor = {0.0f,1.0f,0.0f, 0.2f};
     v4 textColor = {1.0f,1.0f,1.0f, 1.0f};
     v4 highlightedColor = {0.0f, 0.0f, 0.0f, 1.0f};
     v4 highlightedBgColor = {0.0f,0.3f,0.0f, 0.2f};
 
-    for (s32 menuIndex=0; menuIndex < ArrayCount(menuItems); menuIndex++)
+    for (s32 debugVariableIndex=0; debugVariableIndex < ArrayCount(DebugVariables); debugVariableIndex++)
     {
-        r32 angle = (r32)menuIndex * angleStep;
+        r32 angle = (r32)debugVariableIndex * angleStep;
         v2 textP = debugState->MenuP + menuRadius * Arm2(angle);
 
-        rectangle2 textBox = DebugTextSize(menuItems[menuIndex]);
+        rectangle2 textBox = DebugTextSize(DebugVariables[debugVariableIndex].Name);
 
         textP = textP - 0.5f * GetDim(textBox);
 
@@ -578,22 +594,47 @@ DrawDebugContextMenu(v2 mouseP)
 
         if (menuDistanceSq < bestMenuDistanceSq) {
             bestMenuDistanceSq = menuDistanceSq;
-            bestMenuIndex = menuIndex;
+            bestMenuIndex = debugVariableIndex;
         }
 
         v4 color = textColor;
         v4 bgColor = outlineColor;
-        if (menuIndex == debugState->HoverMenuIndex) {
+        if (debugVariableIndex == debugState->HoverMenuIndex) {
             color = highlightedColor;
             bgColor = highlightedBgColor;
         }
 
         PushPieceRect(debugState->RenderGroup, Offset(textBox, textP), 0.0f, outlineColor);
-        DebugTextAtPoint(menuItems[menuIndex], textP, color);
+        DebugTextAtPoint(DebugVariables[debugVariableIndex].Name, textP, color);
     }
 
 
     debugState->HoverMenuIndex = bestMenuIndex;
+}
+
+internal void
+WriteHandmadeConfig(debug_state *debugState)
+{
+    if (!debugState->CompilerProcess.IsRunning) {
+        char temp[4096];
+
+        char *at = temp;
+
+        for (u32 variableIndex=0; variableIndex < ArrayCount(DebugVariables); variableIndex++)
+        {
+            debug_global_variable *var = DebugVariables + variableIndex;
+            u32 bytesLeftToWrite = (u32)((temp + ArrayCount(temp)) - at);
+            at += _snprintf_s(
+                at, bytesLeftToWrite, bytesLeftToWrite,
+                "#define %s %d // b32\n",
+                var->Name, var->Value
+                );
+        }
+        
+        PlatformAPI.DEBUG_WriteEntireFile("../code/handmade_config.h", (u32)(at - temp), temp);
+
+        debugState->CompilerProcess = PlatformAPI.DEBUG_ExecuteSystemCommand("../misc/", "c:\\Windows\\System32\\cmd.exe", "/C build.bat");
+    }
 }
 
 internal void
@@ -616,6 +657,21 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
             DebugTextLine(buffer);
         }
 
+        if (debugState->CompilerProcess.IsRunning) {
+            debug_process_state state = PlatformAPI.DEBUG_GetProcessState(debugState->CompilerProcess);
+            if (state.Ok) {
+                if (state.Finished) {
+                    debugState->CompilerProcess.IsRunning = false;
+                } else {
+                    DebugTextLine("COMPILING...");
+                }
+            } else {
+                DebugTextLine("Error when compiling");
+                debugState->CompilerProcess.IsRunning = false;
+            }
+            
+        }
+
         if (input->MouseButtons[PlatformMouseButton_Right].EndedDown) {
             if (input->MouseButtons[PlatformMouseButton_Right].HalfTransitionCount > 0) {
                 debugState->MenuP = mouseP;
@@ -623,15 +679,11 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
             DrawDebugContextMenu(mouseP);
         } else {
             if (input->MouseButtons[PlatformMouseButton_Right].HalfTransitionCount > 0) {
-                switch (debugState->HoverMenuIndex) {
-                case 0: {
-                    debugState->IsProfileOn = !debugState->IsProfileOn;  
-                } break;
-                case 1: {
-                        debugState->Paused = !debugState->Paused;  
-                } break;
-                }
 
+                if (debugState->HoverMenuIndex < ArrayCount(DebugVariables)) {
+                    DebugVariables[debugState->HoverMenuIndex].Value = !DebugVariables[debugState->HoverMenuIndex].Value;
+                }
+                WriteHandmadeConfig(debugState);
                 DrawDebugContextMenu(mouseP);
             }
         }

@@ -354,7 +354,7 @@ FillGroundChunk(transient_state *tranState, game_state *gameState, ground_buffer
 
                     v2 grassCenter = center + halfDim + ToV2(width * RandomUnilateral(&series), height * RandomUnilateral(&series));
         
-                    PushBitmap(renderGroup, stamp, 0.4f, ToV3(grassCenter));
+                    PushBitmap(renderGroup, stamp, 0.4f, ToV3(grassCenter), color);
                 }
             }
         }
@@ -957,7 +957,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     DEBUGStart(memory, tranState->Assets, buffer->Width, buffer->Height);
 
-    if (input->ExecutableReloaded)
+    if (memory->ExecutableReloaded)
     {
         uint32 groundBufferWidth = 256;
         uint32 groundBufferHeight = 256;
@@ -970,7 +970,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             buf->P = NullPosition();
         }
         
-        input->ExecutableReloaded = false;
+        memory->ExecutableReloaded = false;
     }
     
     world *world = gameState->World;
@@ -1091,7 +1091,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             v3 groundDelta = Subtract(gameState->World, &buf->P, &gameState->CameraPosition);
 
             if (groundDelta.z > -1 && groundDelta.z < 1) {
-#if 0
+
+#if DEBUGUI_GroundChunkOutlines
                 PushPieceRectOutline(renderGroup, groundDelta, gameState->World->ChunkDimInMeters.xy, chunkColor);
 #endif
 
@@ -1351,13 +1352,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     part->Height = RandomBetween(&gameState->ParticleEntropy, (r32)0.1f, (r32)0.2f);
 
 
-                    #if 0
-                    asset_vector mV = {};
-                    asset_vector weight = {};
-                    part->BitmapId = BestMatchBitmap(tranState->Assets, AssetType_ParticleStar, &mV, &weight);
-                    #else
-                    
-
                     char nothings[] = "nothings";
                     char letter = nothings[RandomChoice(&gameState->ParticleEntropy, ArrayCount(nothings)-1)];
 
@@ -1376,9 +1370,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         hha_font *fontInfo = GetFontInfo(renderGroup->Assets, fontId);
                         part->BitmapId = GetBitmapForGlyph(tranState->Assets, fontInfo, font, letter);
                     }
-
-                    
-                    #endif
 
                     // TODO: fonts are broken...
                     //
@@ -1413,7 +1404,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                 }
 
 
-                #if 0
+                #if DEBUGUI_FountainForceDisplay
                 for (u32 cellX=0; cellX<16; cellX++)
                 {
                     for (u32 cellY=0; cellY<16; cellY++)
@@ -1560,11 +1551,13 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             } break;
             case EntityType_Space:
             {
+                #if DEBUGUI_RenderEntitySpace
                 for (uint32 volumeIndex=0; volumeIndex < simEntity->Collision->VolumeCount; volumeIndex++)
                 {
                     sim_entity_collision_volume *volume = simEntity->Collision->Volumes + volumeIndex;
                     PushPieceRectOutline(renderGroup, volume->Offset - ToV3(0, 0, 0.5f * volume->Dim.z), volume->Dim.xy, ToV4(0.0f, 1.0f,1.0f, 1.0f));
                 }
+                #endif
             } break;
             }
 
@@ -1692,6 +1685,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // render temp
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    #if 1
+    
     v4 envColors[] = {
         {1.0f, 0,0, 1},
         {0, 1.0f, 0, 1},
@@ -1729,8 +1724,6 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             rowCheckerOn = !rowCheckerOn;
         }
     }
-
-#if 0
 
     real32 angle = gameState->CurrentTime;
     real32 disp = 50.0f * Cos(3.0f * angle);
@@ -1838,10 +1831,14 @@ extern "C" GAME_FRAME_END(GameFrameEnd)
     
     if (debugState)
     {
-        
+        b32 doRefreshCollation = memory->ExecutableReloaded;
 
         if (!debugState->Paused || debugState->ForceCollcationRefresh) {
             debugState->ForceCollcationRefresh = false;
+            doRefreshCollation = true;
+        }
+
+        if (doRefreshCollation) {
             RefreshCollation();
         }
     }

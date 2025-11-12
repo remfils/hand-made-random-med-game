@@ -84,7 +84,6 @@ RenderRectangle(loaded_bitmap *drawBuffer, real32 realMinX, real32 realMinY, rea
     maxX = fillRect.MaxX;
     maxY = fillRect.MaxY;
 
-    v4 originalColor = color;
     color.rgb *= color.a;
 
     real32 val255 = 255.0f;

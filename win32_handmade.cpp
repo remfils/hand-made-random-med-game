@@ -405,6 +405,77 @@ DEBUG_PLATFORM_WRITE_ENTIRE_FILE(Debug_PlatformWriteEntireFile)
 
     return(result);
 }
+
+DEBUG_PLATFORM_EXECUTE_SYSTEM_COMMAND(DEBUG_ExecuteSystemCommand)
+{
+    debug_process result = {};
+
+    STARTUPINFO startupInfo = {};
+    startupInfo.cb = sizeof(startupInfo);
+    startupInfo.dwFlags = STARTF_USESHOWWINDOW;
+    startupInfo.wShowWindow = SW_HIDE;
+    PROCESS_INFORMATION processInformation = {};
+
+    b32 started = CreateProcess(
+        command,
+        params,
+        0,
+        0,
+        false,
+        0,
+        0,
+        dir,
+        &startupInfo,
+        &processInformation
+        );
+
+    if (started) {
+        //Assert(sizeof(result.ProcessHandle) >= sizeof(processInformation.hProcess));
+        *(HANDLE *)&result.ProcessHandle = processInformation.hProcess;
+        result.IsRunning = true;
+    } else {
+        DWORD errorCode = GetLastError();
+        result.IsRunning = false;
+        *(HANDLE *)&result.ProcessHandle = INVALID_HANDLE_VALUE;
+    }
+
+    return(result);
+}
+
+DEBUG_PLATFORM_GET_PROCESS_STATE(DEBUG_GetProcessState)
+{
+    debug_process_state result = {};
+
+    HANDLE processHandle = *(HANDLE *)&process.ProcessHandle;
+
+    if (processHandle != INVALID_HANDLE_VALUE)
+    {
+        DWORD exitCode;
+        if (GetExitCodeProcess(processHandle, &exitCode))
+        {
+            result.Ok = true;
+            if (exitCode == STILL_ACTIVE)
+            {
+                result.Finished = false;
+            }
+            else
+            {
+                result.Finished = true;
+                result.ExitCode = (u64)exitCode;
+            }
+        }
+        else
+        {
+            result.Ok = false;
+        }
+    }
+    else
+    {
+        result.Ok = false;
+    }
+
+    return result;
+}
 #endif
 
 
@@ -1405,7 +1476,7 @@ int CALLBACK WinMain(
             game_memory  gameMemory = {};
             gameMemory.PermanentStorageSize = Megabytes(256);
             gameMemory.TransientStorageSize = Gigabytes((uint64)1);
-            gameMemory.DebugStorageSize = Megabytes(512);
+            gameMemory.DebugStorageSize = Megabytes(512*2);
 
             gameMemory.HighPriorityQueue = &highPriorityQueue;
             gameMemory.LowPriorityQueue = &lowPriorityQueue;
@@ -1429,6 +1500,8 @@ int CALLBACK WinMain(
             gameMemory.PlatformAPI.DEBUG_FreeFileMemory = Debug_PlatformFreeFileMemory;
             gameMemory.PlatformAPI.DEBUG_ReadEntireFile = Debug_PlatformReadEntireFile;
             gameMemory.PlatformAPI.DEBUG_WriteEntireFile = Debug_PlatformWriteEntireFile;
+            gameMemory.PlatformAPI.DEBUG_ExecuteSystemCommand = DEBUG_ExecuteSystemCommand;
+            gameMemory.PlatformAPI.DEBUG_GetProcessState = DEBUG_GetProcessState;
 #endif
             
 
@@ -1539,7 +1612,7 @@ int CALLBACK WinMain(
                         Win32UnloadGameCode(&game);
                         game = Win32LoadGameCode(sourceDLLFullPath, tmpDLLFullPath);
 
-                        newInput->ExecutableReloaded = true;
+                        gameMemory.ExecutableReloaded = true;
                       }
                   }
                   //reload_dlls = false;

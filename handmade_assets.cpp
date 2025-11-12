@@ -41,16 +41,19 @@ LoadAssetWorkDirectly(load_asset_work *work)
         } break;
         case FinalizeLoadAsset_Font:
         {
-            loaded_font *font = &work->Asset->Header->Font;
+
+            loaded_font *loadedFont = &work->Asset->Header->Font;
             hha_font *info = &work->Asset->HHA.Font;
-        
-            for (u32 glyphIndex = 0;
-                 glyphIndex < info->GlyphCount;
-                 glyphIndex++
-                )
-            {
-                hha_font_glyph *glyph = font->Glyphs + glyphIndex;
-                font->UnicodeMap[glyph->UnicodeCodePoint] = (u16)glyphIndex;
+
+            if (loadedFont && info) {
+                for (u32 glyphIndex = 0;
+                     glyphIndex < info->GlyphCount;
+                     glyphIndex++
+                    )
+                {
+                    hha_font_glyph *glyph = loadedFont->Glyphs + glyphIndex;
+                    loadedFont->UnicodeMap[glyph->UnicodeCodePoint] = (u16)glyphIndex;
+                }
             }
         } break;
         }
@@ -65,6 +68,7 @@ LoadAssetWorkDirectly(load_asset_work *work)
 
     work->Asset->State = work->FinalState;
 }
+
 
 internal PLATFORM_WORK_QUEUE_CALLBACK(DoLoadAssetWork)
 {
@@ -147,6 +151,7 @@ LoadBitmap(game_assets *assets, bitmap_id id, b32 immidiate)
                 work.Destination = bitmap->Memory;
                 
                 work.FinalState = AssetState_Loaded;
+                work.FinalizeOperation = FinalizeLoadAsset_None;
 
                 if (immidiate)
                 {
@@ -222,9 +227,9 @@ LoadFont(game_assets *assets, font_id id, b32 immidiate)
                 work.Offset = asset->HHA.DataOffset;
                 work.Size = sizeData;
                 work.Destination = font->Glyphs;
-                work.FinalizeOperation = FinalizeLoadAsset_Font;
 
                 work.FinalState = AssetState_Loaded;
+                work.FinalizeOperation = FinalizeLoadAsset_Font;
 
                 if (immidiate)
                 {
@@ -302,6 +307,7 @@ LoadSound(game_assets *assets, sound_id id)
                 work->Destination = memory;
                 
                 work->FinalState = AssetState_Loaded;
+                work->FinalizeOperation = FinalizeLoadAsset_None;
     
                 PlatformAPI.AddEntry(assets->TranState->LowPriorityQueue, DoLoadAssetWork, work);
             } else {
