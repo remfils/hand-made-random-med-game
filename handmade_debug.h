@@ -120,7 +120,8 @@ struct debug_state
     r32 GlobalWidth = 0.0f;
     r32 GlobalHeight = 0.0f;
 
-    s32 HoverMenuIndex = -1;
+    debug_global_variable *HoverGlovalVariable;
+
     v2 MenuP = {};
 
     

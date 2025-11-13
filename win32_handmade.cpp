@@ -76,17 +76,6 @@ Win32ToggleFullscreen(HWND window)
 }
 
 
-internal int
-StringLength(char *str)
-{
-    int count =0;
-    while (*str++)
-    {
-        ++count;
-    }
-    return(count);
-}
-
 internal void
 CatStrings(size_t sourceACount, char *sourceA,
     size_t sourceBCount, char *sourceB,

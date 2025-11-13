@@ -938,7 +938,7 @@ GetTopLeftPointForEntityBasis(render_transform *transform, v3 p)
     if (transform->Perspective)
     {
         #if DEBUGUI_UseDebugCamera
-        if (1) { transform->DistanceToTarget = 100.0f; }; // DEBUG: HIGH CAMERA VIEW
+        transform->DistanceToTarget = DEBUGUI_DebugCameraDistance;
         #endif
         
         real32 distanceToPointZ = transform->DistanceToTarget - entityBaseP.z;

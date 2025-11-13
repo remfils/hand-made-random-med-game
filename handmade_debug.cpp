@@ -233,10 +233,8 @@ DebugTextLine(char *string)
 
         if (font)
         {
-            
-            hha_font *fontInfo = GetFontInfo(debugState->RenderGroup->Assets, fontId);
             DebugTextAtPoint(string, ToV2(debugState->LeftEdge, debugState->LineY), ToV4(1,1,1,1));
-            debugState->LineY -= GetVerticalLineAdvance(fontInfo) * debugState->FontScale;
+            debugState->LineY -= GetVerticalLineAdvance(debugState->FontInfo) * debugState->FontScale;
         }
     }
     
@@ -592,6 +590,163 @@ DrawDebugContextMenu(v2 mouseP)
     #endif
 }
 
+inline u32
+DebugGlobalVariableToString(debug_global_variable *var, char *text, char *end, u32 flags)
+{
+    u32 bytesLeftToWrite;
+    char *at = text;
+
+    if (var->Type == DebugGlobalVariableType_Group) {
+
+        if (flags & DebugGlobalVariableStringFlag_Define) {
+            bytesLeftToWrite = (u32)(end - at);
+            at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "// ");
+        } else {
+            bytesLeftToWrite = (u32)(end - at);
+            at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "%s ", (var->Group.IsOpen ? "-" : "+"));
+        }
+
+        if (flags & DebugGlobalVariableStringFlag_Name) {
+            bytesLeftToWrite = (u32)(end - at);
+            at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "%s", var->Name);
+        }
+    } else {
+        if (flags & DebugGlobalVariableStringFlag_Define) {
+            bytesLeftToWrite = (u32)(end - at);
+            at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "#define ");
+        }
+
+        if (flags & DebugGlobalVariableStringFlag_Name) {
+            bytesLeftToWrite = (u32)(end - at);
+            at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "%s", var->Name);
+
+            if (flags & DebugGlobalVariableStringFlag_DotsNameDelimiter) {
+                bytesLeftToWrite = (u32)(end - at);
+                at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, ": ");
+            } else {
+                bytesLeftToWrite = (u32)(end - at);
+                at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, " ");
+            }
+        }
+
+        bytesLeftToWrite = (u32)(end - at);
+    
+        switch (var->Type)
+        {
+        case DebugGlobalVariableType_b32:
+        {
+            at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "%s ", (var->Bool ? "true" : "false"));
+        } break;
+        case DebugGlobalVariableType_s32:
+        {
+            at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "%d ", var->Int);
+        } break;
+        case DebugGlobalVariableType_u32:
+        {
+            at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "%u ", var->Uint);
+        } break;
+        case DebugGlobalVariableType_r32:
+        {
+            at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "%f", var->Real);
+
+            if (flags & DebugGlobalVariableStringFlag_PressFForFloat) {
+                bytesLeftToWrite = (u32)(end - at);
+                at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "f ");
+            } else {
+                bytesLeftToWrite = (u32)(end - at);
+                at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, " ");
+            }
+        } break;
+
+        InvalidDefaultCase;
+        
+        }
+    }
+
+    if (flags & DebugGlobalVariableStringFlag_LineFeed) {
+        bytesLeftToWrite = (u32)(end - at);
+        at += _snprintf_s(at, bytesLeftToWrite, bytesLeftToWrite, "\n");
+    }
+
+    if (flags & DebugGlobalVariableStringFlag_NullTerminated) {
+        *at++ = 0;
+    }
+
+    return (u32)(at - text);
+}
+
+internal void
+DrawGlobalVariableMenu(debug_state *debugState, v2 mouseP)
+{
+    debugState->HoverGlovalVariable = 0;
+    
+    debug_global_variable *var = debugState->RootVariable;
+
+    r32 lineAdvance = GetVerticalLineAdvance(debugState->FontInfo) * debugState->FontScale + 2;
+    r32 textVPosition = lineAdvance * 3;
+    u32 depth = 0;
+
+    while (var)
+    {
+        char text[256];
+
+        #if DEBUGUI_ShowVariableConfigOutput
+        DebugGlobalVariableToString(
+            var, text, text + sizeof(text),
+            DebugGlobalVariableStringFlag_Name
+            | DebugGlobalVariableStringFlag_DotsNameDelimiter
+            | DebugGlobalVariableStringFlag_NullTerminated);
+        #else
+
+        DebugGlobalVariableToString(
+            var, text, text + sizeof(text),
+            DebugGlobalVariableStringFlag_Define
+                | DebugGlobalVariableStringFlag_Name
+                | DebugGlobalVariableStringFlag_PressFForFloat
+                | DebugGlobalVariableStringFlag_LineFeed);
+
+        #endif
+
+        
+
+        v2 textP = ToV2(debugState->LeftEdge + lineAdvance * depth, textVPosition);
+        rectangle2 textBox = DebugTextSize(text);
+
+        v4 textColor = ToV4(1,1,1,1);
+        if (IsInRectangle(Offset(textBox, textP), mouseP))
+        {
+           textColor = ToV4(1,1,0,1);
+           debugState->HoverGlovalVariable = var;
+        }
+
+        DebugTextAtPoint(text, textP, textColor);
+
+        textVPosition -= lineAdvance;
+
+        if (var->Type == DebugGlobalVariableType_Group && var->Group.IsOpen)
+        {
+            var = var->Group.FirstChild;
+            depth++;
+        }
+        else
+        {
+            while(var)
+            {
+                if (var->Next)
+                {
+                    var = var->Next;
+                    break;
+                }
+                else
+                {
+                    var = var->Parent;
+                    depth--;
+                }
+            }
+        }
+    }
+}
+
 internal void
 WriteHandmadeConfig(debug_state *debugState)
 {
@@ -605,25 +760,13 @@ WriteHandmadeConfig(debug_state *debugState)
         while (var)
         {
             u32 bytesLeftToWrite = (u32)(temp + ArrayCount(temp) - at);
-            switch (var->Type)
-            {
-            case DebugGlobalVariableType_Boolean:
-            {
-                at += _snprintf_s(
-                    at, bytesLeftToWrite, bytesLeftToWrite,
-                    "#define %s %d // b32\n",
-                    var->Name, var->Bool
-                    );
-            } break;
-            case DebugGlobalVariableType_Group:
-            {
-                at += _snprintf_s(
-                    at, bytesLeftToWrite, bytesLeftToWrite,
-                    "// %s \n",
-                    var->Name
-                    );
-            } break;
-            }
+
+            at += DebugGlobalVariableToString(
+                var, at, temp + ArrayCount(temp),
+                DebugGlobalVariableStringFlag_Define
+                | DebugGlobalVariableStringFlag_Name
+                | DebugGlobalVariableStringFlag_PressFForFloat
+                | DebugGlobalVariableStringFlag_LineFeed);
 
 
             if (var->Type == DebugGlobalVariableType_Group)
@@ -659,8 +802,6 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
     debug_state *debugState = (debug_state *)memory->DebugStorage;
     if (!debugState->RenderGroup) return;
 
-    
-
     if (debugState)
     {
         v2 mouseP = ToV2(input->MouseX, input->MouseY);
@@ -688,7 +829,36 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
             
         }
 
-        WriteHandmadeConfig(debugState); // DEBUG
+        //WriteHandmadeConfig(debugState); // DEBUG
+
+        DrawGlobalVariableMenu(debugState, mouseP);
+
+        if (WasPressed(input->MouseButtons[PlatformMouseButton_Left]))
+        {
+            debug_global_variable *var = debugState->HoverGlovalVariable;
+            if (var)
+            {
+                b32 doRecompile = false;
+                switch (var->Type)
+                {
+                case DebugGlobalVariableType_b32: {
+                    var->Bool = !var->Bool;
+                    doRecompile = true;
+                } break;
+                case DebugGlobalVariableType_Group: {
+                    var->Group.IsOpen = !var->Group.IsOpen;
+                } break;
+
+                    InvalidDefaultCase;
+                }
+
+                if (doRecompile) {
+                    WriteHandmadeConfig(debugState);
+                }
+            }
+        }
+
+        #if 0
 
         if (input->MouseButtons[PlatformMouseButton_Right].EndedDown) {
             if (input->MouseButtons[PlatformMouseButton_Right].HalfTransitionCount > 0) {
@@ -707,6 +877,8 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
                 DrawDebugContextMenu(mouseP);
             }
         }
+
+        #endif
 
         #if 0
         for (u32 debugIndex=0;

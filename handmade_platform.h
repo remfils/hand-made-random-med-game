@@ -407,9 +407,12 @@ WasPressed(game_button_state state)
     return result;
 }
 
+inline void* Copy(memory_index size, void*source, void *dest);
+
 #define PushStruct(arena, type, ...) (type *)PushSize_(arena, sizeof(type), ##__VA_ARGS__)
 #define PushArray(arena, count,  type, ...) (type *)PushSize_(arena, count * sizeof(type), ##__VA_ARGS__)
 #define PushSize(arena, size, ...) PushSize_(arena, size, ##__VA_ARGS__)
+#define PushCopy(arena, size, source, ...) Copy(size, source, PushSize_(arena, size, ##__VA_ARGS__))
 
 inline memory_index
 GetMemoryBitAlignmentOffset(memory_arena *arena, memory_index alignment)
@@ -455,6 +458,17 @@ PushString(memory_arena *arena, char *source)
     return dest;
 }
 
+internal int
+StringLength(char *str)
+{
+    int count =0;
+    while (*str++)
+    {
+        ++count;
+    }
+    return(count);
+}
+
 #define ZeroStruct(instance) ZeroSize(sizeof(instance), &(instance))
 inline void
 ZeroSize(memory_index size, void *ptr)
@@ -468,13 +482,15 @@ ZeroSize(memory_index size, void *ptr)
 }
 
 
-inline void
+inline void*
 Copy(memory_index size, void*source, void *dest)
 {
     u8 *s = (u8 *)source;
     u8 *d = (u8 *)dest;
 
     while (size--) { *d++ = *s++; }
+
+    return dest;
 }
 
 
