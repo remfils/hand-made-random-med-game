@@ -75,6 +75,14 @@ struct debug_thread
 
 struct debug_global_variable;
 
+enum debug_interaction {
+    DebugInteractionType_None,
+    DebugInteractionType_Empty,
+    DebugInteractionType_Toggle,
+    DebugInteractionType_Drag,
+    DebugInteractionType_Tear,
+};
+
 struct debug_state
 {
     b32 Initialized;
@@ -120,7 +128,12 @@ struct debug_state
     r32 GlobalWidth = 0.0f;
     r32 GlobalHeight = 0.0f;
 
-    debug_global_variable *HoverGlovalVariable;
+    debug_interaction Interaction;
+    debug_global_variable *HoverVar;
+    debug_global_variable *NextHoverVar;
+    debug_global_variable *InteractingVar;
+
+    v2 PrevMouseP;
 
     v2 MenuP = {};
 

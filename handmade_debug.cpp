@@ -676,9 +676,9 @@ DebugGlobalVariableToString(debug_global_variable *var, char *text, char *end, u
 }
 
 internal void
-DrawGlobalVariableMenu(debug_state *debugState, v2 mouseP)
+DrawDebugGlobalVariableMenu(debug_state *debugState, v2 mouseP)
 {
-    debugState->HoverGlovalVariable = 0;
+    debugState->NextHoverVar = 0;
     
     debug_global_variable *var = debugState->RootVariable;
 
@@ -712,11 +712,16 @@ DrawGlobalVariableMenu(debug_state *debugState, v2 mouseP)
         v2 textP = ToV2(debugState->LeftEdge + lineAdvance * depth, textVPosition);
         rectangle2 textBox = DebugTextSize(text);
 
-        v4 textColor = ToV4(1,1,1,1);
+        
         if (IsInRectangle(Offset(textBox, textP), mouseP))
         {
-           textColor = ToV4(1,1,0,1);
-           debugState->HoverGlovalVariable = var;
+           debugState->NextHoverVar = var;
+        }
+
+        v4 textColor = ToV4(1,1,1,1);
+
+        if (debugState->HoverVar == var) {
+            textColor = ToV4(1,1,0,1);
         }
 
         DebugTextAtPoint(text, textP, textColor);
@@ -797,6 +802,125 @@ WriteHandmadeConfig(debug_state *debugState)
 }
 
 internal void
+BeginInteractionWithGlobalVariableState(debug_state *debugState, game_input *input, v2 mouseP)
+{
+    if (debugState->HoverVar) {
+        switch (debugState->HoverVar->Type)
+        {
+        case DebugGlobalVariableType_r32: {
+            debugState->Interaction = DebugInteractionType_Drag;
+        } break;
+        case DebugGlobalVariableType_b32: {
+            debugState->Interaction = DebugInteractionType_Toggle;
+        } break;
+        case DebugGlobalVariableType_Group: {
+            debugState->Interaction = DebugInteractionType_Toggle;
+        } break;
+        }
+
+        if (debugState->Interaction) {
+            debugState->InteractingVar = debugState->HoverVar;
+        }
+    } else {
+        debugState->Interaction = DebugInteractionType_Empty;
+    }
+}
+
+internal void
+EndInteractionWithGlobalVariableState(debug_state *debugState, game_input *input, v2 mouseP)
+{
+    if (debugState->Interaction != DebugInteractionType_Empty) {
+        debug_global_variable *var = debugState->InteractingVar;
+        
+        if (var)
+        {
+            b32 doRecompile = false;
+
+            switch (debugState->Interaction)
+            {
+            case DebugInteractionType_Drag: {
+                doRecompile = true;
+            } break;
+            case DebugInteractionType_Toggle: {
+                switch (var->Type)
+                {
+                case DebugGlobalVariableType_b32: {
+                    var->Bool = !var->Bool;
+                    doRecompile = true;
+                } break;
+                case DebugGlobalVariableType_Group: {
+                    var->Group.IsOpen = !var->Group.IsOpen;
+                } break;
+                }
+            } break;
+            }
+
+            //doRecompile = false; // DEBUG
+
+            if (doRecompile) {
+                WriteHandmadeConfig(debugState);
+            }
+        }
+    }
+    
+
+    debugState->InteractingVar = 0;
+    debugState->Interaction = DebugInteractionType_None;
+}
+
+internal void
+HandleDebugGlobalVariableInteractions(debug_state *debugState, game_input *input, v2 mouseP)
+{
+    v2 mousedp = mouseP - debugState->PrevMouseP;
+    
+    if (debugState->Interaction) {
+        if (debugState->InteractingVar)
+        {
+            // mouse drag
+
+            switch (debugState->InteractingVar->Type) {
+            case DebugGlobalVariableType_r32: {
+                debugState->InteractingVar->Real += 0.1f * mousedp.x;
+            } break;
+            }
+        }
+
+        // click interactions
+        for (
+            u32 transitionIndex = input->MouseButtons[PlatformMouseButton_Left].HalfTransitionCount;
+            transitionIndex > 1;
+            transitionIndex--
+            )
+        {
+            EndInteractionWithGlobalVariableState(debugState, input, mouseP);
+            BeginInteractionWithGlobalVariableState(debugState, input, mouseP);
+        }
+
+        if (!input->MouseButtons[PlatformMouseButton_Left].EndedDown) {
+            EndInteractionWithGlobalVariableState(debugState, input, mouseP);
+        }
+    } else {
+        debugState->HoverVar = debugState->NextHoverVar;
+
+        for (
+            u32 transitionIndex = input->MouseButtons[PlatformMouseButton_Left].HalfTransitionCount;
+            transitionIndex > 1;
+            transitionIndex--
+            )
+        {
+            BeginInteractionWithGlobalVariableState(debugState, input, mouseP);
+            EndInteractionWithGlobalVariableState(debugState, input, mouseP);
+        }
+
+        if (input->MouseButtons[PlatformMouseButton_Left].EndedDown) {
+            BeginInteractionWithGlobalVariableState(debugState, input, mouseP);
+        }
+    }
+
+    debugState->PrevMouseP = mouseP;
+}
+
+internal void
 OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap *drawBuffer)
 {
     debug_state *debugState = (debug_state *)memory->DebugStorage;
@@ -831,32 +955,8 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
 
         //WriteHandmadeConfig(debugState); // DEBUG
 
-        DrawGlobalVariableMenu(debugState, mouseP);
-
-        if (WasPressed(input->MouseButtons[PlatformMouseButton_Left]))
-        {
-            debug_global_variable *var = debugState->HoverGlovalVariable;
-            if (var)
-            {
-                b32 doRecompile = false;
-                switch (var->Type)
-                {
-                case DebugGlobalVariableType_b32: {
-                    var->Bool = !var->Bool;
-                    doRecompile = true;
-                } break;
-                case DebugGlobalVariableType_Group: {
-                    var->Group.IsOpen = !var->Group.IsOpen;
-                } break;
-
-                    InvalidDefaultCase;
-                }
-
-                if (doRecompile) {
-                    WriteHandmadeConfig(debugState);
-                }
-            }
-        }
+        DrawDebugGlobalVariableMenu(debugState, mouseP);
+        HandleDebugGlobalVariableInteractions(debugState, input, mouseP);
 
         #if 0
 
