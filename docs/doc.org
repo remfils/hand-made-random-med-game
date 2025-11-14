@@ -8,7 +8,7 @@
 - катсцены
 - генерация уровней?
 
-* to be done [8/442]
+* to be done [9/442]
 ** DONE Handmade Hero Day 189 - Incremental Debug Frame Processing
 - [[https://www.youtube.com/watch?v=87V4GNfqTpY]]
 
@@ -38,7 +38,7 @@ what to look
 ** DONE Handmade Hero Day 196 - Introduction to UI Interactions
 - [[https://www.youtube.com/watch?v=FvWcZ9Tti2k]]
 
-** TODO Handmade Hero Day 197 - Integrating Multiple Debug Views
+** DONE Handmade Hero Day 197 - Integrating Multiple Debug Views
 - [[https://www.youtube.com/watch?v=ovXGlv7Y9wo]]
 
 ** TODO Handmade Hero Day 198 - Run-time Editing of Debug Hierarchies

@@ -81,6 +81,13 @@ enum debug_interaction {
     DebugInteractionType_Toggle,
     DebugInteractionType_Drag,
     DebugInteractionType_Tear,
+    DebugInteractionType_ResizeProfileGraph,
+};
+
+struct debug_variable_view
+{
+    v2 P;
+    debug_global_variable *Root;
 };
 
 struct debug_state
@@ -96,8 +103,6 @@ struct debug_state
     platform_work_queue *HighPriorityQueue;
     
     memory_arena DebugArena;
-
-    debug_global_variable *RootVariable;
     
     memory_arena CollateArena;
     temporary_memory CollateTemp;
@@ -128,10 +133,16 @@ struct debug_state
     r32 GlobalWidth = 0.0f;
     r32 GlobalHeight = 0.0f;
 
+    debug_global_variable *RootVariable;
+    debug_variable_view VariableView;
+
     debug_interaction Interaction;
+    debug_interaction HoverInteraction;
+    debug_interaction NextHoverInteraction;
     debug_global_variable *HoverVar;
     debug_global_variable *NextHoverVar;
     debug_global_variable *InteractingVar;
+
 
     v2 PrevMouseP;
 

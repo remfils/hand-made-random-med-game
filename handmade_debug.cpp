@@ -42,7 +42,20 @@ DEBUGStart(game_memory *memory, game_assets *assets, u32 width, u32 height)
             debugState+1
             );
 
-        DEBUGInitVaraibles(debugState, &debugState->DebugArena);
+        debug_global_variable_context ctx_ = {debugState, &debugState->DebugArena};
+        debug_global_variable_context *ctx = &ctx_;
+
+        DEBUGInitVaraibles(ctx);
+
+        debug_global_variable *prifle = DebugAddVariable_(ctx, DebugGlobalVariableType_ProfileGraph, "Profile Graph");
+        prifle->Graph.Dim.x = 300.0f;
+        prifle->Graph.Dim.y = 100.0f;
+
+        debugState->VariableView.Root = debugState->RootVariable;
+        debugState->VariableView.P = ToV2(
+            -0.5f * (r32)width,
+            0.5f * (r32)height
+            );
 
         if (!debugState->RenderGroup) {
             debugState->RenderGroup = AllocateRenderGroup(
@@ -676,57 +689,194 @@ DebugGlobalVariableToString(debug_global_variable *var, char *text, char *end, u
 }
 
 internal void
-DrawDebugGlobalVariableMenu(debug_state *debugState, v2 mouseP)
+DrawDebugProfileGraph(debug_state *debugState, rectangle2 bounds, v2 mouseP)
+{
+    u32 maxFrameCount = 10;
+    if (debugState->FrameCount < maxFrameCount) {
+        maxFrameCount = debugState->FrameCount;
+    }
+
+    r32 laneHeight = 0;
+    u32 laneCount = debugState->FrameBarLaneCount;
+    r32 barSpacing = 0.5f;
+
+    if (maxFrameCount > 0 && laneCount > 0) {
+        laneHeight = ((GetDim(bounds).y / maxFrameCount) + barSpacing) / laneCount;
+    }
+        
+    r32 barHeight = laneHeight * laneCount;
+    r32 barHeightAndSpace = barHeight + barSpacing;
+    r32 chartHeight = barHeightAndSpace * maxFrameCount;
+    r32 chartWidth = GetDim(bounds).x;
+    r32 chartTop = bounds.Max.y;
+    r32 chartLeft = bounds.Min.x;
+    r32 scale = 1.0f;
+    if (debugState->MaxValue > 0) {
+        scale = chartWidth / debugState->MaxValue;
+    }
+
+    v4 colors[] = {
+        ToV4(1, 0, 0, 1),
+        ToV4(0, 1, 0, 1),
+        ToV4(0, 0, 1, 1),
+        ToV4(1, 1, 0, 1),
+        ToV4(0, 1, 1, 1),
+        ToV4(1, 0, 1, 1),
+        ToV4(0.5f, 1, 0, 1),
+        ToV4(0, 0.5f, 1, 1),
+        ToV4(1, 0, 0.5f, 1),
+    };
+
+    for (u32 frameIndex=debugState->FrameCount - maxFrameCount;
+         frameIndex < debugState->FrameCount;
+         frameIndex++)
+    {
+        debug_frame *frame = debugState->Frames + frameIndex;
+
+        r32 stackX = chartLeft;
+        r32 stackY = chartTop - barHeightAndSpace * (r32) (frameIndex - debugState->FrameCount + maxFrameCount);
+            
+        for (u32 regionIndex=0;
+             regionIndex < frame->RegionCount;
+             regionIndex++)
+        {
+            debug_frame_region *region = frame->Regions + regionIndex;
+
+            v4 color = colors[regionIndex % ArrayCount(colors)];
+            r32 thisMinX = stackX + scale * region->MinValue;
+            r32 thisMaxX = stackX + scale * region->MaxValue;
+
+            rectangle2 regionRect = RectMinMax(
+                ToV2(thisMinX, stackY - laneHeight * region->LaneIndex - laneHeight),
+                ToV2(thisMaxX, stackY - laneHeight * region->LaneIndex)
+                );
+            
+            PushPieceRect(debugState->RenderGroup, regionRect, 0.0f, color);
+
+            if (IsInRectangle(regionRect, mouseP))
+            {
+                    
+                debug_record *record = region->Record;
+                char buffer[256];
+                _snprintf_s(buffer, 256,
+                            "%s: %10I64ucy [%s(%d)]",
+                            record->BlockName,
+                            region->CycleCount,
+                            record->FileName,
+                            record->Line);
+
+                DebugTextAtPoint(buffer, mouseP, ToV4(1,1,1,1));
+
+                #if 0
+                if (WasPressed(input->MouseButtons[PlatformMouseButton_Left])) {
+                    debugState->ScopeToRecord = record;
+                    debugState->ForceCollcationRefresh = true;
+                    RefreshCollation();
+                }
+                #endif
+            }
+
+            //chartWidth += barWidth + barHeightAndSpace;
+        }
+    }
+}
+
+internal void
+DrawDebugGlobalVariableMenu(debug_state *debugState, debug_variable_view variableView, v2 mouseP)
 {
     debugState->NextHoverVar = 0;
+    debugState->NextHoverInteraction = DebugInteractionType_None;
     
-    debug_global_variable *var = debugState->RootVariable;
+    debug_global_variable *var = variableView.Root;
 
     r32 lineAdvance = GetVerticalLineAdvance(debugState->FontInfo) * debugState->FontScale + 2;
-    r32 textVPosition = lineAdvance * 3;
+    r32 textVPosition = variableView.P.y;
     u32 depth = 0;
 
     while (var)
     {
         char text[256];
+        rectangle2 bounds;
+        b32 isHover = debugState->HoverVar == var;
 
-        #if DEBUGUI_ShowVariableConfigOutput
-        DebugGlobalVariableToString(
-            var, text, text + sizeof(text),
-            DebugGlobalVariableStringFlag_Name
-            | DebugGlobalVariableStringFlag_DotsNameDelimiter
-            | DebugGlobalVariableStringFlag_NullTerminated);
-        #else
+        v4 textColor = isHover
+            ? ToV4(1,1,0,1)
+            : ToV4(1,1,1,1);
 
-        DebugGlobalVariableToString(
-            var, text, text + sizeof(text),
-            DebugGlobalVariableStringFlag_Define
+        switch (var->Type)
+        {
+        case DebugGlobalVariableType_ProfileGraph: {
+            r32 chartWidth = var->Graph.Dim.x;
+            r32 chartHeight = var->Graph.Dim.y;
+            bounds = RectMinMax(
+                ToV2(variableView.P.x, textVPosition - chartHeight), ToV2(variableView.P.x + chartWidth, textVPosition)
+                );
+            DrawDebugProfileGraph(debugState, bounds, mouseP);
+
+            rectangle2 sizeHandleRect = RectCenterDim(
+                ToV2(bounds.Max.x, bounds.Min.y),
+                ToV2(8.0f, 8.0f)
+                );
+
+            v4 sizeHandleColor = ToV4(1,1,1,1);
+
+            if (isHover) {
+                if (debugState->Interaction == DebugInteractionType_ResizeProfileGraph) {
+                    sizeHandleColor = ToV4(0,0,1,1);
+                } else {
+                    sizeHandleColor = ToV4(1,0,0,1);
+                }
+            }
+
+            if (IsInRectangle(sizeHandleRect, mouseP))
+            {
+                debugState->NextHoverInteraction = DebugInteractionType_ResizeProfileGraph;
+                debugState->NextHoverVar = var;
+            }
+            else if (IsInRectangle(bounds, mouseP))
+            {
+                debugState->NextHoverVar = var;
+            }
+            
+            PushPieceRect(debugState->RenderGroup, sizeHandleRect, 0.0f, sizeHandleColor);
+
+            textVPosition -= chartHeight;
+        } break;
+        default: {
+
+#if DEBUGUI_ShowVariableConfigOutput
+            DebugGlobalVariableToString(
+                var, text, text + sizeof(text),
+                DebugGlobalVariableStringFlag_Name
+                | DebugGlobalVariableStringFlag_DotsNameDelimiter
+                | DebugGlobalVariableStringFlag_NullTerminated);
+#else
+
+            DebugGlobalVariableToString(
+                var, text, text + sizeof(text),
+                DebugGlobalVariableStringFlag_Define
                 | DebugGlobalVariableStringFlag_Name
                 | DebugGlobalVariableStringFlag_PressFForFloat
                 | DebugGlobalVariableStringFlag_LineFeed);
 
-        #endif
+#endif
 
-        
+            v2 textP = ToV2(
+                variableView.P.x + lineAdvance * depth,
+                textVPosition - lineAdvance);
+            bounds = DebugTextSize(text);
+            bounds = Offset(bounds, textP);
 
-        v2 textP = ToV2(debugState->LeftEdge + lineAdvance * depth, textVPosition);
-        rectangle2 textBox = DebugTextSize(text);
+            DebugTextAtPoint(text, textP, textColor);
 
-        
-        if (IsInRectangle(Offset(textBox, textP), mouseP))
-        {
-           debugState->NextHoverVar = var;
+            textVPosition -= lineAdvance;
+
+            if (IsInRectangle(bounds, mouseP))
+            {
+                debugState->NextHoverVar = var;
+            }
+        } break;
         }
-
-        v4 textColor = ToV4(1,1,1,1);
-
-        if (debugState->HoverVar == var) {
-            textColor = ToV4(1,1,0,1);
-        }
-
-        DebugTextAtPoint(text, textP, textColor);
-
-        textVPosition -= lineAdvance;
 
         if (var->Type == DebugGlobalVariableType_Group && var->Group.IsOpen)
         {
@@ -764,15 +914,16 @@ WriteHandmadeConfig(debug_state *debugState)
 
         while (var)
         {
-            u32 bytesLeftToWrite = (u32)(temp + ArrayCount(temp) - at);
+            if (var->IsStored) {
+                u32 bytesLeftToWrite = (u32)(temp + ArrayCount(temp) - at);
 
-            at += DebugGlobalVariableToString(
-                var, at, temp + ArrayCount(temp),
-                DebugGlobalVariableStringFlag_Define
-                | DebugGlobalVariableStringFlag_Name
-                | DebugGlobalVariableStringFlag_PressFForFloat
-                | DebugGlobalVariableStringFlag_LineFeed);
-
+                at += DebugGlobalVariableToString(
+                    var, at, temp + ArrayCount(temp),
+                    DebugGlobalVariableStringFlag_Define
+                    | DebugGlobalVariableStringFlag_Name
+                    | DebugGlobalVariableStringFlag_PressFForFloat
+                    | DebugGlobalVariableStringFlag_LineFeed);   
+            }
 
             if (var->Type == DebugGlobalVariableType_Group)
             {
@@ -804,25 +955,32 @@ WriteHandmadeConfig(debug_state *debugState)
 internal void
 BeginInteractionWithGlobalVariableState(debug_state *debugState, game_input *input, v2 mouseP)
 {
-    if (debugState->HoverVar) {
-        switch (debugState->HoverVar->Type)
-        {
-        case DebugGlobalVariableType_r32: {
-            debugState->Interaction = DebugInteractionType_Drag;
-        } break;
-        case DebugGlobalVariableType_b32: {
-            debugState->Interaction = DebugInteractionType_Toggle;
-        } break;
-        case DebugGlobalVariableType_Group: {
-            debugState->Interaction = DebugInteractionType_Toggle;
-        } break;
+    if (debugState->HoverInteraction)
+    {
+        debugState->Interaction = debugState->HoverInteraction;
+    }
+    else
+    {
+        if (debugState->HoverVar) {
+            switch (debugState->HoverVar->Type)
+            {
+            case DebugGlobalVariableType_r32: {
+                debugState->Interaction = DebugInteractionType_Drag;
+            } break;
+            case DebugGlobalVariableType_b32: {
+                debugState->Interaction = DebugInteractionType_Toggle;
+            } break;
+            case DebugGlobalVariableType_Group: {
+                debugState->Interaction = DebugInteractionType_Toggle;
+            } break;
+            }
+        } else {
+            debugState->Interaction = DebugInteractionType_Empty;
         }
+    }
 
-        if (debugState->Interaction) {
-            debugState->InteractingVar = debugState->HoverVar;
-        }
-    } else {
-        debugState->Interaction = DebugInteractionType_Empty;
+    if (debugState->Interaction) {
+        debugState->InteractingVar = debugState->HoverVar;
     }
 }
 
@@ -872,13 +1030,19 @@ internal void
 HandleDebugGlobalVariableInteractions(debug_state *debugState, game_input *input, v2 mouseP)
 {
     v2 mousedp = mouseP - debugState->PrevMouseP;
-    
+
     if (debugState->Interaction) {
         if (debugState->InteractingVar)
         {
             // mouse drag
 
             switch (debugState->InteractingVar->Type) {
+            case DebugGlobalVariableType_ProfileGraph: {
+                debugState->InteractingVar->Graph.Dim.x += mousedp.x;
+                debugState->InteractingVar->Graph.Dim.y -= mousedp.y;
+                debugState->InteractingVar->Graph.Dim.x = Maximum(debugState->InteractingVar->Graph.Dim.x, 10.0f);
+                debugState->InteractingVar->Graph.Dim.y = Maximum(debugState->InteractingVar->Graph.Dim.y, 10.0f);
+            } break;
             case DebugGlobalVariableType_r32: {
                 debugState->InteractingVar->Real += 0.1f * mousedp.x;
             } break;
@@ -901,6 +1065,7 @@ HandleDebugGlobalVariableInteractions(debug_state *debugState, game_input *input
         }
     } else {
         debugState->HoverVar = debugState->NextHoverVar;
+        debugState->HoverInteraction = debugState->NextHoverInteraction;
 
         for (
             u32 transitionIndex = input->MouseButtons[PlatformMouseButton_Left].HalfTransitionCount;
@@ -955,7 +1120,7 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
 
         //WriteHandmadeConfig(debugState); // DEBUG
 
-        DrawDebugGlobalVariableMenu(debugState, mouseP);
+        DrawDebugGlobalVariableMenu(debugState, debugState->VariableView, mouseP);
         HandleDebugGlobalVariableInteractions(debugState, input, mouseP);
 
         #if 0
@@ -1021,97 +1186,6 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
         }
 
         #endif
-
-        if (debugState->IsProfileOn) {
-            debugState->ProfileRect = RectMinMax(ToV2(-650.0f, -200.0f), ToV2(-100.0f, 200.0f));
-
-            u32 maxFrameCount = 10;
-            if (debugState->FrameCount < maxFrameCount) {
-                maxFrameCount = debugState->FrameCount;
-            }
-
-            r32 laneHeight = 0;
-            u32 laneCount = debugState->FrameBarLaneCount;
-            r32 barSpacing = 0.5f;
-
-            if (maxFrameCount > 0 && laneCount > 0) {
-                laneHeight = ((GetDim(debugState->ProfileRect).y / maxFrameCount) + barSpacing) / laneCount;
-            }
-        
-            r32 barHeight = laneHeight * laneCount;
-            r32 barHeightAndSpace = barHeight + barSpacing;
-            r32 chartHeight = barHeightAndSpace * maxFrameCount;
-            r32 chartWidth = GetDim(debugState->ProfileRect).x;
-            r32 chartTop = debugState->ProfileRect.Max.y;
-            r32 chartLeft = debugState->ProfileRect.Min.x;
-            r32 scale = 1.0f;
-            if (debugState->MaxValue > 0) {
-                scale = chartWidth / debugState->MaxValue;
-            }
-
-            v4 colors[] = {
-                ToV4(1, 0, 0, 1),
-                ToV4(0, 1, 0, 1),
-                ToV4(0, 0, 1, 1),
-                ToV4(1, 1, 0, 1),
-                ToV4(0, 1, 1, 1),
-                ToV4(1, 0, 1, 1),
-                ToV4(0.5f, 1, 0, 1),
-                ToV4(0, 0.5f, 1, 1),
-                ToV4(1, 0, 0.5f, 1),
-            };
-
-            for (u32 frameIndex=debugState->FrameCount - maxFrameCount;
-                 frameIndex < debugState->FrameCount;
-                 frameIndex++)
-            {
-                debug_frame *frame = debugState->Frames + frameIndex;
-
-                r32 stackX = chartLeft;
-                r32 stackY = chartTop - barHeightAndSpace * (r32) (frameIndex - debugState->FrameCount + maxFrameCount);
-            
-                for (u32 regionIndex=0;
-                     regionIndex < frame->RegionCount;
-                     regionIndex++)
-                {
-                    debug_frame_region *region = frame->Regions + regionIndex;
-
-                    v4 color = colors[regionIndex % ArrayCount(colors)];
-                    r32 thisMinX = stackX + scale * region->MinValue;
-                    r32 thisMaxX = stackX + scale * region->MaxValue;
-
-                    rectangle2 regionRect = RectMinMax(
-                        ToV2(thisMinX, stackY - laneHeight * region->LaneIndex - laneHeight),
-                        ToV2(thisMaxX, stackY - laneHeight * region->LaneIndex)
-                        );
-            
-                    PushPieceRect(debugState->RenderGroup, regionRect, 0.0f, color);
-
-                    if (IsInRectangle(regionRect, mouseP))
-                    {
-                    
-                        debug_record *record = region->Record;
-                        char buffer[256];
-                        _snprintf_s(buffer, 256,
-                                    "%s: %10I64ucy [%s(%d)]",
-                                    record->BlockName,
-                                    region->CycleCount,
-                                    record->FileName,
-                                    record->Line);
-
-                        DebugTextAtPoint(buffer, mouseP, ToV4(1,1,1,1));
-
-                        if (WasPressed(input->MouseButtons[PlatformMouseButton_Left])) {
-                            debugState->ScopeToRecord = record;
-                            debugState->ForceCollcationRefresh = true;
-                            RefreshCollation();
-                        }
-                    }
-
-                    //chartWidth += barWidth + barHeightAndSpace;
-                }
-            }
-        }
 
         //PushPieceRect(debugState->RenderGroup, ToV3(chartLeft + 0.5f * chartWidth, chartMinY + 2.0f * chartHeight, 0), ToV2(chartWidth, 1.0f), ToV4(1, 1, 1, 1));
     }

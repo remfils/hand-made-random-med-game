@@ -8,6 +8,7 @@ enum debug_global_variable_type
     DebugGlobalVariableType_u32,
     DebugGlobalVariableType_r32,
     DebugGlobalVariableType_Group,
+    DebugGlobalVariableType_ProfileGraph,
     DebugGlobalVariableType_Count,
 };
 
@@ -30,11 +31,18 @@ struct debug_global_variable_group
     debug_global_variable *LastChild;
 };
 
+struct debug_global_variable_graph
+{
+    v2 Dim;
+};
+
 struct debug_global_variable {
     char *Name;
     debug_global_variable_type Type;
     debug_global_variable *Next;
     debug_global_variable *Parent;
+
+    b32 IsStored;
 
     union {
         b32 Bool;
@@ -42,6 +50,7 @@ struct debug_global_variable {
         s32 Int;
         r32 Real;
         debug_global_variable_group Group;
+        debug_global_variable_graph Graph;
     };
 };
 
@@ -62,6 +71,12 @@ DebugAddVariable_(debug_global_variable_context *ctx, debug_global_variable_type
     result->Name = (char *)PushCopy(ctx->Arena, StringLength(name) + 1, name);
     result->Type = type;
     result->Next = 0;
+
+    result->IsStored = true;
+
+    if (type == DebugGlobalVariableType_ProfileGraph) {
+        result->IsStored = false;
+    }
 
     debug_global_variable *group = ctx->Group;
     
@@ -125,10 +140,8 @@ DebugEndVariableGroup(debug_global_variable_context *ctx)
 }
 
 internal void
-DEBUGInitVaraibles(debug_state *debugState, memory_arena *arena)
+DEBUGInitVaraibles(debug_global_variable_context *ctx)
 {
-    debug_global_variable_context ctx_ = {debugState, arena};
-    debug_global_variable_context *ctx = &ctx_;
 
 #define DEBUG_GLOBAL_VARIABLE_LINE_b32(name) DebugAddVariable(ctx, #name, (b32)name);
 #define DEBUG_GLOBAL_VARIABLE_LINE_s32(name) DebugAddVariable(ctx, #name, (s32)name);
@@ -137,7 +150,7 @@ DEBUGInitVaraibles(debug_state *debugState, memory_arena *arena)
 
     DebugBeginVariableGroup(ctx, "Root");
 
-    debugState->RootVariable = ctx->Group;
+    ctx->DebugState->RootVariable = ctx->Group;
     
     {
         DebugBeginVariableGroup(ctx, "Camera");
@@ -162,8 +175,6 @@ DEBUGInitVaraibles(debug_state *debugState, memory_arena *arena)
         
         DebugEndVariableGroup(ctx);
     }
-
-    DebugEndVariableGroup(ctx);
 
 #undef DEBUG_GLOBAL_VARIABLE_LINE_b32
 #undef DEBUG_GLOBAL_VARIABLE_LINE_s32
