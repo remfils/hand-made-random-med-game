@@ -24,11 +24,18 @@ enum debug_global_variable_string_flag
 
 struct debug_global_variable;
 
+struct debug_global_variable_reference
+{
+    debug_global_variable *Var;
+    debug_global_variable_reference *Parent;
+    debug_global_variable_reference *Next;
+};
+
 struct debug_global_variable_group
 {
     b32 IsOpen;
-    debug_global_variable *FirstChild;
-    debug_global_variable *LastChild;
+    debug_global_variable_reference *FirstChild;
+    debug_global_variable_reference *LastChild;
 };
 
 struct debug_global_variable_graph
@@ -36,11 +43,11 @@ struct debug_global_variable_graph
     v2 Dim;
 };
 
-struct debug_global_variable {
+
+struct debug_global_variable
+{
     char *Name;
     debug_global_variable_type Type;
-    debug_global_variable *Next;
-    debug_global_variable *Parent;
 
     b32 IsStored;
 
@@ -60,27 +67,34 @@ struct debug_global_variable_context
     debug_state *DebugState;
     memory_arena *Arena;
 
-    debug_global_variable *Group;
+    debug_global_variable_reference *Group;
     
 };
 
-internal debug_global_variable*
-DebugAddVariable_(debug_global_variable_context *ctx, debug_global_variable_type type, char *name)
+internal debug_global_variable *
+DebugAddUnreferencedVariable(debug_state *debugState, debug_global_variable_type type, char *name)
 {
-    debug_global_variable *result = PushStruct(ctx->Arena, debug_global_variable);
-    result->Name = (char *)PushCopy(ctx->Arena, StringLength(name) + 1, name);
+    debug_global_variable *result = PushStruct(&debugState->DebugArena, debug_global_variable);
+    result->Name = (char *)PushCopy(&debugState->DebugArena, StringLength(name) + 1, name);
     result->Type = type;
-    result->Next = 0;
 
     result->IsStored = true;
-
     if (type == DebugGlobalVariableType_ProfileGraph) {
         result->IsStored = false;
     }
 
-    debug_global_variable *group = ctx->Group;
-    
-    result->Parent = group;
+    return result;
+}
+
+internal debug_global_variable_reference*
+DebugAddVariableReference(debug_state *debugState, debug_global_variable_reference *groupRef, debug_global_variable *var)
+{
+    debug_global_variable_reference * result = PushStruct(&debugState->DebugArena, debug_global_variable_reference);
+    result->Var = var;
+    result->Next = 0;
+
+    result->Parent = groupRef;
+    debug_global_variable *group = result->Parent ? result->Parent->Var : 0;
 
     if (group)
     {
@@ -95,40 +109,70 @@ DebugAddVariable_(debug_global_variable_context *ctx, debug_global_variable_type
             group->Group.LastChild = result;
         }
     }
+
+    return result;
+}
+
+internal debug_global_variable_reference*
+DebugAddVariable_(debug_state *debugState, debug_global_variable_reference *groupRef, debug_global_variable_type type, char *name)
+{
+    debug_global_variable *var = DebugAddUnreferencedVariable(debugState, type, name);
+
+    debug_global_variable_reference *result = DebugAddVariableReference(debugState, groupRef, var);
     
     return result;
 }
 
-internal debug_global_variable*
+internal debug_global_variable_reference*
+DebugAddVariable_(debug_global_variable_context *ctx, debug_global_variable_type type, char *name)
+{
+    debug_global_variable *var = DebugAddUnreferencedVariable(ctx->DebugState, type, name);
+
+    debug_global_variable_reference *result = DebugAddVariableReference(ctx->DebugState, ctx->Group, var);
+    
+    return result;
+}
+
+internal debug_global_variable_reference*
 DebugAddVariable(debug_global_variable_context *ctx, char *name, b32 value)
 {
-    debug_global_variable* result = DebugAddVariable_(ctx, DebugGlobalVariableType_b32, name);
-    result->Bool = value;
+    debug_global_variable_reference* result = DebugAddVariable_(ctx, DebugGlobalVariableType_b32, name);
+    result->Var->Bool = value;
     return result;
 }
 
-internal debug_global_variable*
+internal debug_global_variable_reference*
 DebugAddVariable(debug_global_variable_context *ctx, char *name, r32 value)
 {
-    debug_global_variable* result = DebugAddVariable_(ctx, DebugGlobalVariableType_r32, name);
-    result->Real = value;
+    debug_global_variable_reference* result = DebugAddVariable_(ctx, DebugGlobalVariableType_r32, name);
+    result->Var->Real = value;
     return result;
 }
 
-internal debug_global_variable*
+internal debug_global_variable_reference*
 DebugAddVariable(debug_global_variable_context *ctx, char *name, u32 value)
 {
-    debug_global_variable* result = DebugAddVariable_(ctx, DebugGlobalVariableType_u32, name);
-    result->Uint = value;
+    debug_global_variable_reference* result = DebugAddVariable_(ctx, DebugGlobalVariableType_u32, name);
+    result->Var->Uint = value;
+    return result;
+}
+
+internal debug_global_variable_reference *
+DebugNewVariableGroup(char *name, debug_global_variable_context *ctx, debug_state *debugState)
+{
+    debug_global_variable_reference* result = ctx
+        ? DebugAddVariable_(ctx, DebugGlobalVariableType_Group, name)
+        : DebugAddVariable_(debugState, 0, DebugGlobalVariableType_Group, name);
+
+    result->Var->Group.IsOpen = false;
+    result->Var->Group.FirstChild = result->Var->Group.LastChild = 0;
     return result;
 }
 
 internal void
 DebugBeginVariableGroup(debug_global_variable_context *ctx, char *name)
 {
-    debug_global_variable* group = DebugAddVariable_(ctx, DebugGlobalVariableType_Group, name);
-    group->Group.IsOpen = false;
-    group->Group.FirstChild = group->Group.LastChild = 0;
+    debug_global_variable_reference* group = DebugNewVariableGroup(name, ctx, 0);
     ctx->Group = group;
 }
 
@@ -142,7 +186,6 @@ DebugEndVariableGroup(debug_global_variable_context *ctx)
 internal void
 DEBUGInitVaraibles(debug_global_variable_context *ctx)
 {
-
 #define DEBUG_GLOBAL_VARIABLE_LINE_b32(name) DebugAddVariable(ctx, #name, (b32)name);
 #define DEBUG_GLOBAL_VARIABLE_LINE_s32(name) DebugAddVariable(ctx, #name, (s32)name);
 #define DEBUG_GLOBAL_VARIABLE_LINE_u32(name) DebugAddVariable(ctx, #name, (u32)name);
@@ -172,6 +215,7 @@ DEBUGInitVaraibles(debug_global_variable_context *ctx)
             DebugEndVariableGroup(ctx);
         }
         DEBUG_GLOBAL_VARIABLE_LINE_b32(DEBUGUI_ShowLightingSamples);
+        
         
         DebugEndVariableGroup(ctx);
     }

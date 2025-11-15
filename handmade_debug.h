@@ -74,20 +74,25 @@ struct debug_thread
 };
 
 struct debug_global_variable;
+struct debug_global_variable_reference;
 
 enum debug_interaction {
     DebugInteractionType_None,
     DebugInteractionType_Empty,
     DebugInteractionType_Toggle,
     DebugInteractionType_Drag,
-    DebugInteractionType_Tear,
+    DebugInteractionType_Clone,
+    DebugInteractionType_MoveView,
     DebugInteractionType_ResizeProfileGraph,
 };
 
 struct debug_variable_view
 {
     v2 P;
-    debug_global_variable *Root;
+    debug_global_variable_reference *Root;
+
+    debug_variable_view *Prev;
+    debug_variable_view *Next;
 };
 
 struct debug_state
@@ -133,15 +138,19 @@ struct debug_state
     r32 GlobalWidth = 0.0f;
     r32 GlobalHeight = 0.0f;
 
-    debug_global_variable *RootVariable;
-    debug_variable_view VariableView;
+    debug_global_variable_reference *RootVariable;
+
+    debug_variable_view VariableViewSentinel;
+    debug_variable_view *DraggingView;
+    debug_variable_view *NextHoverView;
 
     debug_interaction Interaction;
     debug_interaction HoverInteraction;
     debug_interaction NextHoverInteraction;
-    debug_global_variable *HoverVar;
-    debug_global_variable *NextHoverVar;
-    debug_global_variable *InteractingVar;
+    
+    debug_global_variable_reference *HoverRef;
+    debug_global_variable_reference *NextHoverRef;
+    debug_global_variable_reference *InteractingRef;
 
 
     v2 PrevMouseP;

@@ -27,6 +27,22 @@ DEBUGGetState(void)
     return result;
 }
 
+internal debug_variable_view *
+AddDebugVariableView(debug_state *debugState, debug_global_variable_reference *group, v2 p)
+{
+    debug_variable_view *view = PushStruct(&debugState->DebugArena, debug_variable_view);
+    view->Root = group;
+    view->P = p;
+
+    view->Next = debugState->VariableViewSentinel.Next;
+    view->Prev = &debugState->VariableViewSentinel;
+
+    view->Next->Prev = view;
+    view->Prev->Next = view;
+
+    return view;
+}
+
 internal void
 DEBUGStart(game_memory *memory, game_assets *assets, u32 width, u32 height)
 {
@@ -42,20 +58,24 @@ DEBUGStart(game_memory *memory, game_assets *assets, u32 width, u32 height)
             debugState+1
             );
 
+        debugState->VariableViewSentinel.Next = &debugState->VariableViewSentinel;
+        debugState->VariableViewSentinel.Prev = &debugState->VariableViewSentinel;
+        debugState->VariableViewSentinel.Root = {0};
+        debugState->VariableViewSentinel.P = {0};
+
         debug_global_variable_context ctx_ = {debugState, &debugState->DebugArena};
         debug_global_variable_context *ctx = &ctx_;
 
         DEBUGInitVaraibles(ctx);
 
-        debug_global_variable *prifle = DebugAddVariable_(ctx, DebugGlobalVariableType_ProfileGraph, "Profile Graph");
-        prifle->Graph.Dim.x = 300.0f;
-        prifle->Graph.Dim.y = 100.0f;
+        debug_global_variable_reference *prifle = DebugAddVariable_(ctx, DebugGlobalVariableType_ProfileGraph, "Profile Graph");
+        prifle->Var->Graph.Dim.x = 300.0f;
+        prifle->Var->Graph.Dim.y = 100.0f;
 
-        debugState->VariableView.Root = debugState->RootVariable;
-        debugState->VariableView.P = ToV2(
+        AddDebugVariableView(debugState, debugState->RootVariable, ToV2(
             -0.5f * (r32)width,
             0.5f * (r32)height
-            );
+            ));
 
         if (!debugState->RenderGroup) {
             debugState->RenderGroup = AllocateRenderGroup(
@@ -782,123 +802,153 @@ DrawDebugProfileGraph(debug_state *debugState, rectangle2 bounds, v2 mouseP)
 }
 
 internal void
-DrawDebugGlobalVariableMenu(debug_state *debugState, debug_variable_view variableView, v2 mouseP)
+DrawDebugGlobalVariableMenu(debug_state *debugState, v2 mouseP)
 {
-    debugState->NextHoverVar = 0;
+    debugState->NextHoverRef = 0;
+    debugState->NextHoverView = 0;
     debugState->NextHoverInteraction = DebugInteractionType_None;
     
-    debug_global_variable *var = variableView.Root;
 
-    r32 lineAdvance = GetVerticalLineAdvance(debugState->FontInfo) * debugState->FontScale + 2;
-    r32 textVPosition = variableView.P.y;
-    u32 depth = 0;
-
-    while (var)
+    for (
+        debug_variable_view *variableView = debugState->VariableViewSentinel.Next;
+        variableView != &debugState->VariableViewSentinel;
+        variableView = variableView->Next
+        )
     {
-        char text[256];
-        rectangle2 bounds;
-        b32 isHover = debugState->HoverVar == var;
+        debug_global_variable_reference *ref = variableView->Root->Var->Group.FirstChild;
 
-        v4 textColor = isHover
-            ? ToV4(1,1,0,1)
-            : ToV4(1,1,1,1);
+        r32 lineAdvance = GetVerticalLineAdvance(debugState->FontInfo) * debugState->FontScale + 2;
+        r32 textVPosition = variableView->P.y;
+        u32 depth = 0;
 
-        switch (var->Type)
+        while (ref)
         {
-        case DebugGlobalVariableType_ProfileGraph: {
-            r32 chartWidth = var->Graph.Dim.x;
-            r32 chartHeight = var->Graph.Dim.y;
-            bounds = RectMinMax(
-                ToV2(variableView.P.x, textVPosition - chartHeight), ToV2(variableView.P.x + chartWidth, textVPosition)
-                );
-            DrawDebugProfileGraph(debugState, bounds, mouseP);
+            char text[256];
+            rectangle2 bounds;
+            b32 isHover = debugState->HoverRef == ref;
 
-            rectangle2 sizeHandleRect = RectCenterDim(
-                ToV2(bounds.Max.x, bounds.Min.y),
-                ToV2(8.0f, 8.0f)
-                );
+            v4 textColor = isHover
+                ? ToV4(1,1,0,1)
+                : ToV4(1,1,1,1);
 
-            v4 sizeHandleColor = ToV4(1,1,1,1);
+            switch (ref->Var->Type)
+            {
+            case DebugGlobalVariableType_ProfileGraph: {
+                r32 chartWidth = ref->Var->Graph.Dim.x;
+                r32 chartHeight = ref->Var->Graph.Dim.y;
+                bounds = RectMinMax(
+                    ToV2(variableView->P.x, textVPosition - chartHeight), ToV2(variableView->P.x + chartWidth, textVPosition)
+                    );
+                DrawDebugProfileGraph(debugState, bounds, mouseP);
 
-            if (isHover) {
-                if (debugState->Interaction == DebugInteractionType_ResizeProfileGraph) {
-                    sizeHandleColor = ToV4(0,0,1,1);
-                } else {
-                    sizeHandleColor = ToV4(1,0,0,1);
+                rectangle2 sizeHandleRect = RectCenterDim(
+                    ToV2(bounds.Max.x, bounds.Min.y),
+                    ToV2(8.0f, 8.0f)
+                    );
+
+                v4 sizeHandleColor = ToV4(1,1,1,1);
+
+                if (isHover) {
+                    if (debugState->Interaction == DebugInteractionType_ResizeProfileGraph) {
+                        sizeHandleColor = ToV4(0,0,1,1);
+                    } else {
+                        sizeHandleColor = ToV4(1,0,0,1);
+                    }
                 }
-            }
 
-            if (IsInRectangle(sizeHandleRect, mouseP))
-            {
-                debugState->NextHoverInteraction = DebugInteractionType_ResizeProfileGraph;
-                debugState->NextHoverVar = var;
-            }
-            else if (IsInRectangle(bounds, mouseP))
-            {
-                debugState->NextHoverVar = var;
-            }
+                if (IsInRectangle(sizeHandleRect, mouseP))
+                {
+                    debugState->NextHoverInteraction = DebugInteractionType_ResizeProfileGraph;
+                    debugState->NextHoverRef = ref;
+                }
+                else if (IsInRectangle(bounds, mouseP))
+                {
+                    debugState->NextHoverRef = ref;
+                }
             
-            PushPieceRect(debugState->RenderGroup, sizeHandleRect, 0.0f, sizeHandleColor);
+                PushPieceRect(debugState->RenderGroup, sizeHandleRect, 0.0f, sizeHandleColor);
 
-            textVPosition -= chartHeight;
-        } break;
-        default: {
+                textVPosition -= chartHeight;
+            } break;
+            default: {
 
 #if DEBUGUI_ShowVariableConfigOutput
-            DebugGlobalVariableToString(
-                var, text, text + sizeof(text),
-                DebugGlobalVariableStringFlag_Name
-                | DebugGlobalVariableStringFlag_DotsNameDelimiter
-                | DebugGlobalVariableStringFlag_NullTerminated);
+                DebugGlobalVariableToString(
+                    ref->Var, text, text + sizeof(text),
+                    DebugGlobalVariableStringFlag_Name
+                    | DebugGlobalVariableStringFlag_DotsNameDelimiter
+                    | DebugGlobalVariableStringFlag_NullTerminated);
 #else
 
-            DebugGlobalVariableToString(
-                var, text, text + sizeof(text),
-                DebugGlobalVariableStringFlag_Define
-                | DebugGlobalVariableStringFlag_Name
-                | DebugGlobalVariableStringFlag_PressFForFloat
-                | DebugGlobalVariableStringFlag_LineFeed);
+                DebugGlobalVariableToString(
+                    ref->Var, text, text + sizeof(text),
+                    DebugGlobalVariableStringFlag_Define
+                    | DebugGlobalVariableStringFlag_Name
+                    | DebugGlobalVariableStringFlag_PressFForFloat
+                    | DebugGlobalVariableStringFlag_LineFeed);
 
 #endif
 
-            v2 textP = ToV2(
-                variableView.P.x + lineAdvance * depth,
-                textVPosition - lineAdvance);
-            bounds = DebugTextSize(text);
-            bounds = Offset(bounds, textP);
+                v2 textP = ToV2(
+                    variableView->P.x + lineAdvance * depth,
+                    textVPosition - lineAdvance);
+                bounds = DebugTextSize(text);
+                bounds = Offset(bounds, textP);
+                bounds.Min.y = bounds.Max.y - lineAdvance;
 
-            DebugTextAtPoint(text, textP, textColor);
+                DebugTextAtPoint(text, textP, textColor);
 
-            textVPosition -= lineAdvance;
+                textVPosition -= lineAdvance;
 
-            if (IsInRectangle(bounds, mouseP))
-            {
-                debugState->NextHoverVar = var;
-            }
-        } break;
-        }
-
-        if (var->Type == DebugGlobalVariableType_Group && var->Group.IsOpen)
-        {
-            var = var->Group.FirstChild;
-            depth++;
-        }
-        else
-        {
-            while(var)
-            {
-                if (var->Next)
+                if (IsInRectangle(bounds, mouseP))
                 {
-                    var = var->Next;
-                    break;
+                    debugState->NextHoverRef = ref;
                 }
-                else
+            } break;
+            }
+
+            if (ref->Var->Type == DebugGlobalVariableType_Group && ref->Var->Group.IsOpen)
+            {
+                ref = ref->Var->Group.FirstChild;
+                depth++;
+            }
+            else
+            {
+                while(ref)
                 {
-                    var = var->Parent;
-                    depth--;
+                    if (ref->Next)
+                    {
+                        ref = ref->Next;
+                        break;
+                    }
+                    else
+                    {
+                        ref = ref->Parent;
+                        depth--;
+                    }
                 }
             }
         }
+
+        rectangle2 moveHandleRect = RectCenterDim(
+            variableView->P + ToV2(-3.0f, 3.0f),
+            ToV2(8.0f, 8.0f)
+            );
+
+        v4 moveHandleColor = ToV4(1,1,1,1);
+
+        if (IsInRectangle(moveHandleRect, mouseP))
+        {
+            debugState->NextHoverInteraction = DebugInteractionType_MoveView;
+            debugState->NextHoverView = variableView;
+        }
+
+        if (debugState->DraggingView == variableView)
+        {
+            moveHandleColor = ToV4(1,0,0,1);
+        }
+
+        PushPieceRect(debugState->RenderGroup, moveHandleRect, 0.0f, moveHandleColor);
     }
 }
 
@@ -910,37 +960,37 @@ WriteHandmadeConfig(debug_state *debugState)
 
         char *at = temp;
 
-        debug_global_variable *var = debugState->RootVariable;
+        debug_global_variable_reference *ref = debugState->RootVariable;
 
-        while (var)
+        while (ref)
         {
-            if (var->IsStored) {
+            if (ref->Var->IsStored) {
                 u32 bytesLeftToWrite = (u32)(temp + ArrayCount(temp) - at);
 
                 at += DebugGlobalVariableToString(
-                    var, at, temp + ArrayCount(temp),
+                    ref->Var, at, temp + ArrayCount(temp),
                     DebugGlobalVariableStringFlag_Define
                     | DebugGlobalVariableStringFlag_Name
                     | DebugGlobalVariableStringFlag_PressFForFloat
                     | DebugGlobalVariableStringFlag_LineFeed);   
             }
 
-            if (var->Type == DebugGlobalVariableType_Group)
+            if (ref->Var->Type == DebugGlobalVariableType_Group)
             {
-                var = var->Group.FirstChild;
+                ref = ref->Var->Group.FirstChild;
             }
             else
             {
-                while(var)
+                while(ref)
                 {
-                    if (var->Next)
+                    if (ref->Next)
                     {
-                        var = var->Next;
+                        ref = ref->Next;
                         break;
                     }
                     else
                     {
-                        var = var->Parent;
+                        ref = ref->Parent;
                     }
                 }
             }
@@ -953,7 +1003,7 @@ WriteHandmadeConfig(debug_state *debugState)
 }
 
 internal void
-BeginInteractionWithGlobalVariableState(debug_state *debugState, game_input *input, v2 mouseP)
+BeginInteractionWithGlobalVariableState(debug_state *debugState, game_input *input, v2 mouseP, b32 alternativeUi)
 {
     if (debugState->HoverInteraction)
     {
@@ -961,26 +1011,33 @@ BeginInteractionWithGlobalVariableState(debug_state *debugState, game_input *inp
     }
     else
     {
-        if (debugState->HoverVar) {
-            switch (debugState->HoverVar->Type)
-            {
-            case DebugGlobalVariableType_r32: {
-                debugState->Interaction = DebugInteractionType_Drag;
-            } break;
-            case DebugGlobalVariableType_b32: {
-                debugState->Interaction = DebugInteractionType_Toggle;
-            } break;
-            case DebugGlobalVariableType_Group: {
-                debugState->Interaction = DebugInteractionType_Toggle;
-            } break;
+        if (alternativeUi)
+        {
+            debugState->Interaction = DebugInteractionType_Clone;
+        }
+        else
+        {
+            if (debugState->HoverRef) {
+                switch (debugState->HoverRef->Var->Type)
+                {
+                case DebugGlobalVariableType_r32: {
+                    debugState->Interaction = DebugInteractionType_Drag;
+                } break;
+                case DebugGlobalVariableType_b32: {
+                    debugState->Interaction = DebugInteractionType_Toggle;
+                } break;
+                case DebugGlobalVariableType_Group: {
+                    debugState->Interaction = DebugInteractionType_Toggle;
+                } break;
+                }
+            } else {
+                debugState->Interaction = DebugInteractionType_Empty;
             }
-        } else {
-            debugState->Interaction = DebugInteractionType_Empty;
         }
     }
 
     if (debugState->Interaction) {
-        debugState->InteractingVar = debugState->HoverVar;
+        debugState->InteractingRef = debugState->HoverRef;
     }
 }
 
@@ -988,9 +1045,9 @@ internal void
 EndInteractionWithGlobalVariableState(debug_state *debugState, game_input *input, v2 mouseP)
 {
     if (debugState->Interaction != DebugInteractionType_Empty) {
-        debug_global_variable *var = debugState->InteractingVar;
+        debug_global_variable_reference *ref = debugState->InteractingRef;
         
-        if (var)
+        if (ref)
         {
             b32 doRecompile = false;
 
@@ -1000,14 +1057,14 @@ EndInteractionWithGlobalVariableState(debug_state *debugState, game_input *input
                 doRecompile = true;
             } break;
             case DebugInteractionType_Toggle: {
-                switch (var->Type)
+                switch (ref->Var->Type)
                 {
                 case DebugGlobalVariableType_b32: {
-                    var->Bool = !var->Bool;
+                    ref->Var->Bool = !ref->Var->Bool;
                     doRecompile = true;
                 } break;
                 case DebugGlobalVariableType_Group: {
-                    var->Group.IsOpen = !var->Group.IsOpen;
+                    ref->Var->Group.IsOpen = !ref->Var->Group.IsOpen;
                 } break;
                 }
             } break;
@@ -1022,29 +1079,57 @@ EndInteractionWithGlobalVariableState(debug_state *debugState, game_input *input
     }
     
 
-    debugState->InteractingVar = 0;
+    debugState->InteractingRef = 0;
+    debugState->DraggingView = 0;
     debugState->Interaction = DebugInteractionType_None;
 }
 
 internal void
-HandleDebugGlobalVariableInteractions(debug_state *debugState, game_input *input, v2 mouseP)
+HandleDebugGlobalVariableInteractions(debug_state *debugState, game_input *input, v2 mouseP, b32 alternativeUi)
 {
     v2 mousedp = mouseP - debugState->PrevMouseP;
 
     if (debugState->Interaction) {
-        if (debugState->InteractingVar)
+        if (debugState->InteractingRef)
         {
             // mouse drag
 
-            switch (debugState->InteractingVar->Type) {
-            case DebugGlobalVariableType_ProfileGraph: {
-                debugState->InteractingVar->Graph.Dim.x += mousedp.x;
-                debugState->InteractingVar->Graph.Dim.y -= mousedp.y;
-                debugState->InteractingVar->Graph.Dim.x = Maximum(debugState->InteractingVar->Graph.Dim.x, 10.0f);
-                debugState->InteractingVar->Graph.Dim.y = Maximum(debugState->InteractingVar->Graph.Dim.y, 10.0f);
+            debug_global_variable *var = debugState->InteractingRef->Var;
+
+            switch (debugState->Interaction)
+            {
+            case DebugInteractionType_ResizeProfileGraph: {
+                var->Graph.Dim.x += mousedp.x;
+                var->Graph.Dim.y -= mousedp.y;
+                var->Graph.Dim.x = Maximum(var->Graph.Dim.x, 10.0f);
+                var->Graph.Dim.y = Maximum(var->Graph.Dim.y, 10.0f);
             } break;
-            case DebugGlobalVariableType_r32: {
-                debugState->InteractingVar->Real += 0.1f * mousedp.x;
+            case DebugInteractionType_Drag: {
+                switch (var->Type) {
+                case DebugGlobalVariableType_r32: {
+                    var->Real += 0.1f * mousedp.x;
+                } break;
+                }
+            } break;
+            case DebugInteractionType_Clone: {
+                if (!debugState->DraggingView) {
+                    debug_global_variable_reference *group = DebugNewVariableGroup("CustomGroup", 0, debugState);
+                    group->Var->Group.IsOpen = true;
+                    DebugAddVariableReference(debugState, group, debugState->InteractingRef->Var);
+                    debugState->DraggingView = AddDebugVariableView(debugState, group, mouseP);
+                }
+
+                debugState->DraggingView->P = mouseP;
+                
+            } break;
+            }
+        }
+        else
+        {
+            switch (debugState->Interaction)
+            {
+            case DebugInteractionType_MoveView: {
+                debugState->DraggingView->P = mouseP;
             } break;
             }
         }
@@ -1057,15 +1142,16 @@ HandleDebugGlobalVariableInteractions(debug_state *debugState, game_input *input
             )
         {
             EndInteractionWithGlobalVariableState(debugState, input, mouseP);
-            BeginInteractionWithGlobalVariableState(debugState, input, mouseP);
+            BeginInteractionWithGlobalVariableState(debugState, input, mouseP, alternativeUi);
         }
 
         if (!input->MouseButtons[PlatformMouseButton_Left].EndedDown) {
             EndInteractionWithGlobalVariableState(debugState, input, mouseP);
         }
     } else {
-        debugState->HoverVar = debugState->NextHoverVar;
+        debugState->HoverRef = debugState->NextHoverRef;
         debugState->HoverInteraction = debugState->NextHoverInteraction;
+        debugState->DraggingView = debugState->NextHoverView;
 
         for (
             u32 transitionIndex = input->MouseButtons[PlatformMouseButton_Left].HalfTransitionCount;
@@ -1073,12 +1159,12 @@ HandleDebugGlobalVariableInteractions(debug_state *debugState, game_input *input
             transitionIndex--
             )
         {
-            BeginInteractionWithGlobalVariableState(debugState, input, mouseP);
+            BeginInteractionWithGlobalVariableState(debugState, input, mouseP, alternativeUi);
             EndInteractionWithGlobalVariableState(debugState, input, mouseP);
         }
 
         if (input->MouseButtons[PlatformMouseButton_Left].EndedDown) {
-            BeginInteractionWithGlobalVariableState(debugState, input, mouseP);
+            BeginInteractionWithGlobalVariableState(debugState, input, mouseP, alternativeUi);
         }
     }
 
@@ -1120,8 +1206,13 @@ OverlayDebugCycleCounters(game_memory *memory, game_input *input, loaded_bitmap 
 
         //WriteHandmadeConfig(debugState); // DEBUG
 
-        DrawDebugGlobalVariableMenu(debugState, debugState->VariableView, mouseP);
-        HandleDebugGlobalVariableInteractions(debugState, input, mouseP);
+        b32 useAltUi = input->MouseButtons[PlatformMouseButton_Right].EndedDown;
+        if (useAltUi) {
+            int a = 1;
+        }
+
+        DrawDebugGlobalVariableMenu(debugState, mouseP);
+        HandleDebugGlobalVariableInteractions(debugState, input, mouseP, useAltUi);
 
         #if 0
 
