@@ -9,6 +9,7 @@ enum debug_global_variable_type
     DebugGlobalVariableType_r32,
     DebugGlobalVariableType_Group,
     DebugGlobalVariableType_ProfileGraph,
+    DebugGlobalVariableType_Bitmap,
     DebugGlobalVariableType_Count,
 };
 
@@ -43,6 +44,12 @@ struct debug_global_variable_graph
     v2 Dim;
 };
 
+struct debug_global_variable_bitmap
+{
+    v2 Dim;
+    bitmap_id Id;
+};
+
 
 struct debug_global_variable
 {
@@ -58,6 +65,7 @@ struct debug_global_variable
         r32 Real;
         debug_global_variable_group Group;
         debug_global_variable_graph Graph;
+        debug_global_variable_bitmap Bitmap;
     };
 };
 
@@ -79,7 +87,7 @@ DebugAddUnreferencedVariable(debug_state *debugState, debug_global_variable_type
     result->Type = type;
 
     result->IsStored = true;
-    if (type == DebugGlobalVariableType_ProfileGraph) {
+    if (type == DebugGlobalVariableType_ProfileGraph || type == DebugGlobalVariableType_Bitmap) {
         result->IsStored = false;
     }
 

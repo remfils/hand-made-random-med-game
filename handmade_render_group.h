@@ -126,7 +126,7 @@ struct render_group
     game_assets *Assets;
 
     u32 GenerationId;
-    
+
     v2 MonitorHalfDimInMeters;
     
     // camera parameters for render
@@ -142,6 +142,8 @@ struct render_group
 
     b32 RendersInBackground;
     b32 InsideRender;
+
+    r32 DebugAlignCoef;
 };
 
 struct entity_basis_p_result

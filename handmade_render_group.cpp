@@ -866,6 +866,7 @@ AllocateRenderGroup(memory_arena *arena, game_assets * assets, uint32 maxPushBuf
     result->PushBufferSize = 0;
     result->MissingResourceCount = 0;
     result->RendersInBackground = rendersInBackground;
+    result->DebugAlignCoef = 1.0f;
     
     result->GlobalAlpha = 1.0f;
     result->InsideRender = false;
@@ -991,7 +992,7 @@ GetBitmapDim(render_group *grp, loaded_bitmap *bmp, real32 height, v3 offset)
     
     result.Size = ToV2(height * bmp->WidthOverHeight, height);
     result.Align = Hadamard(bmp->AlignPercent, result.Size);
-    result.P = offset - ToV3(result.Align);
+    result.P = offset - grp->DebugAlignCoef * ToV3(result.Align);
     
     result.BasisResult = GetTopLeftPointForEntityBasis(&grp->Transform, result.P);
 

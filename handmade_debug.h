@@ -76,14 +76,15 @@ struct debug_thread
 struct debug_global_variable;
 struct debug_global_variable_reference;
 
-enum debug_interaction {
+enum debug_interaction_type {
     DebugInteractionType_None,
     DebugInteractionType_Empty,
+    DebugInteractionType_EditVariable,
     DebugInteractionType_Toggle,
     DebugInteractionType_Drag,
     DebugInteractionType_Clone,
-    DebugInteractionType_MoveView,
-    DebugInteractionType_ResizeProfileGraph,
+    DebugInteractionType_Move,
+    DebugInteractionType_Resize,
 };
 
 struct debug_variable_view
@@ -93,6 +94,20 @@ struct debug_variable_view
 
     debug_variable_view *Prev;
     debug_variable_view *Next;
+};
+
+struct debug_interaction
+{
+    debug_interaction_type Type;
+
+    union
+    {
+        void *Ptr;
+        debug_global_variable_reference *VarRef;
+        debug_variable_view *View;
+        v2 *Vector2;
+    };
+    
 };
 
 struct debug_state
@@ -140,17 +155,20 @@ struct debug_state
 
     debug_global_variable_reference *RootVariable;
 
-    debug_variable_view VariableViewSentinel;
-    debug_variable_view *DraggingView;
-    debug_variable_view *NextHoverView;
-
     debug_interaction Interaction;
     debug_interaction HoverInteraction;
     debug_interaction NextHoverInteraction;
-    
-    debug_global_variable_reference *HoverRef;
-    debug_global_variable_reference *NextHoverRef;
-    debug_global_variable_reference *InteractingRef;
+
+    debug_variable_view VariableViewSentinel;
+    //debug_variable_view *DraggingView;
+    //debug_variable_view *NextHoverView;
+
+    //debug_interaction Interaction;
+    //debug_interaction HoverInteraction;
+    //debug_interaction NextHoverInteraction;
+    //debug_global_variable_reference *HoverRef;
+    //debug_global_variable_reference *NextHoverRef;
+    //debug_global_variable_reference *InteractingRef;
 
 
     v2 PrevMouseP;
