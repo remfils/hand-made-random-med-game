@@ -831,6 +831,94 @@ IsInteractionHovered(debug_state *debugState, debug_interaction interaction)
     return InteractionsAreEqual(debugState->HoverInteraction, interaction);
 }
 
+struct variable_view_layout
+{
+    v2 At;
+    debug_state *DebugState;
+    v2 MouseP;
+    r32 LineAdvance;
+    u32 Depth;
+};
+
+struct variable_view_layout_element
+{
+    rectangle2 Bounds;
+    b32 HasSizeHandle;
+    v2 *SizeControl;
+
+    debug_interaction *ElementInteraction;
+};
+
+
+inline variable_view_layout_element
+BeginLayoutElement(variable_view_layout *layout, v2 dim)
+{
+    variable_view_layout_element result = {};
+    result.SizeControl = 0;
+
+    r32 atX = layout->At.x + layout->LineAdvance * layout->Depth;
+    result.Bounds = RectMinMax(
+        ToV2(atX, layout->At.y - dim.y),
+        ToV2(atX + dim.x, layout->At.y)
+        );
+    return result;
+}
+
+inline void
+SetLayoutElementInteraction(variable_view_layout_element *element, debug_interaction *interaction)
+{
+    element->ElementInteraction = interaction;
+}
+
+inline void
+MakeLayoutElementSizable(variable_view_layout_element *element, v2 *sizeControl)
+{
+    element->SizeControl = sizeControl;
+}
+
+inline void
+EndLayoutElement(variable_view_layout *layout, variable_view_layout_element *element)
+{
+    rectangle2 bounds = element->Bounds;
+
+    if (element->ElementInteraction && IsInRectangle(bounds, layout->MouseP))
+    {
+        layout->DebugState->NextHoverInteraction = *element->ElementInteraction;
+    }
+
+    if (element->SizeControl)
+    {
+        r32 sizeHandleSize = 8.0f;
+        rectangle2 sizeHandleRect = RectCenterDim(
+            ToV2(bounds.Max.x, bounds.Min.y),
+            ToV2(sizeHandleSize, sizeHandleSize)
+            );
+
+        debug_interaction sizeInteraction = {};
+        sizeInteraction.Type = DebugInteractionType_Resize;
+        sizeInteraction.Vector2 = element->SizeControl;
+
+        if (IsInRectangle(sizeHandleRect, layout->MouseP))
+        {
+            layout->DebugState->NextHoverInteraction = sizeInteraction;
+        }
+
+        v4 sizeHandleColor = ToV4(1,1,1,1);
+        if (IsInteractionHovered(layout->DebugState, sizeInteraction))
+        {
+            sizeHandleColor = ToV4(0,0,1,1);
+        }
+        else if (IsInteractionActive(layout->DebugState, sizeInteraction))
+        {
+            sizeHandleColor = ToV4(1,0,0,1);
+        }
+
+        PushPieceRect(layout->DebugState->RenderGroup, sizeHandleRect, 0.0f, sizeHandleColor);
+    }
+    
+    layout->At.y -= GetDim(element->Bounds).y;
+}
+
 internal void
 DrawDebugGlobalVariableMenu(debug_state *debugState, v2 mouseP)
 {
@@ -847,15 +935,17 @@ DrawDebugGlobalVariableMenu(debug_state *debugState, v2 mouseP)
     {
         debug_global_variable_reference *ref = variableView->Root->Var->Group.FirstChild;
 
-        r32 lineAdvance = GetVerticalLineAdvance(debugState->FontInfo) * debugState->FontScale + 2;
-        r32 textVPosition = variableView->P.y;
-        u32 depth = 0;
+        variable_view_layout layout = {};
+
+        layout.LineAdvance = GetVerticalLineAdvance(debugState->FontInfo) * debugState->FontScale + 2;
+        layout.DebugState = debugState;
+        layout.At.x = variableView->P.x;
+        layout.At.y = variableView->P.y;
+        layout.Depth = 0;
+        layout.MouseP = mouseP;
 
         while (ref)
         {
-            char text[256];
-            rectangle2 bounds;
-
             debug_interaction varInteraction = {};
             varInteraction.Type = DebugInteractionType_EditVariable;
             varInteraction.VarRef = ref;
@@ -876,86 +966,26 @@ DrawDebugGlobalVariableMenu(debug_state *debugState, v2 mouseP)
                 if (bitmap) {
                     used_bitmap_dim dim = GetBitmapDim(debugState->RenderGroup, bitmap, height, ToV3(0, 0, 0));
 
-                    bounds = RectMinMax(
-                     ToV2(variableView->P.x, textVPosition - height), ToV2(variableView->P.x + dim.Size.x, textVPosition)
-                     );
+                    variable_view_layout_element element = BeginLayoutElement(&layout, dim.Size);
+                    MakeLayoutElementSizable(&element, &ref->Var->Graph.Dim);
+                    SetLayoutElementInteraction(&element, &varInteraction);
 
-                    PushBitmap(debugState->RenderGroup, bitmap, height, ToV3(GetMinCorner(bounds), 0.0f));
+                    PushBitmap(debugState->RenderGroup, bitmap, height, ToV3(GetMinCorner(element.Bounds), 0.0f));
 
-                    rectangle2 sizeHandleRect = RectCenterDim(
-                        ToV2(bounds.Max.x, bounds.Min.y),
-                        ToV2(8.0f, 8.0f)
-                        );
-
-                    debug_interaction sizeInteraction = {};
-                    sizeInteraction.Type = DebugInteractionType_Resize;
-                    sizeInteraction.Vector2 = &ref->Var->Graph.Dim;
-
-                    if (IsInRectangle(sizeHandleRect, mouseP))
-                    {
-                        debugState->NextHoverInteraction = sizeInteraction;
-                    }
-                    else if (IsInRectangle(bounds, mouseP))
-                    {
-                        debugState->NextHoverInteraction = varInteraction;
-                    }
-
-                    v4 sizeHandleColor = ToV4(1,1,1,1);
-                    if (IsInteractionHovered(debugState, sizeInteraction))
-                    {
-                        sizeHandleColor = ToV4(0,0,1,1);
-                    }
-                    else if (IsInteractionActive(debugState, sizeInteraction))
-                    {
-                        sizeHandleColor = ToV4(1,0,0,1);
-                    }
-
-                    PushPieceRect(debugState->RenderGroup, sizeHandleRect, 0.0f, sizeHandleColor);
-
-                    textVPosition -= height;
+                    EndLayoutElement(&layout, &element);
                 }
             } break;
             case DebugGlobalVariableType_ProfileGraph: {
-                r32 chartWidth = ref->Var->Graph.Dim.x;
-                r32 chartHeight = ref->Var->Graph.Dim.y;
-                bounds = RectMinMax(
-                    ToV2(variableView->P.x, textVPosition - chartHeight), ToV2(variableView->P.x + chartWidth, textVPosition)
-                    );
-                DrawDebugProfileGraph(debugState, bounds, mouseP);
+                variable_view_layout_element element = BeginLayoutElement(&layout, ref->Var->Graph.Dim);
+                MakeLayoutElementSizable(&element, &ref->Var->Graph.Dim);
+                SetLayoutElementInteraction(&element, &varInteraction);
 
-                rectangle2 sizeHandleRect = RectCenterDim(
-                    ToV2(bounds.Max.x, bounds.Min.y),
-                    ToV2(8.0f, 8.0f)
-                    );
+                DrawDebugProfileGraph(debugState, element.Bounds, mouseP);
 
-                debug_interaction sizeInteraction = {};
-                sizeInteraction.Type = DebugInteractionType_Resize;
-                sizeInteraction.Vector2 = &ref->Var->Graph.Dim;
-
-                if (IsInRectangle(sizeHandleRect, mouseP))
-                {
-                    debugState->NextHoverInteraction = sizeInteraction;
-                }
-                else if (IsInRectangle(bounds, mouseP))
-                {
-                    debugState->NextHoverInteraction = varInteraction;
-                }
-
-                v4 sizeHandleColor = ToV4(1,1,1,1);
-                if (IsInteractionHovered(debugState, sizeInteraction))
-                {
-                    sizeHandleColor = ToV4(0,0,1,1);
-                }
-                else if (IsInteractionActive(debugState, sizeInteraction))
-                {
-                    sizeHandleColor = ToV4(1,0,0,1);
-                }
-
-                PushPieceRect(debugState->RenderGroup, sizeHandleRect, 0.0f, sizeHandleColor);
-
-                textVPosition -= chartHeight;
+                EndLayoutElement(&layout, &element);
             } break;
             default: {
+            char text[256];
 
 #if DEBUGUI_ShowVariableConfigOutput
                 DebugGlobalVariableToString(
@@ -974,28 +1004,22 @@ DrawDebugGlobalVariableMenu(debug_state *debugState, v2 mouseP)
 
 #endif
 
-                v2 textP = ToV2(
-                    variableView->P.x + lineAdvance * depth,
-                    textVPosition - lineAdvance);
-                bounds = DebugTextSize(text);
-                bounds = Offset(bounds, textP);
-                bounds.Min.y = bounds.Max.y - lineAdvance;
 
-                DebugTextAtPoint(text, textP, textColor);
+                variable_view_layout_element element = BeginLayoutElement(&layout, GetDim(DebugTextSize(text)));
+                element.Bounds.Min.y = element.Bounds.Max.y - layout.LineAdvance;
+                
+                SetLayoutElementInteraction(&element, &varInteraction);
 
-                textVPosition -= lineAdvance;
+                DebugTextAtPoint(text, GetMinCorner(element.Bounds), textColor);
 
-                if (IsInRectangle(bounds, mouseP))
-                {
-                    debugState->NextHoverInteraction = varInteraction;
-                }
+                EndLayoutElement(&layout, &element);
             } break;
             }
 
             if (ref->Var->Type == DebugGlobalVariableType_Group && ref->Var->Group.IsOpen)
             {
                 ref = ref->Var->Group.FirstChild;
-                depth++;
+                layout.Depth++;
             }
             else
             {
@@ -1009,7 +1033,7 @@ DrawDebugGlobalVariableMenu(debug_state *debugState, v2 mouseP)
                     else
                     {
                         ref = ref->Parent;
-                        depth--;
+                        layout.Depth--;
                     }
                 }
             }
